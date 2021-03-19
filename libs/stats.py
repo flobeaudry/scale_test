@@ -312,3 +312,20 @@ class Scale(sel.Data):
                 scale_iter += 1
 
         return data
+
+    def power_law(self, deformation: np.ndarray, alpha: int) -> np.ndarray:
+        """
+        Computes the PDF associated with the deformation. In this case, we assume a power law distribution of the following form: p(dedt) = dedt ** alpha.
+
+        Args:
+            deformation (np.ndarray): Deformation field of size (...,)
+            alpha (int): exponent of the tail of the PDF
+
+        Returns:
+            np.ndarray: Probability Density Function
+        """
+        return deformation ** alpha
+
+    def MLE_exponent(self, deformation: np.ndarray) -> int:
+
+        return alpha
