@@ -6,6 +6,7 @@
 /output40/
 /spin_up10/
 /spin_up40/
+*.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
