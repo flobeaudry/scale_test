@@ -21,6 +21,7 @@
 
 import numpy as np
 import libs.selection as sel
+import matplotlib.pyplot as plt
 
 
 class Scale(sel.Data):
@@ -297,6 +298,24 @@ class Scale(sel.Data):
 
         return data
 
+    def _clean(self, data: np.ndarray) -> np.ndarray:
+        """
+        Function that cleans the data for statistics.
+
+        Args:
+            data (np.ndarray): unclean data
+
+        Returns:
+            np.ndarray: clean data
+        """
+        # clean data of non contributing NaNs
+        deformation = data[..., 0].flatten()
+        deformation = np.where(deformation >= 0.005, deformation, np.NaN)
+        nas = np.isnan(deformation)
+        deformation = deformation[~nas]
+
+        return deformation
+
     def _power_law(self, deformation: np.ndarray, alpha: int) -> np.ndarray:
         """
         Computes the PDF associated with the deformation. In this case, we assume a power law distribution of the following form: p(dedt) = dedt ** alpha.
@@ -310,7 +329,7 @@ class Scale(sel.Data):
         """
         return deformation ** alpha
 
-    def MLE_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
+    def mle_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
         """
         Computes the exponent alpha of the power law.
 
@@ -321,17 +340,12 @@ class Scale(sel.Data):
         Returns:
             int: exponent (slope in log-log) of the power law distribution.
         """
-        # clean data of non contributing NaNs
-        deformation = data[..., 0].flatten()
-        deformation = np.where(deformation >= 0.005, deformation, np.NaN)
-        nas = np.isnan(deformation)
-        deformation = deformation[~nas]
 
         # count the number of deformations (equivalent to the sum of the number of boxes in each scale)
-        N = np.count_nonzero(deformation)
+        N = np.count_nonzero(data)
 
         # compute alpha
-        alpha = 1 + N * (np.sum(np.log(deformation / minimum_deformation))) ** (-1)
+        alpha = 1 + N * (np.sum(np.log(data / minimum_deformation))) ** (-1)
 
         return alpha
 
@@ -347,49 +361,57 @@ class Scale(sel.Data):
             np.ndarray: proportional values of sample (y axis)
         """
 
-        # clean data of non contributing NaNs
-        deformation = data[..., 0].flatten()
-        deformation = np.where(deformation >= 0.005, deformation, np.NaN)
-        nas = np.isnan(deformation)
-        deformation = deformation[~nas]
-
         # y axis for the data
-        cdf_norm = np.linspace(0, 1, len(deformation))
+        cdf_norm = np.linspace(0, 1, len(data))
 
-        return np.sort(deformation), cdf_norm
+        return np.sort(data), cdf_norm
 
     def ks_distance_minimizer(
-        self, cdf_data: np.ndarray, cdf_norm: np.ndarray, end: int = -1000
+        self, pdf_data: np.ndarray, pdf_norm: np.ndarray, end: int = -10
     ) -> float:
         """
         Function that minimizes the kolmogorov-smirnov distance. This is a measure of the distance betweeen the CDF of the data and the CDF of the fit/observations.
 
         Args:
-            cdf_data (np.ndarray): proprocessed data on which to perform the algo.
-            cdf_norm (np.ndarray): y axis corresponding to the data.
+            pdf_data (np.ndarray): proprocessed data on which to perform the algo.
+            pdf_norm (np.ndarray): y axis corresponding to the data.
             end (int, optional): final data point on which to perform the algo. Just to get rid of cases where we try ti fit less than ten points in the CDF.
 
         Returns:
-            float: deformaiton for which the ks distance in minimal.
-            float: minimum ks distance.
+            dedt_min (float): deformation for which the ks distance in minimal.
+            ks_dist_min (float): minimum ks distance.
+            polynomial (np.poly1D): polynomial that fits the pdf the best.
         """
 
         # initialize Kolmogorov-Smirnov array
-        ks_dist = np.empty_like(cdf_data[:end])
+        ks_dist = np.empty_like(pdf_data[:end])
+        n = np.logspace(np.log10(5e-3), 0, num=50)
 
         # loop over all possible dedt_min
         for i in range(len(ks_dist)):
             # fit for values over dedt_min
-            coefficients = np.polyfit(cdf_data[i:], cdf_norm[i:], 1)
-            fit = self._power_law(cdf_data[i:], coefficients[0])
-            cdf_fit, _ = self.cumul_dens_func(fit)
+            coefficients = np.polyfit(np.log(pdf_data[i:]), np.log(pdf_norm[i:]), 1)
+            fit = self._power_law(pdf_data[i:], coefficients[0])
+            cdf_fit = self.cumul_dens_func(fit[i:])
+            p, x = np.histogram(cdf_fit, bins=n, density=1)
 
-            ks_dist[i] = np.max(np.abs(cdf_data[i:] - cdf_fit))
-            if i % 1000 == 0:
-                print("Done with deformation index {}/{}.".format(i, len(ks_dist) - 1))
+            # convert bin edges to centers
+            x = (x[:-1] + x[1:]) / 2
+
+            # compute CDF
+            cdf_fit, _ = self.cumul_dens_func(x[i:])
+            cdf_data, _ = self.cumul_dens_func(pdf_data[i:])
+
+            # compute kolmogorov-smirnov distance
+            ks_dist[i] = np.max(np.abs(cdf_data - cdf_fit))
+            print("Done with deformation {}/{}.".format(i + 1, len(ks_dist)))
 
         # extract index of min value
         min_index = np.where(ks_dist == np.min(ks_dist))
-        dedt_min = cdf_data[min_index]
+        dedt_min = pdf_data[min_index]
+        print(ks_dist)
 
-        return dedt_min, ks_dist[min_index]
+        # polynomial for the graph
+        polynomial = np.poly1d(coefficients)
+
+        return dedt_min, ks_dist[min_index], polynomial
