@@ -21,20 +21,20 @@
 #
 #
 #   TODO (eventually):
-#   do a film of many snapshots (daily). To do this, load all
+#   -do a film of many snapshots (daily). To do this, load all
 #   files into a numpy array (formated) 24 fps = 15 sec/year
 #   Simply have to do the same code as here but put it in a
 #   loop over the time variable in order to read and load
 #   all files of a given experience. Could be done in the
 #   same module but in a new function to not overwrite
 #   these ones.
+#   -combine load and multi_load so that you can call only module to
+#   load anytype of data.
 # ----------------------------------------------------------------------
 
 import numpy as np
 from os import path, listdir
 from datetime import datetime, timedelta
-
-from numpy.lib.index_tricks import nd_grid
 
 
 class Data:
@@ -85,6 +85,10 @@ class Data:
 
             nx, ny (int, optional): number of cells in each direction.
         """
+
+        print(
+            "\nWelcome in the data loader routine! To cancel selection, enter exit or quit."
+        )
 
         self.directory = directory
         self.time = time
