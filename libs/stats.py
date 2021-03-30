@@ -6,9 +6,15 @@
 #   It does not plot anything. To do this, go to visualization module.
 #
 #   TODO:
-#   -compute KS distance
+#   DONE    compute KS distance for dedt_min
 #   -compute time scaling
-#   -compute space scaling
+#   DONE    compute space scaling
+#   DONE    compute mask for all boxes
+#   DONE    compute time average for 3 days
+#   DONE    compute power law from data
+#   DONE    compute CDF with histogram
+#   DONE    compute alpha (exponent)
+#   -verify that every things works.
 #
 #   CANCELED  compute lagrangian trajectories from eulerian ones
 # ----------------------------------------------------------------------
@@ -149,34 +155,12 @@ class Scale(sel.Data):
 
         return np.stack(data_time_mean, axis=-1)
 
-    def _grid_size(self):
-        # cartesian coordonates on the plane for the corners of the cells
-        x0 = np.arange(self.nx + 1) * self.resolution - 2500
-        y0 = np.arange(self.ny + 1) * self.resolution - 2250
-
-        lon, lat = np.radians(self._coordinates(x0, y0)[0]), np.radians(
-            self._coordinates(x0, y0)[1]
-        )
-
-        lon = np.abs(lon[1:, :] - lon[:-1, :])
-        lat = np.abs(lat[:, 1:] - lat[:, :-1])
-
-        areas = (
-            2
-            * self.R_EARTH ** 2
-            * np.arcsin(
-                np.tan(lon / (2 * self.R_EARTH)) * np.tan(lat / (2 * self.R_EARTH))
-            )
-        )
-
-        return areas * self.R_EARTH ** 2
-
     def spatial_mean_box(
         self,
         formated_data: np.ndarray,
         scales: list,
         dt: str = None,
-        deformation: bool = 0,
+        from_velocity: bool = 0,
     ) -> np.ndarray:
         """
         Function that computes the lenght and deformation rate means over all boxes and all scales for all period of 3 days.
@@ -199,7 +183,7 @@ class Scale(sel.Data):
             formated_data = self._time_average(formated_data, dt)
 
             # computes the deformation rates
-            if deformation:
+            if from_velocity:
                 formated_data = self._deformation(formated_data)
 
             # computes all the areas
@@ -262,7 +246,7 @@ class Scale(sel.Data):
         # when we do this procedure on snapshots instead of time averages
         else:
             # computes the deformation rates
-            if deformation:
+            if from_velocity:
                 formated_data = self._deformation(formated_data)
 
             # computes all the areas
@@ -313,7 +297,7 @@ class Scale(sel.Data):
 
         return data
 
-    def power_law(self, deformation: np.ndarray, alpha: int) -> np.ndarray:
+    def _power_law(self, deformation: np.ndarray, alpha: int) -> np.ndarray:
         """
         Computes the PDF associated with the deformation. In this case, we assume a power law distribution of the following form: p(dedt) = dedt ** alpha.
 
@@ -326,6 +310,86 @@ class Scale(sel.Data):
         """
         return deformation ** alpha
 
-    def MLE_exponent(self, deformation: np.ndarray) -> int:
+    def MLE_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
+        """
+        Computes the exponent alpha of the power law.
+
+        Args:
+            data (np.ndarray): array of all the deformations
+            minimum_deformation (float): deformation at which the PDF is exhibiting a power law behaviour. It is to only get the tail of the PDF.
+
+        Returns:
+            int: exponent (slope in log-log) of the power law distribution.
+        """
+        # clean data of non contributing NaNs
+        deformation = data[..., 0].flatten()
+        deformation = np.where(deformation >= 0.005, deformation, np.NaN)
+        nas = np.isnan(deformation)
+        deformation = deformation[~nas]
+
+        # count the number of deformations (equivalent to the sum of the number of boxes in each scale)
+        N = np.count_nonzero(deformation)
+
+        # compute alpha
+        alpha = 1 + N * (np.sum(np.log(deformation / minimum_deformation))) ** (-1)
 
         return alpha
+
+    def cumul_dens_func(self, data: np.ndarray) -> np.ndarray:
+        """
+        Computes the CDF of the data simply by sorting the array from the smallest value to the biggest.
+
+        Args:
+            data (np.ndarray): data from which to compute the CDF
+
+        Returns:
+            np.ndarray: sorted data set
+            np.ndarray: proportional values of sample (y axis)
+        """
+
+        # clean data of non contributing NaNs
+        deformation = data[..., 0].flatten()
+        deformation = np.where(deformation >= 0.005, deformation, np.NaN)
+        nas = np.isnan(deformation)
+        deformation = deformation[~nas]
+
+        # y axis for the data
+        cdf_norm = np.linspace(0, 1, len(deformation))
+
+        return np.sort(deformation), cdf_norm
+
+    def ks_distance_minimizer(
+        self, cdf_data: np.ndarray, cdf_norm: np.ndarray, end: int = -1000
+    ) -> float:
+        """
+        Function that minimizes the kolmogorov-smirnov distance. This is a measure of the distance betweeen the CDF of the data and the CDF of the fit/observations.
+
+        Args:
+            cdf_data (np.ndarray): proprocessed data on which to perform the algo.
+            cdf_norm (np.ndarray): y axis corresponding to the data.
+            end (int, optional): final data point on which to perform the algo. Just to get rid of cases where we try ti fit less than ten points in the CDF.
+
+        Returns:
+            float: deformaiton for which the ks distance in minimal.
+            float: minimum ks distance.
+        """
+
+        # initialize Kolmogorov-Smirnov array
+        ks_dist = np.empty_like(cdf_data[:end])
+
+        # loop over all possible dedt_min
+        for i in range(len(ks_dist)):
+            # fit for values over dedt_min
+            coefficients = np.polyfit(cdf_data[i:], cdf_norm[i:], 1)
+            fit = self._power_law(cdf_data[i:], coefficients[0])
+            cdf_fit, _ = self.cumul_dens_func(fit)
+
+            ks_dist[i] = np.max(np.abs(cdf_data[i:] - cdf_fit))
+            if i % 1000 == 0:
+                print("Done with deformation index {}/{}.".format(i, len(ks_dist) - 1))
+
+        # extract index of min value
+        min_index = np.where(ks_dist == np.min(ks_dist))
+        dedt_min = cdf_data[min_index]
+
+        return dedt_min, ks_dist[min_index]
