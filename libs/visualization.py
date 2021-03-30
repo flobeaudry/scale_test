@@ -298,32 +298,28 @@ class Arctic(sts.Scale):
 
     def pdf_plot(self, data: np.ndarray):
 
+        data = self._clean(data)
+
         # get correct data from box data
-        cdf_data, cdf_norm = self.cumul_dens_func(data)
+        cdf_data, _ = self.cumul_dens_func(data)
         n = np.logspace(np.log10(5e-3), 0, num=50)
         p, x = np.histogram(cdf_data, bins=n, density=1)
 
         # convert bin edges to centers
         x = (x[:-1] + x[1:]) / 2
 
-        # coefficients = np.polyfit(np.log10(x), np.log10(y), 1)
-        # polynomial = np.poly1d(coefficients)
-        # log10_y_fit = polynomial(np.log10(x))  # <-- Changed
+        dedt_min, ks_dist, polynomial = self.ks_distance_minimizer(x, p)
+        t = np.linspace(dedt_min, x[-1], 10)
 
-        # plt.plot(x, y, "o-")
-        # plt.plot(x, 10 ** log10_y_fit, "*-")  # <-- Changed
-        # plt.yscale("log")
-        # plt.xscale("log")
-
-        dedt_min = 0.04
         alpha = -2.5
         fit = self._power_law(x, alpha)
 
         # plots
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
-        ax.loglog(x, p, color="black")
-        ax.loglog(x[25:], fit[25:], "--", color="red")
+        ax.plot(x, p, color="black")
+        ax.plot(t, np.exp(polynomial(np.log(t))), "--", color="red")
+        ax.plot(x[25:], fit[25:], "--", color="blue")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(
@@ -338,5 +334,36 @@ class Arctic(sts.Scale):
         # axe labels
         ax.set_xlabel("Total deformation rate [day$^{-1}$]")
         ax.set_ylabel("PDF")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
         if self.save:
             fig.savefig("images/pdf{}.{}".format(self.resolution, self.fig_type))
+
+    def cdf_plot(self, data: np.ndarray):
+
+        data = self._clean(data)
+
+        # get correct data from box data
+        cdf_data, cdf_norm = self.cumul_dens_func(data)
+
+        # plots
+        fig = plt.figure(dpi=300, figsize=(6, 4))
+        ax = plt.subplot()
+        ax.plot(cdf_data, cdf_norm, color="black")
+        # ticks
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        # axe labels
+        ax.set_xlabel("Total deformation rate [day$^{-1}$]")
+        ax.set_ylabel("CDF")
+        ax.set_xscale("log")
+        if self.save:
+            fig.savefig("images/cdf{}.{}".format(self.resolution, self.fig_type))
