@@ -10,6 +10,8 @@
 #   DONE    try to get better plots with fancy ellipsoid
 #   -define function that makes a movie of the data
 #   -better arrow representation for u data
+#   -pdf plot with fit on it
+#   -cdf plot
 #
 #   TODO (eventually):
 #
@@ -235,7 +237,7 @@ class Arctic(sts.Scale):
         if self.save:
             fig.savefig("images/" + self.datatype + "." + self.fig_type)
 
-    def scale_plot(self, formated_data: np.ndarray, scales: list):
+    def scale_plot(self, deformation: np.ndarray, scales: list):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
 
@@ -244,33 +246,97 @@ class Arctic(sts.Scale):
 
             scales (list): list of all scales under study.
         """
-        fig = plt.figure(dpi=300)
+        fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
         # initialization of the list containing the means
-        mean_def = []
-        mean_scale = []
+        mean_def = np.empty(len(scales))
+        mean_scale = np.empty(len(scales))
         # loop over the scales
         for k in range(len(scales)):
             # compute the means, ignoring NaNs
-            mean_def.append(np.nanmean(formated_data[k, :, 0]))
-            mean_scale.append(np.nanmean(formated_data[k, :, 1]))
-            ax.loglog(
-                formated_data[k, :, 1], formated_data[k, :, 0], ".", color="black"
+            mean_def[k] = np.nanmean(deformation[k, :, 0])
+            mean_scale[k] = np.nanmean(deformation[k, :, 1])
+            ax.plot(
+                deformation[k, :, 1],
+                deformation[k, :, 0],
+                ".",
+                color="black",
+                markersize=3,
             )
         # linear regression over the means
-        z = np.polyfit(mean_scale, mean_def, 1)
-        p = np.poly1d(z)
-        t = np.linspace(mean_scale[0], mean_scale[-1], 100)
+        coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
+        polynomial = np.poly1d(coefficients)
+        t = np.linspace(mean_scale[0], mean_scale[-1], 10)
 
-        # corrolation
-        corr, _ = pearsonr(
-            formated_data[..., 1].flatten(), formated_data[..., 0].flatten()
-        )
+        # correlation
+        corr, _ = pearsonr(mean_scale, mean_def)
 
         # plots
-        ax.loglog(mean_scale, mean_def, "v", color="darkgray")
-        ax.loglog(t, p(t), color="darkgray")
+        ax.plot(mean_scale, mean_def, "v", color="darkgray")
+        ax.plot(t, np.exp(polynomial(np.log(t))), color="darkgray")
+        # ticks
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        # axe labels
         ax.set_xlabel("Spatial scale [km]")
         ax.set_ylabel("Total deformation rate [day$^{-1}$]")
-        ax.set_title("H = {0:2f}, corr = {}".format(z[0], corr))
-        fig.savefig("images/spatial_scale{}.{}".format(self.resolution, self.fig_type))
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
+        if self.save:
+            fig.savefig(
+                "images/spatial_scale{}.{}".format(self.resolution, self.fig_type)
+            )
+
+    def pdf_plot(self, data: np.ndarray):
+
+        # get correct data from box data
+        cdf_data, cdf_norm = self.cumul_dens_func(data)
+        n = np.logspace(np.log10(5e-3), 0, num=50)
+        p, x = np.histogram(cdf_data, bins=n, density=1)
+
+        # convert bin edges to centers
+        x = (x[:-1] + x[1:]) / 2
+
+        # coefficients = np.polyfit(np.log10(x), np.log10(y), 1)
+        # polynomial = np.poly1d(coefficients)
+        # log10_y_fit = polynomial(np.log10(x))  # <-- Changed
+
+        # plt.plot(x, y, "o-")
+        # plt.plot(x, 10 ** log10_y_fit, "*-")  # <-- Changed
+        # plt.yscale("log")
+        # plt.xscale("log")
+
+        dedt_min = 0.04
+        alpha = -2.5
+        fit = self._power_law(x, alpha)
+
+        # plots
+        fig = plt.figure(dpi=300, figsize=(6, 4))
+        ax = plt.subplot()
+        ax.loglog(x, p, color="black")
+        ax.loglog(x[25:], fit[25:], "--", color="red")
+        # ticks
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        # axe labels
+        ax.set_xlabel("Total deformation rate [day$^{-1}$]")
+        ax.set_ylabel("PDF")
+        if self.save:
+            fig.savefig("images/pdf{}.{}".format(self.resolution, self.fig_type))
