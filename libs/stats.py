@@ -21,7 +21,6 @@
 
 import numpy as np
 import libs.selection as sel
-import matplotlib.pyplot as plt
 
 
 class Scale(sel.Data):
@@ -316,19 +315,6 @@ class Scale(sel.Data):
 
         return deformation
 
-    def _power_law(self, deformation: np.ndarray, alpha: int) -> np.ndarray:
-        """
-        Computes the PDF associated with the deformation. In this case, we assume a power law distribution of the following form: p(dedt) = dedt ** alpha.
-
-        Args:
-            deformation (np.ndarray): Deformation field of size (...,)
-            alpha (int): exponent of the tail of the PDF
-
-        Returns:
-            np.ndarray: Probability Density Function
-        """
-        return deformation ** alpha
-
     def mle_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
         """
         Computes the exponent alpha of the power law.
@@ -380,38 +366,27 @@ class Scale(sel.Data):
         Returns:
             dedt_min (float): deformation for which the ks distance in minimal.
             ks_dist_min (float): minimum ks distance.
-            polynomial (np.poly1D): polynomial that fits the pdf the best.
+            fit (np.poly1D): polynomial that fits the pdf the best.
         """
 
         # initialize Kolmogorov-Smirnov array
         ks_dist = np.empty_like(pdf_data[:end])
-        n = np.logspace(np.log10(5e-3), 0, num=50)
 
         # loop over all possible dedt_min
         for i in range(len(ks_dist)):
             # fit for values over dedt_min
             coefficients = np.polyfit(np.log(pdf_data[i:]), np.log(pdf_norm[i:]), 1)
-            fit = self._power_law(pdf_data[i:], coefficients[0])
-            cdf_fit = self.cumul_dens_func(fit[i:])
-            p, x = np.histogram(cdf_fit, bins=n, density=1)
-
-            # convert bin edges to centers
-            x = (x[:-1] + x[1:]) / 2
+            fit = np.poly1d(coefficients)
 
             # compute CDF
-            cdf_fit, _ = self.cumul_dens_func(x[i:])
+            cdf_fit, _ = self.cumul_dens_func(np.exp(fit(np.log(pdf_data[i:]))))
             cdf_data, _ = self.cumul_dens_func(pdf_data[i:])
 
             # compute kolmogorov-smirnov distance
             ks_dist[i] = np.max(np.abs(cdf_data - cdf_fit))
-            print("Done with deformation {}/{}.".format(i + 1, len(ks_dist)))
 
         # extract index of min value
         min_index = np.where(ks_dist == np.min(ks_dist))
         dedt_min = pdf_data[min_index]
-        print(ks_dist)
 
-        # polynomial for the graph
-        polynomial = np.poly1d(coefficients)
-
-        return dedt_min, ks_dist[min_index], polynomial
+        return dedt_min, ks_dist[min_index], fit

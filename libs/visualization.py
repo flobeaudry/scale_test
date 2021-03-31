@@ -301,25 +301,22 @@ class Arctic(sts.Scale):
         data = self._clean(data)
 
         # get correct data from box data
-        cdf_data, _ = self.cumul_dens_func(data)
-        n = np.logspace(np.log10(5e-3), 0, num=50)
-        p, x = np.histogram(cdf_data, bins=n, density=1)
+        n = np.logspace(np.log10(5e-3), 0, num=100)
+        p, x = np.histogram(data, bins=n, density=1)
 
         # convert bin edges to centers
         x = (x[:-1] + x[1:]) / 2
 
+        # compute best estimator
         dedt_min, ks_dist, polynomial = self.ks_distance_minimizer(x, p)
         t = np.linspace(dedt_min, x[-1], 10)
-
-        alpha = -2.5
-        fit = self._power_law(x, alpha)
+        alpha = self.mle_exponent(x, dedt_min)
 
         # plots
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
         ax.plot(x, p, color="black")
         ax.plot(t, np.exp(polynomial(np.log(t))), "--", color="red")
-        ax.plot(x[25:], fit[25:], "--", color="blue")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(
@@ -336,6 +333,9 @@ class Arctic(sts.Scale):
         ax.set_ylabel("PDF")
         ax.set_xscale("log")
         ax.set_yscale("log")
+        ax.set_title(
+            r"$\alpha$ = {:.2f}, KS-distance = {:.2f}".format(alpha, ks_dist[0])
+        )
         if self.save:
             fig.savefig("images/pdf{}.{}".format(self.resolution, self.fig_type))
 

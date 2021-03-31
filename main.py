@@ -14,15 +14,15 @@ import numpy as np
 
 dataset10 = vis.Arctic(
     directory="spin_up10",
-    time="1986-01-01-00-00",
-    expno="03",
+    time="1976-01-01-00-00",
+    expno="05",
     datatype="dedt",
     fig_shape="round",
     save=1,
     resolution=10,
 )
 
-# dataset.arctic_plot(dataset.load())
+# dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
 L10 = [20, 40, 80, 160, 320, 640]
@@ -32,7 +32,7 @@ time_end = "1997-03-31-00-00"
 
 # compute all mean deformations in boxes
 # data_box40 = dataset40.spatial_mean_box(dataset10.multi_load(dt, time_end), L, dt)
-# data_box10 = dataset10.spatial_mean_box(dataset10.load(), L, dt)
+# data_box10 = dataset10.spatial_mean_box(dataset10.load(), L10, dt)
 
 # save data in file
 # np.save("data10.npy", data_box10)
