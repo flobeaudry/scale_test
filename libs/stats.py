@@ -367,8 +367,8 @@ class Scale(sel.Data):
 
         Returns:
             dedt_min (float): deformation for which the ks distance in minimal.
-            ks_dist_min (float): minimum ks distance.
-            fit (np.poly1D): polynomial that fits the pdf the best.
+            min_ks (float): minimum ks distance.
+            best_fit (np.poly1D): polynomial that fits the pdf the best.
             min_index (float): index of the minimum.
         """
 
@@ -389,11 +389,12 @@ class Scale(sel.Data):
             ks_dist[i] = np.max(np.abs(cdf_data - cdf_fit))
 
         # extract index of min value
-        min_index = np.where(ks_dist == np.min(ks_dist))
+        min_index = np.where(ks_dist == np.min(ks_dist))[0][0]
         dedt_min = pdf_data[min_index]
+        min_ks = ks_dist[min_index]
         coefficients = np.polyfit(
-            np.log(pdf_data[min_index[0][0] :]), np.log(pdf_norm[min_index[0][0] :]), 1
+            np.log(pdf_data[min_index:]), np.log(pdf_norm[min_index:]), 1
         )
         best_fit = np.poly1d(coefficients)
 
-        return dedt_min[0], ks_dist[min_index][0], best_fit, min_index[0][0]
+        return dedt_min, min_ks, best_fit, min_index
