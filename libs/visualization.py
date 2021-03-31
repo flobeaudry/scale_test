@@ -297,25 +297,30 @@ class Arctic(sts.Scale):
             )
 
     def pdf_plot(self, data: np.ndarray):
+        """
+        Function that computes the PDF plot with the MLE fit.
 
+        Args:
+            data (np.ndarray): Data from box data.
+        """
         data = self._clean(data)
 
         # get correct data from box data
-        n = np.logspace(np.log10(5e-3), 0, num=100)
+        n = np.logspace(np.log10(5e-3), 0, num=50)
         p, x = np.histogram(data, bins=n, density=1)
 
         # convert bin edges to centers
         x = (x[:-1] + x[1:]) / 2
 
         # compute best estimator
-        dedt_min, ks_dist, polynomial = self.ks_distance_minimizer(x, p)
+        dedt_min, ks_dist, polynomial, min_index = self.ks_distance_minimizer(x, p)
         t = np.linspace(dedt_min, x[-1], 10)
-        alpha = self.mle_exponent(x, dedt_min)
+        alpha, sigma = self.mle_exponent(x[min_index:], dedt_min)
 
         # plots
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
-        ax.plot(x, p, color="black")
+        ax.plot(x, p, "o", color="black", markersize=3)
         ax.plot(t, np.exp(polynomial(np.log(t))), "--", color="red")
         # ticks
         ax.grid(linestyle=":")
@@ -334,12 +339,20 @@ class Arctic(sts.Scale):
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_title(
-            r"$\alpha$ = {:.2f}, KS-distance = {:.2f}".format(alpha, ks_dist[0])
+            r"$\hat\alpha$ = {:.1f}$\pm${:.1f}, KS-distance = {:.2f}".format(
+                alpha, sigma, ks_dist
+            )
         )
         if self.save:
             fig.savefig("images/pdf{}.{}".format(self.resolution, self.fig_type))
 
     def cdf_plot(self, data: np.ndarray):
+        """
+        Function that computes the CDF plot of data.
+
+        Args:
+            data (np.ndarray): Data from box data.
+        """
 
         data = self._clean(data)
 

@@ -324,16 +324,18 @@ class Scale(sel.Data):
             minimum_deformation (float): deformation at which the PDF is exhibiting a power law behaviour. It is to only get the tail of the PDF.
 
         Returns:
-            int: exponent (slope in log-log) of the power law distribution.
+            alpha (float): exponent (slope in log-log) of the power law distribution.
+            sigma (float): error
         """
 
         # count the number of deformations (equivalent to the sum of the number of boxes in each scale)
-        N = np.count_nonzero(data)
+        n = np.count_nonzero(data)
 
         # compute alpha
-        alpha = 1 + N * (np.sum(np.log(data / minimum_deformation))) ** (-1)
+        alpha = 1 + n * (np.sum(np.log(data / minimum_deformation))) ** (-1)
+        sigma = (alpha - 1) / np.sqrt(n)
 
-        return alpha
+        return alpha, sigma
 
     def cumul_dens_func(self, data: np.ndarray) -> np.ndarray:
         """
@@ -353,7 +355,7 @@ class Scale(sel.Data):
         return np.sort(data), cdf_norm
 
     def ks_distance_minimizer(
-        self, pdf_data: np.ndarray, pdf_norm: np.ndarray, end: int = -10
+        self, pdf_data: np.ndarray, pdf_norm: np.ndarray, end: int = -5
     ) -> float:
         """
         Function that minimizes the kolmogorov-smirnov distance. This is a measure of the distance betweeen the CDF of the data and the CDF of the fit/observations.
@@ -361,12 +363,13 @@ class Scale(sel.Data):
         Args:
             pdf_data (np.ndarray): proprocessed data on which to perform the algo.
             pdf_norm (np.ndarray): y axis corresponding to the data.
-            end (int, optional): final data point on which to perform the algo. Just to get rid of cases where we try ti fit less than ten points in the CDF.
+            end (int, optional): final data point on which to perform the algo. Just to get rid of cases where we try ti fit less than ten points in the PDF.
 
         Returns:
             dedt_min (float): deformation for which the ks distance in minimal.
             ks_dist_min (float): minimum ks distance.
             fit (np.poly1D): polynomial that fits the pdf the best.
+            min_index (float): index of the minimum.
         """
 
         # initialize Kolmogorov-Smirnov array
@@ -388,5 +391,9 @@ class Scale(sel.Data):
         # extract index of min value
         min_index = np.where(ks_dist == np.min(ks_dist))
         dedt_min = pdf_data[min_index]
+        coefficients = np.polyfit(
+            np.log(pdf_data[min_index[0][0] :]), np.log(pdf_norm[min_index[0][0] :]), 1
+        )
+        best_fit = np.poly1d(coefficients)
 
-        return dedt_min, ks_dist[min_index], fit
+        return dedt_min[0], ks_dist[min_index][0], best_fit, min_index[0][0]
