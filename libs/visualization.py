@@ -265,7 +265,7 @@ class Arctic(sts.Scale):
             )
         # linear regression over the means
         coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
-        polynomial = np.poly1d(coefficients)
+        fit = np.poly1d(coefficients)
         t = np.linspace(mean_scale[0], mean_scale[-1], 10)
 
         # correlation
@@ -273,7 +273,7 @@ class Arctic(sts.Scale):
 
         # plots
         ax.plot(mean_scale, mean_def, "v", color="darkgray")
-        ax.plot(t, np.exp(polynomial(np.log(t))), color="darkgray")
+        ax.plot(t, np.exp(fit(np.log(t))), color="darkgray")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(
@@ -313,7 +313,7 @@ class Arctic(sts.Scale):
         x = (x[:-1] + x[1:]) / 2
 
         # compute best estimator
-        dedt_min, ks_dist, polynomial, min_index = self.ks_distance_minimizer(x, p)
+        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(x, p)
         t = np.linspace(dedt_min, x[-1], 10)
         alpha, sigma = self.mle_exponent(x[min_index:], dedt_min)
 
@@ -321,7 +321,7 @@ class Arctic(sts.Scale):
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
         ax.plot(x, p, "o", color="black", markersize=3)
-        ax.plot(t, np.exp(polynomial(np.log(t))), "--", color="red")
+        ax.plot(t, np.exp(best_fit(np.log(t))), "--", color="red")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(
@@ -357,12 +357,24 @@ class Arctic(sts.Scale):
         data = self._clean(data)
 
         # get correct data from box data
-        cdf_data, cdf_norm = self.cumul_dens_func(data)
+        n = np.logspace(np.log10(5e-3), 0, num=50)
+        p, x = np.histogram(data, bins=n, density=1)
+
+        # convert bin edges to centers
+        x = (x[:-1] + x[1:]) / 2
+        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(x, p)
+        fit = np.exp(best_fit(np.log(data)))
+        fit = self._clean(fit, 0)
+
+        # compute CDF
+        cdf_data, norm_data = self.cumul_dens_func(data)
+        cdf_fit, norm_fit = self.cumul_dens_func(fit)
 
         # plots
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
-        ax.plot(cdf_data, cdf_norm, color="black")
+        ax.plot(cdf_data, norm_data, color="black")
+        ax.plot(cdf_fit, norm_fit, color="red")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(

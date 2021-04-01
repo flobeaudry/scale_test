@@ -2,15 +2,15 @@ import libs.visualization as vis
 import numpy as np
 
 # User input for the location of the files
-# dataset40 = vis.Arctic(
-#     directory="output40",
-#     time="1997-01-02-00-00",
-#     expno="11",
-#     datatype="dedt",
-#     fig_shape="round",
-#     save=1,
-#     resolution=40,
-# )
+dataset40 = vis.Arctic(
+    directory="output40",
+    time="1997-01-02-00-00",
+    expno="11",
+    datatype="dedt",
+    fig_shape="round",
+    save=1,
+    resolution=40,
+)
 
 dataset10 = vis.Arctic(
     directory="spin_up10",

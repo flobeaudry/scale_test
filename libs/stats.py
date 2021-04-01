@@ -297,18 +297,24 @@ class Scale(sel.Data):
 
         return data
 
-    def _clean(self, data: np.ndarray) -> np.ndarray:
+    def _clean(self, data: np.ndarray, box: bool = 1) -> np.ndarray:
         """
         Function that cleans the data for statistics.
 
         Args:
             data (np.ndarray): unclean data
+            box (bool): if data comes from box or not
 
         Returns:
             np.ndarray: clean data
         """
         # clean data of non contributing NaNs
-        deformation = data[..., 0].flatten()
+        if box:
+            deformation = data[..., 0].flatten()
+
+        else:
+            deformation = data
+
         deformation = np.where(deformation >= 0.005, deformation, np.NaN)
         nas = np.isnan(deformation)
         deformation = deformation[~nas]
