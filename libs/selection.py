@@ -354,6 +354,38 @@ class Data:
                 self.name = "Ice thickness [m]"
                 break
 
+            # for viscosity
+            elif self.datatype.startswith("viscosity"):
+                print(
+                    "\nLoading ice viscosity in file "
+                    + self.directory
+                    + "/zetaC{}_{}_{}_{}_{}_k0000.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    )
+                )
+
+                fic = open(
+                    self.directory
+                    + "/zetaC{}_{}_{}_{}_{}_k0000.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    ),
+                    "r",
+                )
+                self.data = np.loadtxt(fic)
+                fic.close()
+                self.name = "Viscosity [N day m$^-2$]"
+                break
+
             # for shear
             elif self.datatype.startswith("shear"):
                 print(
@@ -385,6 +417,39 @@ class Data:
                 self.data = self._deformation_format(shear_raw)
                 fic.close()
                 self.name = "Shear rate [day$^{-1}$]"
+                break
+
+            # for divergence
+            elif self.datatype.startswith("divergence"):
+                print(
+                    "\nLoading ice divergence in file "
+                    + self.directory
+                    + "/div{}_{}_{}_{}_{}_k0000.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    )
+                )
+
+                fic = open(
+                    self.directory
+                    + "/div{}_{}_{}_{}_{}_k0000.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    ),
+                    "r",
+                )
+                div_raw = np.loadtxt(fic)
+                self.data = self._deformation_format(div_raw)
+                fic.close()
+                self.name = "Divergence rate [day$^{-1}$]"
                 break
 
             # total ice deformation rate
