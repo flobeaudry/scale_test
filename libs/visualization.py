@@ -10,8 +10,10 @@
 #   DONE    try to get better plots with fancy ellipsoid
 #   -define function that makes a movie of the data
 #   -better arrow representation for u data
-#   -pdf plot with fit on it
-#   -cdf plot
+#   DONE    pdf plot with fit on it
+#   DONE    cdf plot
+#   -color scatter dependence on viscosity for scale plot
+#   -distribution subplot for scale plot
 #
 #   TODO (eventually):
 #
@@ -178,7 +180,7 @@ class Arctic(sts.Scale):
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for deformation rates
-        elif self.datatype in ["dedt", "shear"]:
+        elif self.datatype in ["dedt", "shear", "divergence", "viscosity"]:
             cf = ax.pcolormesh(
                 lon,
                 lat,
@@ -228,7 +230,7 @@ class Arctic(sts.Scale):
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         else:
-            raise SystemExit("\nSomething is wrong with your data type...")
+            raise SystemExit("Something is wrong with your data type...")
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
@@ -237,32 +239,65 @@ class Arctic(sts.Scale):
         if self.save:
             fig.savefig("images/" + self.datatype + "." + self.fig_type)
 
-    def scale_plot(self, deformation: np.ndarray, scales: list):
+    def scale_plot(self, deformation: np.ndarray, scales: list, viscosity: np.ndarray):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
 
         Args:
-            formated_data (np.ndarray): array of the data inside eache box. Shape (nL, nBox + (nx*ny-nBox)*NaN, 2). The first index is the studied scaling, the second is the number of box in which is has been computed, the third is deformation rate in 0 and effective scale in 1.
+            deformation (np.ndarray): array of the data inside eache box. Shape (nL, nBox + (nx*ny-nBox)*NaN, 2). The first index is the studied scaling, the second is the number of box in which is has been computed, the third is deformation rate in 0 and effective scale in 1.
 
             scales (list): list of all scales under study.
+
+            viscosity (np.ndarray): if we want to plot colors for the viscosity norm. Give the data array.
         """
         fig = plt.figure(dpi=300, figsize=(6, 4))
-        ax = plt.subplot()
+
         # initialization of the list containing the means
         mean_def = np.empty(len(scales))
         mean_scale = np.empty(len(scales))
+
+        # definitions for the axes
+        left, width = 0.15, 0.53
+        bottom, height = 0.15, 0.7
+        spacing = 0.005
+
+        rect_scatter = [left, bottom, width, height]
+        rect_histy = [left + width + spacing, bottom, 0.2, height]
+
+        ax = fig.add_axes(rect_scatter)
+        ax_histy = fig.add_axes(rect_histy, sharey=ax)
+
+        # now determine nice limits by hand:
+        ymax = np.nanmax(np.abs(deformation[..., 0]))
+        ymin = np.nanmin(np.abs(deformation[..., 0]))
+        n = np.logspace(np.log10(ymin), np.log10(ymax), num=50)
+        ax_histy.hist(
+            deformation[..., 0].flatten(),
+            bins=n,
+            orientation="horizontal",
+            color="xkcd:dark blue grey",
+        )
+
         # loop over the scales
         for k in range(len(scales)):
             # compute the means, ignoring NaNs
             mean_def[k] = np.nanmean(deformation[k, :, 0])
             mean_scale[k] = np.nanmean(deformation[k, :, 1])
-            ax.plot(
+            # plot
+            cf = ax.scatter(
                 deformation[k, :, 1],
                 deformation[k, :, 0],
-                ".",
-                color="black",
-                markersize=3,
+                c=viscosity[k, :],
+                s=2,
+                cmap=cmocean.cm.thermal,
             )
+
+        # add color bar
+        cbar = fig.colorbar(cf)
+        cbar.ax.set_ylabel(
+            "Bulk viscosity N$\cdot$s$\cdot$m$^{-2}$", rotation=-90, va="bottom"
+        )
+
         # linear regression over the means
         coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
         fit = np.poly1d(coefficients)
@@ -284,6 +319,16 @@ class Arctic(sts.Scale):
             left=True,
             right=True,
             labelleft=True,
+        )
+        ax_histy.grid(linestyle=":")
+        ax_histy.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=False,
         )
         # axe labels
         ax.set_xlabel("Spatial scale [km]")

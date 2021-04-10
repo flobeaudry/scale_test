@@ -28,7 +28,7 @@
 #   all files of a given experience. Could be done in the
 #   same module but in a new function to not overwrite
 #   these ones.
-#   -combine load and multi_load so that you can call only module to
+#   -combine load and multi_load so that you can call only 1 module to
 #   load anytype of data.
 # ----------------------------------------------------------------------
 
@@ -87,7 +87,7 @@ class Data:
         """
 
         print(
-            "\nWelcome in the data loader routine! To cancel selection, enter exit or quit."
+            "Welcome in the data loader routine! To cancel selection, enter exit or quit."
         )
 
         self.directory = directory
@@ -627,6 +627,7 @@ class Data:
                 else:
                     raise SystemExit()
 
+        print("Done")
         return self.data
 
     def _velocity_format(self, raw_vel: np.ndarray, vel_type: str) -> np.ndarray:
@@ -704,8 +705,6 @@ class Data:
         self._load_time(time)
         self._load_expno(expno)
         self._load_datatype(datatype)
-
-        print("Done\n")
 
         # data size
         self.nx = self.data.shape[1]

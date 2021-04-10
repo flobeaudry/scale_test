@@ -255,6 +255,10 @@ class Scale(sel.Data):
             # initialize data array where we will put our means
             data = np.empty((len(scales), self.ny * self.nx, 2))
 
+            # load viscosities
+            visc_raw = self._load_datatype("viscosity")
+            visc = np.empty((len(scales), self.ny * self.nx))
+
             # loop over all scales
             scale_iter = 0
             for scale_km_unit in scales:
@@ -276,8 +280,10 @@ class Scale(sel.Data):
                         if counts >= scale_grid_unit ** 2 / 2:
                             masked_data = np.ma.asarray(formated_data)
                             masked_areas = np.ma.asarray(areas)
+                            masked_visc = np.ma.asarray(visc_raw)
                             masked_data.mask = mask
                             masked_areas.mask = mask
+                            masked_visc.mask = mask
                             masked_data = np.ma.masked_invalid(masked_data)
 
                             # verify that there is enough data in the box
@@ -285,17 +291,22 @@ class Scale(sel.Data):
                                 data_mean = np.ma.average(
                                     masked_data, weights=masked_areas
                                 )
+                                visc_mean = np.ma.average(
+                                    masked_visc, weights=masked_areas
+                                )
                                 spatial_scale = (
                                     np.sqrt(masked_data.count()) * self.resolution
                                 )
                                 data[scale_iter, box_iter, 0] = data_mean
                                 data[scale_iter, box_iter, 1] = spatial_scale
+                                visc[scale_iter, box_iter] = visc_mean
                                 box_iter += 1
                 data[scale_iter, box_iter:, :] = np.NaN
+                visc[scale_iter, box_iter:] = np.NaN
                 print("Done with {} km scale.".format(scales[scale_iter]))
                 scale_iter += 1
 
-        return data
+        return data, visc
 
     def _clean(self, data: np.ndarray, box: bool = 1) -> np.ndarray:
         """
