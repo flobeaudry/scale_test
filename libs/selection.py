@@ -56,6 +56,8 @@ class Data:
 
     R_EARTH = 6370  # Earth's radius (is smaller for better looking plots)
     BETA = 32  # Angle between domain and Greenwich
+    E = 2  # ellipse ratio
+    ETA_MAX = 1e12  # max viscosity
 
     def __init__(
         self,

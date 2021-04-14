@@ -278,13 +278,18 @@ class Scale(sel.Data):
                         mask = self._box(scale_grid_unit, i, j)
                         counts = np.unique(mask, return_counts=True)[1][1]
                         if counts >= scale_grid_unit ** 2 / 2:
+                            # define arrays for mask
                             masked_data = np.ma.asarray(formated_data)
                             masked_areas = np.ma.asarray(areas)
                             masked_visc = np.ma.asarray(visc_raw)
+                            # mask data with box + invalid
                             masked_data.mask = mask
+                            masked_data = np.ma.masked_invalid(masked_data)
+                            # obtain new mask for both conditions
+                            mask = np.ma.getmask(masked_data)
+                            # mask the other arrays
                             masked_areas.mask = mask
                             masked_visc.mask = mask
-                            masked_data = np.ma.masked_invalid(masked_data)
 
                             # verify that there is enough data in the box
                             if masked_data.count() >= scale_grid_unit ** 2 / 2:

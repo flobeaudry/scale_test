@@ -12,8 +12,8 @@
 #   -better arrow representation for u data
 #   DONE    pdf plot with fit on it
 #   DONE    cdf plot
-#   -color scatter dependence on viscosity for scale plot
-#   -distribution subplot for scale plot
+#   DONE    color scatter dependence on viscosity for scale plot
+#   DONE    distribution subplot for scale plot
 #
 #   TODO (eventually):
 #
@@ -281,21 +281,38 @@ class Arctic(sts.Scale):
         # loop over the scales
         for k in range(len(scales)):
             # compute the means, ignoring NaNs
-            mean_def[k] = np.nanmean(deformation[k, :, 0])
-            mean_scale[k] = np.nanmean(deformation[k, :, 1])
+            viscosity[k, viscosity[k] >= 4e12] = np.NaN
+            indices = ~np.isnan(viscosity[k])
+            mean_def[k] = np.average(
+                deformation[k, indices, 0],
+            )
+            mean_scale[k] = np.average(
+                deformation[k, indices, 1],
+            )
             # plot
             cf = ax.scatter(
-                deformation[k, :, 1],
-                deformation[k, :, 0],
-                c=viscosity[k, :],
+                deformation[k, indices, 1],
+                deformation[k, indices, 0],
+                c=viscosity[k, indices],
                 s=2,
-                cmap=cmocean.cm.thermal,
+                cmap=cmocean.cm.oxy,
+                norm=colors.Normalize(vmin=0, vmax=2e13),
             )
 
         # add color bar
         cbar = fig.colorbar(cf)
         cbar.ax.set_ylabel(
-            "Bulk viscosity N$\cdot$s$\cdot$m$^{-2}$", rotation=-90, va="bottom"
+            "Bulk viscosity N$\cdot$s$\cdot$m$^{-2}$",
+            rotation=-90,
+            va="bottom",
+        )
+        cax = cbar.ax
+        cax.hlines(
+            self.ETA_MAX * self.E ** 2,
+            0,
+            np.nanmax(viscosity),
+            colors="r",
+            linewidth=3,
         )
 
         # linear regression over the means
