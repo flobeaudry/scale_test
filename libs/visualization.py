@@ -29,6 +29,8 @@ import libs.stats as sts
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cmocean
+from matplotlib import cm
+from matplotlib.colors import ListedColormap
 
 
 class Arctic(sts.Scale):
@@ -239,7 +241,12 @@ class Arctic(sts.Scale):
         if self.save:
             fig.savefig("images/" + self.datatype + "." + self.fig_type)
 
-    def scale_plot(self, deformation: np.ndarray, scales: list, viscosity: np.ndarray):
+    def scale_plot(
+        self,
+        deformation: np.ndarray,
+        scales: list,
+        viscosity: np.ndarray,
+    ):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
 
@@ -281,7 +288,7 @@ class Arctic(sts.Scale):
         # loop over the scales
         for k in range(len(scales)):
             # compute the means, ignoring NaNs
-            viscosity[k, viscosity[k] >= 4e12] = np.NaN
+            # viscosity[k, viscosity[k] >= self.ETA_MAX * self.E ** 2] = np.NaN
             indices = ~np.isnan(viscosity[k])
             mean_def[k] = np.average(
                 deformation[k, indices, 0],
@@ -289,14 +296,22 @@ class Arctic(sts.Scale):
             mean_scale[k] = np.average(
                 deformation[k, indices, 1],
             )
+            # colormap
+            base = cm.get_cmap("cmo.haline", 256)
+            newcolors = base(np.linspace(0, 1, 256))
+            bot = np.array([100 / 256, 20 / 256, 20 / 256, 1])
+            # top = np.array([50 / 256, 100 / 256, 70 / 256, 1])
+            newcolors[:51, :] = bot
+            # newcolors[51:, :] = top
+            newcmp = ListedColormap(newcolors)
             # plot
             cf = ax.scatter(
                 deformation[k, indices, 1],
                 deformation[k, indices, 0],
                 c=viscosity[k, indices],
-                s=2,
-                cmap=cmocean.cm.oxy,
-                norm=colors.Normalize(vmin=0, vmax=2e13),
+                s=0.5,
+                cmap=newcmp,
+                norm=colors.Normalize(vmin=0, vmax=5 * self.ETA_MAX * self.E ** 2),
             )
 
         # add color bar
@@ -310,7 +325,7 @@ class Arctic(sts.Scale):
         cax.hlines(
             self.ETA_MAX * self.E ** 2,
             0,
-            np.nanmax(viscosity),
+            self.ETA_MAX * self.E ** 2 * 10,
             colors="r",
             linewidth=3,
         )

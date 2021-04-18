@@ -94,6 +94,7 @@ class Data:
 
         self.directory = directory
         self.time = time
+        self.time_init = time
         self.expno = expno
         self.datatype = datatype
         self.tolerance = tolerance
@@ -701,6 +702,8 @@ class Data:
         Returns:
             (ndarray): numpy array of formated data
         """
+        if time is None:
+            time = self.time_init
 
         # load all necessary parts, order is important.
         self._load_directory(directory)
@@ -733,7 +736,14 @@ class Data:
 
         return self.data
 
-    def multi_load(self, dt: str, time_end: str) -> np.ndarray:
+    def multi_load(
+        self,
+        dt: str,
+        time_end: str,
+        directory: str = None,
+        expno: str = None,
+        datatype: str = None,
+    ) -> np.ndarray:
         """
         Function that loads multiple data sheets from time given in class definition and store them in along a new axis where each sheet corresponds to a new time. For example, ice concentration is on a 2D grid, and the third axis would be for each timeframe. Therefore it has shape (ny, nx, nt).
 
@@ -749,7 +759,10 @@ class Data:
         time_stamps = self._get_times(dt, time_end)
 
         # load and append all data sets into one list
-        datalist = [self.load(time=t) for t in time_stamps]
+        datalist = [
+            self.load(directory=directory, time=t, expno=expno, datatype=datatype)
+            for t in time_stamps
+        ]
 
         # create and return a stack along new axis
         return np.stack(datalist, axis=-1)
@@ -767,7 +780,7 @@ class Data:
         """
 
         # Convert input strings into datetime
-        time_ini = datetime.strptime(self.time, "%Y-%m-%d-%H-%M")
+        time_ini = datetime.strptime(self.time_init, "%Y-%m-%d-%H-%M")
         time_end = datetime.strptime(time_end, "%Y-%m-%d-%H-%M")
 
         dtlist = [int(n) for n in dt.split("-") if n.isdigit()]

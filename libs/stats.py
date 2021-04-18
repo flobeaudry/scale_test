@@ -126,27 +126,26 @@ class Scale(sel.Data):
 
         # if dt is days
         if dtlist[0] == 1:
-            data_time_mean = []
-            for n in range(formated_data.shape[-1] - 3):
-                data_time_mean.append(formated_data[..., n : n + 3].mean(axis=-1))
+            data_time_mean = [
+                (formated_data[..., n : n + 3].mean(axis=-1))
+                for n in range(formated_data.shape[-1] - 3)
+            ]
 
         # if dt is hours
         elif dtlist[1] == 1:
-            data_time_mean = []
-            for n in range(formated_data.shape[-1] - 3 * 24):
-                data_time_mean.append(
-                    formated_data[..., 24 * n : 24 * (n + 3)].mean(axis=-1)
-                )
+            data_time_mean = [
+                formated_data[..., 24 * n : 24 * (n + 3)].mean(axis=-1)
+                for n in range(formated_data.shape[-1] - 3 * 24)
+            ]
 
         # if dt is minutes (unlikely)
         elif dtlist[2] != 0:
-            data_time_mean = []
-            for n in range(formated_data.shape[-1] - 3 * 24 * 60 / dtlist[2]):
-                data_time_mean.append(
-                    formated_data[
-                        ..., 60 / dtlist[2] * 24 * n : 60 / dtlist[2] * 24 * (n + 3)
-                    ].mean(axis=-1)
-                )
+            data_time_mean = [
+                formated_data[
+                    ..., 60 / dtlist[2] * 24 * n : 60 / dtlist[2] * 24 * (n + 3)
+                ].mean(axis=-1)
+                for n in range(formated_data.shape[-1] - 3 * 24 * 60 / dtlist[2])
+            ]
 
         else:
             raise SystemExit(
@@ -160,6 +159,7 @@ class Scale(sel.Data):
         formated_data: np.ndarray,
         scales: list,
         dt: str = None,
+        time_end: str = None,
         from_velocity: bool = 0,
     ) -> np.ndarray:
         """
@@ -169,22 +169,29 @@ class Scale(sel.Data):
             formated_data (np.ndarray): array of size (ny, nx, 2, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
             scales (list): all scales under study in km.
             dt (str, optional): time difference between two points of data. Defaults to None for one snapshot.
-            deformation (bool, optional): wether to compute deformations because using velocities. Defaults to 0.
+            time_end (str, optional): time of the last point in the data. Defaults to None for one snapshot.
+            from_velocity (bool, optional): wether to compute deformations because using velocities. Defaults to 0.
 
         Raises:
             SystemExit: when input scale is smaller than or equal to resolution of the data.
 
         Returns:
-            np.ndarray: array of size (n_scales, nx * ny * 86(87), 2). First is number of scales, second is max number of boxes (if smaller, replace the rest by NaNs). Third are: 0: deformation mean, 1: lenght mean.
+            data (np.ndarray): array of size (n_scales, nx * ny * 86(87), 2). First is number of scales, second is max number of boxes (if smaller, replace the rest by NaNs). Third are: 0: deformation mean, 1: lenght mean.
+            visc (np.ndarray): array of size (n_scales, nx * ny * 86(87)). Same thing but for the viscosity instead of deformation + lenght.
         """
 
         # check if time average preprocessing is necessary
         if len(formated_data.shape) >= 3:
-            formated_data = self._time_average(formated_data, dt)
-
             # computes the deformation rates
             if from_velocity:
                 formated_data = self._deformation(formated_data)
+
+            # load viscosities
+            visc_raw = self.multi_load(dt, time_end, datatype="viscosity")
+
+            # time average the data
+            formated_data = self._time_average(formated_data, dt)
+            formated_visc = self._time_average(visc_raw, dt)
 
             # computes all the areas
             areas = np.ones_like(formated_data[..., 0])
@@ -193,6 +200,7 @@ class Scale(sel.Data):
             data = np.empty(
                 (len(scales), self.ny * self.nx * formated_data.shape[-1], 2)
             )
+            visc = np.empty((len(scales), self.ny * self.nx * formated_visc.shape[-1]))
 
             # loop over all scales
             scale_iter = 0
@@ -219,27 +227,39 @@ class Scale(sel.Data):
                             mask = self._box(scale_grid_unit, i, j)
                             counts = np.unique(mask, return_counts=True)[1][1]
                             if counts >= scale_grid_unit ** 2 / 2:
+                                # define arrays for mask
                                 masked_data = np.ma.asarray(
                                     formated_data[:, :, period_iter]
                                 )
                                 masked_areas = np.ma.asarray(areas)
+                                masked_visc = np.ma.asarray(visc_raw[..., period_iter])
+                                # mask data with box + invalid
                                 masked_data.mask = mask
-                                masked_areas.mask = mask
                                 masked_data = np.ma.masked_invalid(masked_data)
+                                # obtain new mask for both conditions
+                                mask = np.ma.getmask(masked_data)
+                                # mask the other arrays
+                                masked_areas.mask = mask
+                                masked_visc.mask = mask
 
                                 # verify that there is enough data in the box
                                 if masked_data.count() >= scale_grid_unit ** 2 / 2:
                                     data_mean = np.ma.average(
                                         masked_data, weights=masked_areas
                                     )
+                                    visc_mean = np.ma.average(
+                                        masked_visc, weights=masked_areas
+                                    )
                                     spatial_scale = (
                                         np.sqrt(masked_data.count()) * self.resolution
                                     )
                                     data[scale_iter, box_iter, 0] = data_mean
                                     data[scale_iter, box_iter, 1] = spatial_scale
+                                    visc[scale_iter, box_iter] = visc_mean
                                     box_iter += 1
                     print("Done with period {}.".format(period_iter + 1))
                 data[scale_iter, box_iter:, :] = np.NaN
+                visc[scale_iter, box_iter:] = np.NaN
                 print("\nDone with {} km scale.\n".format(scales[scale_iter]))
                 scale_iter += 1
 
