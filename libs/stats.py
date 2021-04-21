@@ -257,6 +257,17 @@ class Scale(sel.Data):
                                     data[scale_iter, box_iter, 1] = spatial_scale
                                     visc[scale_iter, box_iter] = visc_mean
                                     box_iter += 1
+                                    print(
+                                        "Done with box {}/{}.".format(
+                                            box_iter,
+                                            int(
+                                                self.ny
+                                                * self.nx
+                                                / (scale_grid_unit ** 2 // 4)
+                                                * formated_data.shape[-1]
+                                            ),
+                                        )
+                                    )
                     print("Done with period {}.".format(period_iter + 1))
                 data[scale_iter, box_iter:, :] = np.NaN
                 visc[scale_iter, box_iter:] = np.NaN
@@ -326,6 +337,16 @@ class Scale(sel.Data):
                                 data[scale_iter, box_iter, 1] = spatial_scale
                                 visc[scale_iter, box_iter] = visc_mean
                                 box_iter += 1
+                                print(
+                                    "Done with box {}/{}.".format(
+                                        box_iter,
+                                        int(
+                                            self.ny
+                                            * self.nx
+                                            / (scale_grid_unit ** 2 // 4)
+                                        ),
+                                    )
+                                )
                 data[scale_iter, box_iter:, :] = np.NaN
                 visc[scale_iter, box_iter:] = np.NaN
                 print("Done with {} km scale.".format(scales[scale_iter]))
