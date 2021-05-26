@@ -112,7 +112,7 @@ class Scale(sel.Data):
         Function that computes the time average over 3 days depdending on the time dicretization of the data.
 
         Args:
-            formated_data (np.ndarray): array of size (ny, nx, 2, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
+            formated_data (np.ndarray): array of size (ny, nx, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
             dt (str): time difference between two points of data.
 
         Raises:
@@ -132,24 +132,32 @@ class Scale(sel.Data):
             ]
 
         # if dt is hours
-        elif dtlist[1] == 1:
+        elif dtlist[1] != 0:
+            period_per_day = 24 // dtlist[1]
             data_time_mean = [
-                formated_data[..., 24 * n : 24 * (n + 3)].mean(axis=-1)
-                for n in range(formated_data.shape[-1] - 3 * 24)
+                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
+                    axis=-1
+                )
+                for n in range(
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day
+                )
             ]
 
         # if dt is minutes (unlikely)
         elif dtlist[2] != 0:
+            period_per_day = 24 * 60 // dtlist[2]
             data_time_mean = [
-                formated_data[
-                    ..., 60 / dtlist[2] * 24 * n : 60 / dtlist[2] * 24 * (n + 3)
-                ].mean(axis=-1)
-                for n in range(formated_data.shape[-1] - 3 * 24 * 60 / dtlist[2])
+                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
+                    axis=-1
+                )
+                for n in range(
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day
+                )
             ]
 
         else:
             raise SystemExit(
-                "Unsupported time delta. Supported are 1 day, 1 hour, or any multiple or 1 jour in minutes."
+                "Unsupported time delta. Supported are 1 day, a multiple of 24 hours, or any multiple or 60 minutes."
             )
 
         return np.stack(data_time_mean, axis=-1)
@@ -160,13 +168,12 @@ class Scale(sel.Data):
         scales: list,
         dt: str = None,
         time_end: str = None,
-        from_velocity: bool = 0,
     ) -> np.ndarray:
         """
         Function that computes the lenght and deformation rate means over all boxes and all scales for all period of 3 days.
 
         Args:
-            formated_data (np.ndarray): array of size (ny, nx, 2, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
+            formated_data (np.ndarray): array of size (ny, nx, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
             scales (list): all scales under study in km.
             dt (str, optional): time difference between two points of data. Defaults to None for one snapshot.
             time_end (str, optional): time of the last point in the data. Defaults to None for one snapshot.
@@ -182,10 +189,6 @@ class Scale(sel.Data):
 
         # check if time average preprocessing is necessary
         if len(formated_data.shape) >= 3:
-            # computes the deformation rates
-            if from_velocity:
-                formated_data = self._deformation(formated_data)
-
             # load viscosities
             visc_raw = self.multi_load(dt, time_end, datatype="viscosity")
 
@@ -257,18 +260,18 @@ class Scale(sel.Data):
                                     data[scale_iter, box_iter, 1] = spatial_scale
                                     visc[scale_iter, box_iter] = visc_mean
                                     box_iter += 1
-                                    print(
-                                        "Done with box {}/{}.".format(
-                                            box_iter,
-                                            int(
-                                                self.ny
-                                                * self.nx
-                                                / (scale_grid_unit ** 2 // 4)
-                                                * formated_data.shape[-1]
-                                            ),
-                                        )
-                                    )
-                    print("Done with period {}.".format(period_iter + 1))
+                    print(
+                        "Done with period {} at box {}/{}.".format(
+                            period_iter + 1,
+                            box_iter,
+                            int(
+                                self.ny
+                                * self.nx
+                                / (scale_grid_unit ** 2 / 2)
+                                * formated_data.shape[-1]
+                            ),
+                        )
+                    )
                 data[scale_iter, box_iter:, :] = np.NaN
                 visc[scale_iter, box_iter:] = np.NaN
                 print("\nDone with {} km scale.\n".format(scales[scale_iter]))
@@ -276,19 +279,15 @@ class Scale(sel.Data):
 
         # when we do this procedure on snapshots instead of time averages
         else:
-            # computes the deformation rates
-            if from_velocity:
-                formated_data = self._deformation(formated_data)
+            # load viscosities
+            visc_raw = self._load_datatype("viscosity")
+            visc = np.empty((len(scales), self.ny * self.nx))
 
             # computes all the areas
             areas = np.ones_like(formated_data)
 
             # initialize data array where we will put our means
             data = np.empty((len(scales), self.ny * self.nx, 2))
-
-            # load viscosities
-            visc_raw = self._load_datatype("viscosity")
-            visc = np.empty((len(scales), self.ny * self.nx))
 
             # loop over all scales
             scale_iter = 0
@@ -343,7 +342,7 @@ class Scale(sel.Data):
                                         int(
                                             self.ny
                                             * self.nx
-                                            / (scale_grid_unit ** 2 // 4)
+                                            / (scale_grid_unit ** 2 / 2)
                                         ),
                                     )
                                 )
