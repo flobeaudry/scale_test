@@ -21,6 +21,7 @@
 
 import numpy as np
 import libs.selection as sel
+import time
 
 
 class Scale(sel.Data):
@@ -168,16 +169,23 @@ class Scale(sel.Data):
         scales: list,
         dt: str = None,
         time_end: str = None,
+        from_velocity: bool = 0,
+        choice: int = 0,
     ) -> np.ndarray:
         """
         Function that computes the lenght and deformation rate means over all boxes and all scales for all period of 3 days.
 
         Args:
-            formated_data (np.ndarray): array of size (ny, nx, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
+            formated_data (np.ndarray): array of size (ny, nx, nt) or (ny, nx, 2, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
+
             scales (list): all scales under study in km.
             dt (str, optional): time difference between two points of data. Defaults to None for one snapshot.
+
             time_end (str, optional): time of the last point in the data. Defaults to None for one snapshot.
-            from_velocity (bool, optional): wether to compute deformations because using velocities. Defaults to 0.
+
+            from_velocity (bool, optional): wether to compute deformations because using velocities. Defaults to 0. Only matters when using time average.
+
+            choice (int, optional): when computing vel_to_def, choice for which deformation to compute.
 
         Raises:
             SystemExit: when input scale is smaller than or equal to resolution of the data.
@@ -195,6 +203,14 @@ class Scale(sel.Data):
             # time average the data
             formated_data = self._time_average(formated_data, dt)
             formated_visc = self._time_average(visc_raw, dt)
+
+            if from_velocity:
+                # compute the derivatives and the deformations
+                du, dv = self._derivative(
+                    formated_data[:, :, 0, :], formated_data[:, :, 1, :]
+                )
+                formated_data = self._deformation(du, dv, choice)
+                formated_visc = formated_visc[1:-1, 1:-1, :]
 
             # computes all the areas
             areas = np.ones_like(formated_data[..., 0])
@@ -228,14 +244,16 @@ class Scale(sel.Data):
 
                             # verify that box is big enough (for boundaries).
                             mask = self._box(scale_grid_unit, i, j)
-                            counts = np.unique(mask, return_counts=True)[1][1]
+                            counts = np.unique(mask, return_counts=True)[1][0]
                             if counts >= scale_grid_unit ** 2 / 2:
                                 # define arrays for mask
                                 masked_data = np.ma.asarray(
-                                    formated_data[:, :, period_iter]
+                                    formated_data[..., period_iter]
                                 )
                                 masked_areas = np.ma.asarray(areas)
-                                masked_visc = np.ma.asarray(visc_raw[..., period_iter])
+                                masked_visc = np.ma.asarray(
+                                    formated_visc[..., period_iter]
+                                )
                                 # mask data with box + invalid
                                 masked_data.mask = mask
                                 masked_data = np.ma.masked_invalid(masked_data)
@@ -267,7 +285,7 @@ class Scale(sel.Data):
                             int(
                                 self.ny
                                 * self.nx
-                                / (scale_grid_unit ** 2 / 2)
+                                / (scale_grid_unit ** 2)
                                 * formated_data.shape[-1]
                             ),
                         )
@@ -339,11 +357,7 @@ class Scale(sel.Data):
                                 print(
                                     "Done with box {}/{}.".format(
                                         box_iter,
-                                        int(
-                                            self.ny
-                                            * self.nx
-                                            / (scale_grid_unit ** 2 / 2)
-                                        ),
+                                        int(self.ny * self.nx / (scale_grid_unit ** 2)),
                                     )
                                 )
                 data[scale_iter, box_iter:, :] = np.NaN
@@ -460,3 +474,120 @@ class Scale(sel.Data):
         best_fit = np.poly1d(coefficients)
 
         return dedt_min, min_ks, best_fit, min_index
+
+    def spatial_mean_vect(
+        self,
+        u: np.ndarray,
+        scales: list,
+        dt: str = None,
+        choice: int = 0,
+    ) -> np.ndarray:
+
+        # time average the data
+        u = self._time_average(u, dt)
+
+        # compute the derivatives and the deformations
+        du, dv = self._derivative(u[:, :, 0, :], u[:, :, 1, :])
+        # viscosity = viscosity[1:-1, 1:-1, :]
+
+        # initialize output
+        data = []
+
+        # loop over all scales
+        for scale_km_unit in scales:
+            # verify validity of scale
+            if scale_km_unit <= self.resolution:
+                raise SystemExit(
+                    "Scale is smaller than or equal to resolution. It's not implemented yet."
+                )
+
+            # convert km into grid cell units
+            scale_grid_unit = scale_km_unit // self.resolution
+
+            # implementation of the algorithm
+            du_bool, dv_bool = np.asarray(du) > 0, np.asarray(dv) > 0
+            du_bool, dv_bool = du_bool.astype(int), dv_bool.astype(int)
+            print(du_bool.shape,du_bool)
+
+            du_bool_sum, dv_bool_sum = (
+                np.sum(
+                    (
+                        du_bool[:, :, i : -scale_grid_unit + i + 1 or None, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=2,
+                ),
+                np.sum(
+                    (
+                        dv_bool[:, :, i : -scale_grid_unit + i + 1 or None, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=2,
+                ),
+            )
+            du_bool_sum, dv_bool_sum = (
+                np.sum(
+                    (
+                        du_bool_sum[:, i : -scale_grid_unit + i + 1 or None, :, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=1,
+                ),
+                np.sum(
+                    (
+                        dv_bool_sum[:, i : -scale_grid_unit + i + 1 or None, :, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=1,
+                ),
+            )
+
+            du_sum, dv_sum = (
+                np.sum(
+                    (
+                        np.asarray(du)[:, :, i : -scale_grid_unit + i + 1 or None, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=2,
+                ),
+                np.sum(
+                    (
+                        np.asarray(dv)[:, :, i : -scale_grid_unit + i + 1 or None, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=2,
+                ),
+            )
+            du_sum, dv_sum = (
+                np.sum(
+                    (
+                        du_sum[:, i : -scale_grid_unit + i + 1 or None, :, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=1,
+                ),
+                np.sum(
+                    (
+                        dv_sum[:, i : -scale_grid_unit + i + 1 or None, :, :]
+                        for i in range(scale_grid_unit)
+                    ),
+                    axis=1,
+                ),
+            )
+
+            du_bool_sum, dv_bool_sum = (
+                np.where(du_bool_sum < scale_grid_unit // 2, np.NaN, du_bool_sum),
+                np.where(dv_bool_sum < scale_grid_unit // 2, np.NaN, du_bool_sum),
+            )
+
+            du_mean, dv_mean = du_sum / du_bool_sum, dv_sum / dv_bool_sum
+
+            deps = self._deformation(du_mean, dv_mean, choice)
+
+            data.append(deps)
+
+            print("Done with scale {}.".format(scale_km_unit))
+
+        data = np.asarray(data, dtype=object)
+
+        return data

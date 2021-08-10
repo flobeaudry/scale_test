@@ -58,6 +58,8 @@ class Data:
     BETA = 32  # Angle between domain and Greenwich
     E = 2  # ellipse ratio
     ETA_MAX = 1e12  # max viscosity
+    P_STAR = 27500  # chosen value for the ice strenght parameter in N/m^2
+    C = 20  # arbitrary parameter
 
     def __init__(
         self,
@@ -264,13 +266,19 @@ class Data:
                 else:
                     raise SystemExit()
 
-    def _load_datatype(self, datatype: str) -> np.ndarray:
+    def _load_datatype(
+        self, datatype: str, vel_to_def: bool = 0, choice: int = 0
+    ) -> np.ndarray:
         """
         Loads proper data type.
         Needs directory, time and expno to have been previously load to work.
 
         Args:
             datatype (str): data type to load
+
+            vel_to_def (bool, optional): is we compute velocity to deformation or just velocity
+
+            choice (int, optional): when computing vel_to_def, choice for which deformation to compute.
 
         Raises:
             SystemExit: manual exit
@@ -384,9 +392,10 @@ class Data:
                     ),
                     "r",
                 )
-                self.data = np.loadtxt(fic)
+                viscosity_raw = np.loadtxt(fic)
+                self.data = self._deformation_format(viscosity_raw)
                 fic.close()
-                self.name = "Viscosity [N day m$^-2$]"
+                self.name = "Viscosity [N$\cdot$day$\cdot$m$^{-1}$]"
                 break
 
             # for shear
@@ -607,11 +616,30 @@ class Data:
                 data_v = np.loadtxt(fic)
                 fic.close()
 
-                formated_data_u = self._velocity_format(data_u, "u")
-                formated_data_v = self._velocity_format(data_v, "v")
+                if vel_to_def:
+                    formated_data_u = self._velocity_format(data_u, "u")
+                    formated_data_v = self._velocity_format(data_v, "v")
+                    du, dv = self._derivative(formated_data_u, formated_data_v)
+                    self.data = self._deformation(du, dv, choice)
 
-                self.data = np.stack((formated_data_u, formated_data_v), axis=2)
-                self.name = "Ice velocity [m/s]"
+                    if choice == 0:
+                        self.name = "Ice deformation rate [day$^{-1}$]"
+                        self.datatype = "dedt"
+
+                    elif choice == 1:
+                        self.name = "Shear rate [day$^{-1}$]"
+                        self.datatype = "shear"
+
+                    elif choice == 2:
+                        self.name = "Divergence rate [day$^{-1}$]"
+                        self.datatype = "divergence"
+
+                else:
+                    formated_data_u = self._velocity_format(data_u, "u")
+                    formated_data_v = self._velocity_format(data_v, "v")
+
+                    self.data = np.stack((formated_data_u, formated_data_v), axis=2)
+                    self.name = "Ice velocity [m/s]"
                 break
 
             # to exit manually
@@ -686,6 +714,8 @@ class Data:
         time: str = None,
         expno: str = None,
         datatype: str = None,
+        vel_to_def: bool = 0,
+        choice: int = 0,
     ) -> np.ndarray:
         """
         Takes directory, experience number, data type, and snapshot date to load the proper data file, but as input from the user, not as arguments. Works for only one sheet of data. Also defines resolution.
@@ -699,17 +729,24 @@ class Data:
 
             datatype (str, optional): data type you want to load. Defaults to None.
 
+            vel_to_def (bool, optional): is we compute velocity to deformation or just velocity
+
+            choice (int, optional): when computing vel_to_def, choice for which deformation to compute.
+
         Returns:
             (ndarray): numpy array of formated data
         """
         if time is None:
             time = self.time_init
 
+        if vel_to_def:
+            self.datatype = "u"
+
         # load all necessary parts, order is important.
         self._load_directory(directory)
         self._load_time(time)
         self._load_expno(expno)
-        self._load_datatype(datatype)
+        self._load_datatype(datatype, vel_to_def=vel_to_def, choice=choice)
 
         # data size
         self.nx = self.data.shape[1]
@@ -743,24 +780,37 @@ class Data:
         directory: str = None,
         expno: str = None,
         datatype: str = None,
+        vel_to_def: bool = 0,
+        choice: int = 0,
     ) -> np.ndarray:
         """
         Function that loads multiple data sheets from time given in class definition and store them in along a new axis where each sheet corresponds to a new time. For example, ice concentration is on a 2D grid, and the third axis would be for each timeframe. Therefore it has shape (ny, nx, nt).
 
         Args:
             dt (str): incrementation, dd-hh-mm
+
             time_end (str): last element of the list, yyyy-mm-dd-hh-mm
+
+            vel_to_def (bool, optional): if we compute velocity to deformation or just velocity
+
+            choice (int, optional): when computing vel_to_def, choice for which deformation to compute.
 
         Returns:
             (ndarray): size is (ny, nx, nt)
         """
-
         # Compute time array
         time_stamps = self._get_times(dt, time_end)
 
         # load and append all data sets into one list
         datalist = [
-            self.load(directory=directory, time=t, expno=expno, datatype=datatype)
+            self.load(
+                directory=directory,
+                time=t,
+                expno=expno,
+                datatype=datatype,
+                vel_to_def=vel_to_def,
+                choice=choice,
+            )
             for t in time_stamps
         ]
 
@@ -864,32 +914,102 @@ class Data:
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2),
         )
 
-    def _deformation(self, formated_data: np.ndarray) -> np.ndarray:
+    def _deformation(self, du: np.ndarray, dv: np.ndarray, choice: int) -> np.ndarray:
         """
-        Function that computes deformation rates from velocities.
+        Function that computes deformation rates from velocity derivatives.
 
         Args:
-            formated_data (np.ndarray): array of size (ny , nx, 2, nt) of all the data in u and v for many dates or time averages.
+            du (dv) (np.ndarray): array of size (2, ny, nx, nt) of all the data in du (dv) for many dates or time averages.
+            choice (int): number 0, 1, 2 to choose between dedt, shear, divergence.
 
         Returns:
-            np.ndarray: array of size (ny, nx, nt) of all the deformation rates.
+            np.ndarray: array of size (ny, nx, nt) of all the deformation rates in [day^-1].
         """
-        # assign velocities
-        u = formated_data[:, :, 0, ...]
-        v = formated_data[:, :, 1, ...]
-
-        # computes mean gradients
-        du = u[1:, :] - u[:-1, :]
-        dv = v[:, 1:] - v[:, :-1]
-        dx, dy = 10e3, 10e3
-
-        # put back values in center of grid cells
-        du = self._velocity_format(du, "u")
-        dv = self._velocity_format(dv, "v")
-
-        # computes strain invariants
-        divergence = du / dx + dv / dy
-        shear = np.sqrt((du / dx - dv / dy) ** 2 + (du / dy - dv / dx) ** 2)
+        # computes strain invariants (watch out for inverse derivatives 1: x-axis, 0: y-axis)
+        divergence = du[1] + dv[0]
+        shear = np.sqrt((du[1] - dv[0]) ** 2 + (du[0] + dv[1]) ** 2)
         deformations = np.sqrt(shear ** 2 + divergence ** 2)
 
-        return deformations * 86400
+        if choice == 0:
+            return deformations * 86400
+
+        elif choice == 1:
+            return shear * 86400
+
+        elif choice == 2:
+            return divergence * 86400
+
+    def _derivative(self, u: np.ndarray, v: np.ndarray) -> np.array:
+        """
+        Function that computes derivatives from velocities.
+
+        Args:
+            u (v) (np.ndarray): array of size (ny, nx, nt) of all the data in u (v) for many dates or time averages.
+
+        Returns:
+            np.ndarray: array of size (2, ny, nx, nt) of all the derivatives. 0 is d/dx (y axis in the code), 1 is d/dy (x axis in the code). I just did not choose the right name in order to match the model.
+        """
+        # computes mean gradients
+        du = np.gradient(u, self.resolution * 1000)
+        dv = np.gradient(v, self.resolution * 1000)
+
+        return du, dv
+
+    def _delta(self, du: np.ndarray, dv: np.ndarray) -> np.array:
+        """
+        Function that computes the delta at any given time, from the velocity derivatives.
+
+        Args:
+            du (dv) (np.ndarray): array of size (2, ny, nx, nt) of all the data in du (dv) for many dates or time averages.
+
+        Returns:
+            delta (np.array): delta function for the given velocity gradients. Shape is (ny, nx, nt)
+        """
+        # compute the strain tensor components
+        eps11 = du[1]
+        eps12 = 1 / 2 * (du[0] + dv[1])
+        eps22 = dv[0]
+
+        # computes the delta function
+        delta = np.sqrt(
+            (eps11 ** 2 + eps22 ** 2) * (1 + 1 / self.E ** 2)
+            + 4 / self.E ** 2 * eps12 ** 2
+            + 2 * eps11 * eps22 * (1 - 1 / self.E ** 2)
+        )
+
+        return delta
+
+    def _pressure(self, h: np.array, A: np.array) -> np.array:
+        """
+        Compute the ice strenght function.
+
+        Args:
+            h (np.array): Ice thickness, shape is (ny, nx, nt)
+            A (np.array): Ice concentration, shape is (ny, nx, nt)
+
+        Returns:
+            p (np.array): ice strenght function, shape is (ny, nx, nt)
+        """
+
+        # compute the pressure
+        p = self.P_STAR * h * np.exp(-self.C * (1 - A))
+
+        return p[1:-1, 1:-1]
+
+    def _viscosity(self, p: np.array, delta: np.array) -> np.array:
+        """
+        Compute the maximum viscosity.
+
+        Args:
+            p (np.array): ice strenght function, shape is (ny, nx, nt)
+            delta (np.array): delta function for the given velocity gradients. Shape is (ny, nx, nt)
+
+        Returns:
+            zeta (np.array): ice viscosity, shape is (ny, nx, nt)
+            zeta_max (np.array): ice max viscosity, shape is (ny, nx, nt)
+        """
+
+        zeta_max = 2.5e8 * p
+        zeta = zeta_max * np.tanh(p / (2 * delta * zeta_max))
+
+        return zeta, zeta_max

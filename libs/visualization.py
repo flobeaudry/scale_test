@@ -188,11 +188,21 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.amp,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
+            if self.datatype == "viscosity":
+                cf = ax.pcolormesh(
+                    lon,
+                    lat,
+                    np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                    cmap=cmocean.cm.amp,
+                    transform=ccrs.PlateCarree(),
+                    zorder=1,
+                )
             cbar = fig.colorbar(cf)
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
@@ -205,20 +215,17 @@ class Arctic(sts.Scale):
             ax.quiver(
                 lon1[0 :: self.step, 0 :: self.step],
                 lat1[0 :: self.step, 0 :: self.step],
-                formated_data[0 :: self.step, 0 :: self.step, 0]
-                / self._velolicty_vector_magnitude(
-                    formated_data[0 :: self.step, 0 :: self.step, 0],
-                    formated_data[0 :: self.step, 0 :: self.step, 1],
-                ),
-                formated_data[0 :: self.step, 0 :: self.step, 1]
-                / self._velolicty_vector_magnitude(
-                    formated_data[0 :: self.step, 0 :: self.step, 0],
-                    formated_data[0 :: self.step, 0 :: self.step, 1],
-                ),
+                formated_data[0 :: self.step, 0 :: self.step, 0],
+                formated_data[0 :: self.step, 0 :: self.step, 1],
                 color="black",
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
+            # divide formated data above by this if you want arrows of same lenght.
+            # / self._velolicty_vector_magnitude(
+            #         formated_data[0 :: self.step, 0 :: self.step, 0],
+            #         formated_data[0 :: self.step, 0 :: self.step, 1],
+            #     )
             cf = ax.pcolormesh(
                 lon,
                 lat,
@@ -240,7 +247,9 @@ class Arctic(sts.Scale):
         ax.coastlines(resolution="50m", zorder=4)
 
         if self.save:
-            fig.savefig("images/" + self.datatype + "." + self.fig_type)
+            fig.savefig(
+                "images/" + self.datatype + str(self.resolution) + "." + self.fig_type
+            )
 
     def scale_plot(
         self,
@@ -326,7 +335,7 @@ class Arctic(sts.Scale):
         # add color bar
         cbar = fig.colorbar(cf)
         cbar.set_label(
-            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-2}$]",
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
             rotation=-90,
             va="bottom",
         )
