@@ -129,7 +129,7 @@ class Scale(sel.Data):
         if dtlist[0] == 1:
             data_time_mean = [
                 (formated_data[..., n : n + 3].mean(axis=-1))
-                for n in range(formated_data.shape[-1] - 3)
+                for n in range(formated_data.shape[-1] - 2)
             ]
 
         # if dt is hours
@@ -140,7 +140,7 @@ class Scale(sel.Data):
                     axis=-1
                 )
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
                 )
             ]
 
@@ -152,7 +152,7 @@ class Scale(sel.Data):
                     axis=-1
                 )
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
                 )
             ]
 
@@ -477,21 +477,37 @@ class Scale(sel.Data):
 
     def spatial_mean_vect(
         self,
-        u: np.ndarray,
+        u_v: np.ndarray,
         scales: list,
         dt: str = None,
         choice: int = 0,
     ) -> np.ndarray:
+        """
+        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+
+        Args:
+            u_v (np.ndarray): Velocities in x and y, shape is (ny, nx, 2, nt)
+            scales (list): list of scales to compute.
+            dt (str, optional): Time incrementation for the time averaging function. Defaults to None.
+            choice (int, optional): Type of deformation to output (eps, shear, div). Defaults to 0.
+
+        Raises:
+            SystemExit: If the input scale is equal to or smaller than the resolution of the data.
+
+        Returns:
+            np.ndarray: returns an array of size (len(scales),) where each element of the array are of different sizes (because it depends on the sizes of the boxes, therefore, for each scale the size of the data changes). 
+        """
 
         # time average the data
-        u = self._time_average(u, dt)
+        u_v_ta = self._time_average(u_v, dt)
 
         # compute the derivatives and the deformations
-        du, dv = self._derivative(u[:, :, 0, :], u[:, :, 1, :])
+        du, dv = self._derivative(u_v_ta[:,:,0,:], u_v_ta[:,:,1,:])
         # viscosity = viscosity[1:-1, 1:-1, :]
 
         # initialize output
-        data = []
+        deform = []
+        scaling = []
 
         # loop over all scales
         for scale_km_unit in scales:
@@ -505,9 +521,8 @@ class Scale(sel.Data):
             scale_grid_unit = scale_km_unit // self.resolution
 
             # implementation of the algorithm
-            du_bool, dv_bool = np.asarray(du) > 0, np.asarray(dv) > 0
+            du_bool, dv_bool = np.asarray(du) != 0, np.asarray(dv) != 0
             du_bool, dv_bool = du_bool.astype(int), dv_bool.astype(int)
-            print(du_bool.shape,du_bool)
 
             du_bool_sum, dv_bool_sum = (
                 np.sum(
@@ -583,11 +598,15 @@ class Scale(sel.Data):
             du_mean, dv_mean = du_sum / du_bool_sum, dv_sum / dv_bool_sum
 
             deps = self._deformation(du_mean, dv_mean, choice)
+            scale_array = np.sqrt(du_bool_sum) * self.resolution
 
-            data.append(deps)
+            deform.append(deps)
+            scaling.append(scale_array)
 
             print("Done with scale {}.".format(scale_km_unit))
 
-        data = np.asarray(data, dtype=object)
+        # creates an array of arrays but of different shapes
+        deform = np.asarray(deform, dtype=object)
+        scaling = np.asarray(scaling, dtype=object)
 
-        return data
+        return deform, scaling

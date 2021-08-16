@@ -255,18 +255,202 @@ class Arctic(sts.Scale):
         self,
         deformation: np.ndarray,
         scales: list,
-        viscosity: np.ndarray,
+        viscosity: np.ndarray = None,
     ):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
 
         Args:
-            deformation (np.ndarray): array of the data inside eache box. Shape (nL, nBox + (nx*ny-nBox)*NaN, 2). The first index is the studied scaling, the second is the number of box in which is has been computed, the third is deformation rate in 0 and effective scale in 1.
+            deformation (np.ndarray): array of the data inside each box. Shape (nL, nBox + (nx*ny-nBox)*NaN, 2). The first index is the studied scaling, the second is the number of box in which is has been computed, the third is deformation rate in 0 and effective scale in 1.
 
             scales (list): list of all scales under study.
 
             viscosity (np.ndarray): if we want to plot colors for the viscosity norm. Give the data array.
         """
+        
+        fig = plt.figure(dpi=300, figsize=(6, 4))
+
+        # initialization of the list containing the means
+        mean_def = np.empty(len(scales))
+        mean_scale = np.empty(len(scales))
+        mean_def_cut = np.empty(len(scales))
+        mean_scale_cut = np.empty(len(scales))
+
+        # definitions for the axes
+        left, width = 0.14, 0.53
+        bottom, height = 0.12, 0.8
+        spacing = 0.005
+
+        rect_scatter = [left, bottom, width, height]
+        rect_histy = [left + width + spacing, bottom, 0.2, height]
+
+        ax = fig.add_axes(rect_scatter)
+        ax_histy = fig.add_axes(rect_histy, sharey=ax)
+
+        # now determine nice limits by hand for the histogram
+        ymax = np.nanmax(np.abs(deformation[..., 0]))
+        ymin = np.nanmin(np.abs(deformation[..., 0]))
+        n = np.logspace(np.log10(ymin), np.log10(ymax), num=50)
+        ax_histy.hist(
+            deformation[..., 0].flatten(),
+            bins=n,
+            orientation="horizontal",
+            color="xkcd:dark blue grey",
+        )
+
+        # loop over the scales
+        for k in range(len(scales)):
+            # compute the means, ignoring NaNs
+            indices = ~np.isnan(viscosity[k])
+            mean_def[k] = np.average(
+                deformation[k, indices, 0],
+            )
+            mean_scale[k] = np.average(
+                deformation[k, indices, 1],
+            )
+            # colormap
+            base = cm.get_cmap("cmo.haline", 256)
+            newcolors = base(np.linspace(0, 1, 256))
+            bot = np.array([100 / 256, 20 / 256, 20 / 256, 1])
+            newcolors[:51, :] = bot
+            newcmp = ListedColormap(newcolors)
+            # plot
+            cf = ax.scatter(
+                deformation[k, indices, 1],
+                deformation[k, indices, 0],
+                c=viscosity[k, indices],
+                s=0.5,
+                cmap=newcmp,
+                norm=colors.Normalize(vmin=0, vmax=5 * self.ETA_MAX * self.E ** 2),
+            )
+            # same thing with only viscosities that are under visc_max (plastic def)
+            viscosity[k, viscosity[k] >= self.ETA_MAX * self.E ** 2] = np.NaN
+            indices = ~np.isnan(viscosity[k])
+            mean_def_cut[k] = np.average(
+                deformation[k, indices, 0],
+            )
+            mean_scale_cut[k] = np.average(
+                deformation[k, indices, 1],
+            )
+
+        # add color bar
+        cbar = fig.colorbar(cf)
+        cbar.set_label(
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
+            rotation=-90,
+            va="bottom",
+        )
+        # add red line for zeta max
+        cax = cbar.ax
+        cax.hlines(
+            self.ETA_MAX * self.E ** 2,
+            0,
+            self.ETA_MAX * self.E ** 2 * 10,
+            colors="r",
+            linewidth=2,
+        )
+        # find the pre existing ticks
+        ticks = [0, 0.5e13, 1e13, 1.5e13, 2e13]
+        tick_labels = ["{:.1e}".format(tick) for tick in ticks]
+        # set major ticks
+        cax.yaxis.set_ticks(ticks)
+        cax.yaxis.set_ticklabels(tick_labels)
+        # set minor tick label for zeta max
+        minortick = [4e12]
+        minortick_label = ["$\zeta_{max}$"]
+        cax.yaxis.set_ticks(minortick, minor=True)
+        cax.yaxis.set_ticklabels(minortick_label, minor=True)
+        cax.tick_params(
+            axis="y", which="minor", labelsize=8, length=3.5, color="r", width=2
+        )
+        # format the new ticks
+        cax_format = matplotlib.ticker.ScalarFormatter()
+        cax.yaxis.set_major_formatter(cax_format)
+        cax.ticklabel_format(axis="y", style="sci")
+
+        # linear regression over the means
+        coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
+        fit = np.poly1d(coefficients)
+        t = np.linspace(mean_scale[0], mean_scale[-1], 10)
+        coefficients_cut = np.polyfit(np.log(mean_scale_cut), np.log(mean_def_cut), 1)
+        fit_cut = np.poly1d(coefficients_cut)
+        t_cut = np.linspace(mean_scale_cut[0], mean_scale_cut[-1], 10)
+
+        # correlation
+        corr, _ = pearsonr(mean_scale, mean_def)
+        corr_cut, _ = pearsonr(mean_scale_cut, mean_def_cut)
+
+        # plots for the means on all data
+        ax.plot(
+            mean_scale,
+            mean_def,
+            "^",
+            color="xkcd:dark blue grey",
+            label="H = {:.2f}, corr = {:.2f}".format(coefficients[0], corr),
+            markersize=5,
+        )
+        ax.plot(t, np.exp(fit(np.log(t))), color="xkcd:dark blue grey")
+        # plot means for plastic data
+        ax.plot(
+            mean_scale_cut,
+            mean_def_cut,
+            "v",
+            color="xkcd:golden rod",
+            label="H = {:.2f}, corr = {:.2f}".format(coefficients_cut[0], corr_cut),
+            markersize=5,
+        )
+        ax.plot(t_cut, np.exp(fit_cut(np.log(t_cut))), color="xkcd:golden rod")
+        ax.legend(loc=4, fontsize="x-small")
+
+        # ticks style
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        ax_histy.grid(linestyle=":")
+        ax_histy.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=False,
+        )
+        # axe labels
+        ax.set_xlabel("Spatial scale [km]")
+        ax.set_ylabel("Total deformation rate [day$^{-1}$]")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
+        if self.save:
+            fig.savefig(
+                "images/spatial_scale{}.{}".format(self.resolution, self.fig_type)
+            )
+
+    def scale_plot_vect(
+        self,
+        deformation: np.ndarray,
+        scales: list,
+        viscosity: np.ndarray = None,
+    ):
+        """
+        This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression. It is the same as above but for the vectorized version of the code.
+
+        Args:
+            deformation (np.ndarray): array of the data inside each box. Shape (nL, ny, nx, nt). The first index is the studied scaling.
+
+            scales (list): list of all scales under study.
+
+            viscosity (np.ndarray): if we want to plot colors for the viscosity norm. Give the data array.
+        """
+        
         fig = plt.figure(dpi=300, figsize=(6, 4))
 
         # initialization of the list containing the means
