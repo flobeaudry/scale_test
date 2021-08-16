@@ -162,7 +162,7 @@ class Arctic(sts.Scale):
                 lat,
                 formated_data,
                 cmap=cmocean.cm.dense,
-                norm=colors.Normalize(vmin=0, vmax=5),
+                norm=colors.Normalize(vmin=0.8, vmax=1.2),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
@@ -183,7 +183,7 @@ class Arctic(sts.Scale):
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for deformation rates
-        elif self.datatype in ["dedt", "shear", "divergence", "viscosity"]:
+        elif self.datatype in ["dedt", "shear", "divergence"]:
             cf = ax.pcolormesh(
                 lon,
                 lat,
@@ -194,15 +194,36 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            if self.datatype == "viscosity":
-                cf = ax.pcolormesh(
-                    lon,
-                    lat,
-                    np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
-                    cmap=cmocean.cm.amp,
-                    transform=ccrs.PlateCarree(),
-                    zorder=1,
-                )
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
+
+        # for viscosity
+        elif self.datatype == "viscosity":
+            print(formated_data.shape)
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.amp,
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
+            self.datatype = "viscosity"
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
+
+        # for damage
+        elif self.datatype == "dam":
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.amp,
+                norm=colors.Normalize(vmin=0.99, vmax=1),
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
+            self.datatype = "dam"
             cbar = fig.colorbar(cf)
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 

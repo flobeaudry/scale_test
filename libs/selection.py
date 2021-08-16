@@ -333,6 +333,39 @@ class Data:
                 self.name = "Ice concentration"
                 break
 
+            # ice damage
+            if self.datatype.startswith("dam"):
+                print(
+                    "\nLoading ice damage in file "
+                    + self.directory
+                    + "/dam{}_{}_{}_{}_{}.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    )
+                )
+
+                fic = open(
+                    self.directory
+                    + "/dam{}_{}_{}_{}_{}.{}".format(
+                        self.time[0],
+                        self.time[1],
+                        self.time[2],
+                        self.time[3],
+                        self.time[4],
+                        self.expno,
+                    ),
+                    "r",
+                )
+                dam_raw = np.loadtxt(fic)
+                self.data = self._deformation_format(dam_raw)
+                fic.close()
+                self.name = "Ice damage"
+                break
+
             # ice thickness
             elif self.datatype.startswith("h"):
                 print(

@@ -34,7 +34,7 @@ dataset40 = vis.Arctic(
     resolution=40,
 )
 
-# dataset10.arctic_plot(dataset10.load(datatype="A"))
+# dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
 L10 = [20, 40, 80, 160, 320, 640]
