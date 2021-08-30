@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 # User input for the location of the files
 
 dataset10 = vis.Arctic(
-    directory="output10",
+    directory="output10_1997",
     time="1997-01-01-00-00",
-    expno="12",
+    expno="02",
     datatype="u",
     fig_shape="round",
     save=1,
     resolution=10,
+    fig_name_supp="Db_1997",
 )
 
 dataset20 = vis.Arctic(
@@ -34,7 +35,7 @@ dataset40 = vis.Arctic(
     resolution=40,
 )
 
-# dataset10.arctic_plot(dataset10.load())
+dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
 L10 = [20, 40, 80, 160, 320, 640]
@@ -82,7 +83,7 @@ time_end = "1997-03-31-18-00"
 # fig.savefig("images/zeta_vs_delta10.png")
 
 # compute all mean deformations in boxes
-# def10, scale10 = dataset10.spatial_mean_vect(
+# def10D, scale10D = dataset10.spatial_mean_vect(
 #     dataset10.multi_load(dt, time_end), L10, dt
 # )
 
@@ -96,14 +97,14 @@ time_end = "1997-03-31-18-00"
 # data_box40, data_box40_visc = dataset40.spatial_mean_box(
 #     dataset40.multi_load(dt, time_end), L40, dt, time_end, from_velocity=1
 # )
-def40, scale40 = dataset40.spatial_mean_vect(
-    dataset40.multi_load(dt, time_end), L40, dt
-)
+# def40, scale40 = dataset40.spatial_mean_vect(
+#     dataset40.multi_load(dt, time_end), L40, dt
+# )
 
 
 # save data in file
-# np.save("def10.npy", def10)
-# np.save("scale10.npy", scale10)
+# np.save("def10Db.npy", def10D)
+# np.save("scale10Db.npy", scale10D)
 # np.save("data10_visc.npy", data_box10_visc)
 
 # np.save("data20.npy", data_box20)
@@ -113,13 +114,13 @@ def40, scale40 = dataset40.spatial_mean_vect(
 
 # np.save("data40.npy", data_box40)
 # np.save("data40_visc.npy", data_box40_visc)
-np.save("def40.npy", def40)
-np.save("scale40.npy", scale40)
+# np.save("def40.npy", def40)
+# np.save("scale40.npy", scale40)
 
 
 # load data if previously saved
-# def10 = np.load("def10.npy", allow_pickle=True)
-# scale10 = np.load("scale10.npy", allow_pickle=True)
+# def10 = np.load("def10Db.npy", allow_pickle=True)
+# scale10 = np.load("scale10Db.npy", allow_pickle=True)
 # data_box10_visc = np.load("data10_visc.npy")
 
 # data_box20 = np.load("data20.npy")
@@ -130,12 +131,12 @@ np.save("scale40.npy", scale40)
 
 # data_box40 = np.load("data40.npy")
 # data_box40_visc = np.load("data40_visc.npy")
-def40 = np.load("def40.npy", allow_pickle=True)
-scale40 = np.load("scale40.npy", allow_pickle=True)
+# def40 = np.load("def40.npy", allow_pickle=True)
+# scale40 = np.load("scale40.npy", allow_pickle=True)
 
 # print(data_box10[0])
 # plots at 10 km
-# dataset10.pdf_plot(data_box10)
+# dataset10.pdf_plot_vect(def10, L10)
 # dataset10.cdf_plot(data_box10)
 # dataset10.scale_plot_vect(def10, scale10, L10)
 
@@ -149,4 +150,4 @@ scale40 = np.load("scale40.npy", allow_pickle=True)
 # dataset40.pdf_plot(data_box40)
 # dataset40.cdf_plot(data_box40)
 # dataset40.scale_plot(data_box40, L40, data_box40_visc)
-dataset40.scale_plot_vect(def40, scale40, L40)
+# dataset40.scale_plot_vect(def40, scale40, L40)

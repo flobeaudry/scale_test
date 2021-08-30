@@ -58,6 +58,7 @@ class Arctic(sts.Scale):
         step: int = None,
         save: bool = 0,
         fig_type: str = "png",
+        fig_name_supp: str = None,
     ):
         """
         Class attributes for Arctic.
@@ -89,6 +90,7 @@ class Arctic(sts.Scale):
         self.save = save
         self.step = step
         self.fig_shape = fig_shape
+        self.fig_name_supp = fig_name_supp
         super(Arctic, self).__init__(
             directory, time, expno, datatype, tolerance, resolution, nx, ny
         )
@@ -162,7 +164,7 @@ class Arctic(sts.Scale):
                 lat,
                 formated_data,
                 cmap=cmocean.cm.dense,
-                norm=colors.Normalize(vmin=0.8, vmax=1.2),
+                norm=colors.Normalize(vmin=0, vmax=10),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
@@ -203,12 +205,12 @@ class Arctic(sts.Scale):
             cf = ax.pcolormesh(
                 lon,
                 lat,
-                np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                formated_data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.amp,
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            self.datatype = "viscosity"
             cbar = fig.colorbar(cf)
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
@@ -217,13 +219,13 @@ class Arctic(sts.Scale):
             cf = ax.pcolormesh(
                 lon,
                 lat,
-                np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                formated_data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.amp,
-                norm=colors.Normalize(vmin=0.99, vmax=1),
+                norm=colors.Normalize(vmin=0.985, vmax=1),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            self.datatype = "dam"
             cbar = fig.colorbar(cf)
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
@@ -269,14 +271,16 @@ class Arctic(sts.Scale):
 
         if self.save:
             fig.savefig(
-                "images/" + self.datatype + str(self.resolution) + "." + self.fig_type
+                "images/"
+                + self.datatype
+                + str(self.resolution)
+                + self.fig_name_supp
+                + "."
+                + self.fig_type
             )
 
     def scale_plot(
-        self,
-        deformation: np.ndarray,
-        scales: list,
-        viscosity: np.ndarray = None,
+        self, deformation: np.ndarray, scales: list, viscosity: np.ndarray = None,
     ):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
@@ -323,12 +327,8 @@ class Arctic(sts.Scale):
         for k in range(len(scales)):
             # compute the means, ignoring NaNs
             indices = ~np.isnan(viscosity[k])
-            mean_def[k] = np.average(
-                deformation[k, indices, 0],
-            )
-            mean_scale[k] = np.average(
-                deformation[k, indices, 1],
-            )
+            mean_def[k] = np.average(deformation[k, indices, 0],)
+            mean_scale[k] = np.average(deformation[k, indices, 1],)
             # colormap
             base = cm.get_cmap("cmo.haline", 256)
             newcolors = base(np.linspace(0, 1, 256))
@@ -347,19 +347,13 @@ class Arctic(sts.Scale):
             # same thing with only viscosities that are under visc_max (plastic def)
             viscosity[k, viscosity[k] >= self.ETA_MAX * self.E ** 2] = np.NaN
             indices = ~np.isnan(viscosity[k])
-            mean_def_cut[k] = np.average(
-                deformation[k, indices, 0],
-            )
-            mean_scale_cut[k] = np.average(
-                deformation[k, indices, 1],
-            )
+            mean_def_cut[k] = np.average(deformation[k, indices, 0],)
+            mean_scale_cut[k] = np.average(deformation[k, indices, 1],)
 
         # add color bar
         cbar = fig.colorbar(cf)
         cbar.set_label(
-            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
-            rotation=-90,
-            va="bottom",
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]", rotation=-90, va="bottom",
         )
         # add red line for zeta max
         cax = cbar.ax
@@ -382,12 +376,7 @@ class Arctic(sts.Scale):
         cax.yaxis.set_ticks(minortick, minor=True)
         cax.yaxis.set_ticklabels(minortick_label, minor=True)
         cax.tick_params(
-            axis="y",
-            which="minor",
-            labelsize=8,
-            length=3.5,
-            color="r",
-            width=2,
+            axis="y", which="minor", labelsize=8, length=3.5, color="r", width=2,
         )
         # format the new ticks
         cax_format = matplotlib.ticker.ScalarFormatter()
@@ -457,7 +446,9 @@ class Arctic(sts.Scale):
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
         if self.save:
             fig.savefig(
-                "images/spatial_scale{}.{}".format(self.resolution, self.fig_type)
+                "images/spatial_scale{}".format(self.resolution)
+                + self.fig_name_supp
+                + ".{}".format(self.fig_type)
             )
 
     def scale_plot_vect(
@@ -550,11 +541,9 @@ class Arctic(sts.Scale):
             # mean_scale_cut[k] = np.average(deformation[k, indices, 1],)
 
         # add color bar
-        cbar = fig.colorbar(cf)
+        cbar = fig.colorbar(cf, ax=ax_histy)
         cbar.set_label(
-            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
-            rotation=-90,
-            va="bottom",
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]", rotation=-90, va="bottom",
         )
         # add red line for zeta max
         cax = cbar.ax
@@ -577,12 +566,7 @@ class Arctic(sts.Scale):
         cax.yaxis.set_ticks(minortick, minor=True)
         cax.yaxis.set_ticklabels(minortick_label, minor=True)
         cax.tick_params(
-            axis="y",
-            which="minor",
-            labelsize=8,
-            length=3.5,
-            color="r",
-            width=2,
+            axis="y", which="minor", labelsize=8, length=3.5, color="r", width=2,
         )
         # format the new ticks
         cax_format = matplotlib.ticker.ScalarFormatter()
@@ -654,7 +638,9 @@ class Arctic(sts.Scale):
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
         if self.save:
             fig.savefig(
-                "images/spatial_scale{}.{}".format(self.resolution, self.fig_type)
+                "images/spatial_scale{}".format(self.resolution)
+                + self.fig_name_supp
+                + ".{}".format(self.fig_type)
             )
 
     def pdf_plot(self, data: np.ndarray):
@@ -705,7 +691,74 @@ class Arctic(sts.Scale):
             )
         )
         if self.save:
-            fig.savefig("images/pdf{}.{}".format(self.resolution, self.fig_type))
+            fig.savefig(
+                "images/pdf{}".format(self.resolution)
+                + self.fig_name_supp
+                + ".{}".format(self.fig_type)
+            )
+
+    def pdf_plot_vect(self, deformation: np.ndarray, scales):
+        """
+        Function that computes the PDF plot with the MLE fit. Same as above but for vectorized output.
+
+        Args:
+            deformation (np.ndarray): Data from box data.
+            scales (list): scales of interests
+        """
+        data = self._clean_vect(deformation, scales)
+
+        # get correct data from box data
+        n = np.logspace(np.log10(5e-3), 0, num=50)
+        p, x = np.histogram(data, bins=n, density=1)
+        p_size, x_size = np.histogram(data, bins=n)
+
+        # convert bin edges to centers
+        x = (x[:-1] + x[1:]) / 2
+
+        # compute best estimator
+        (
+            dedt_min,
+            ks_dist,
+            best_fit,
+            min_index,
+            coefficient,
+        ) = self.ks_distance_minimizer(x, p)
+        print(coefficient)
+        t = np.linspace(dedt_min, x[-1], 10)
+        alpha, sigma = self.mle_exponent(data[-np.sum(p_size[min_index:]) :], dedt_min)
+
+        # plots
+        fig = plt.figure(dpi=300, figsize=(6, 4))
+        ax = plt.subplot()
+        ax.plot(x, p, "o", color="black", markersize=3)
+        ax.plot(t, np.exp(best_fit(np.log(t))), "--", color="red")
+        # ticks
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        # axe labels
+        ax.set_xlabel("Total deformation rate [day$^{-1}$]")
+        ax.set_ylabel("PDF")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_title(
+            r"$\hat\alpha$ = {:.1f}$\pm${:.1f}, KS-distance = {:.2f}".format(
+                alpha, sigma, ks_dist
+            )
+        )
+        if self.save:
+            fig.savefig(
+                "images/pdf{}".format(self.resolution)
+                + self.fig_name_supp
+                + ".{}".format(self.fig_type)
+            )
 
     def cdf_plot(self, data: np.ndarray):
         """

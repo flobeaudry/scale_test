@@ -879,9 +879,7 @@ class Data:
             time_stamps = [
                 datetime.strftime(time_ini + timedelta(hours=x), "%Y-%m-%d-%H-%M")
                 for x in range(
-                    0,
-                    int(abs(time_end - time_ini).total_seconds() / 3600),
-                    dtlist[1],
+                    0, int(abs(time_end - time_ini).total_seconds() / 3600), dtlist[1],
                 )
             ]
 
@@ -889,9 +887,7 @@ class Data:
             time_stamps = [
                 datetime.strftime(time_ini + timedelta(minutes=x), "%Y-%m-%d-%H-%M")
                 for x in range(
-                    0,
-                    int(abs(time_end - time_ini).total_seconds() / 60),
-                    dtlist[2],
+                    0, int(abs(time_end - time_ini).total_seconds() / 60), dtlist[2],
                 )
             ]
 
@@ -972,7 +968,7 @@ class Data:
         elif choice == 2:
             return divergence * 86400
 
-    def _derivative(self, u: np.ndarray, v: np.ndarray) -> np.array:
+    def _derivative(self, u: np.ndarray, v: np.ndarray, scale: int = 1) -> np.array:
         """
         Function that computes derivatives from velocities.
 
@@ -983,8 +979,8 @@ class Data:
             np.ndarray: array of size (2, ny, nx, nt) of all the derivatives. 0 is d/dx (y axis in the code), 1 is d/dy (x axis in the code). I just did not choose the right name in order to match the model.
         """
         # computes mean gradients
-        du = np.gradient(u, self.resolution * 1000)
-        dv = np.gradient(v, self.resolution * 1000)
+        du = np.gradient(u, self.resolution * 1000 * scale)
+        dv = np.gradient(v, self.resolution * 1000 * scale)
 
         return du, dv
 
