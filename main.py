@@ -1,3 +1,4 @@
+from numpy.lib.npyio import save
 import libs.visualization as vis
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,12 +8,12 @@ import matplotlib.pyplot as plt
 dataset10 = vis.Arctic(
     directory="output10_1997",
     time="1997-01-01-00-00",
-    expno="02",
+    expno="12",
     datatype="u",
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="Db_1997",
+    fig_name_supp="_1997",
 )
 
 dataset20 = vis.Arctic(
@@ -23,6 +24,7 @@ dataset20 = vis.Arctic(
     fig_shape="round",
     save=1,
     resolution=20,
+    fig_name_supp="_1997",
 )
 
 dataset40 = vis.Arctic(
@@ -33,9 +35,10 @@ dataset40 = vis.Arctic(
     fig_shape="round",
     save=1,
     resolution=40,
+    fig_name_supp="_1997",
 )
 
-dataset10.arctic_plot(dataset10.load())
+# dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
 L10 = [20, 40, 80, 160, 320, 640]
@@ -119,8 +122,10 @@ time_end = "1997-03-31-18-00"
 
 
 # load data if previously saved
-# def10 = np.load("def10Db.npy", allow_pickle=True)
-# scale10 = np.load("scale10Db.npy", allow_pickle=True)
+def10 = np.load("def10.npy", allow_pickle=True)
+scale10 = np.load("scale10.npy", allow_pickle=True)
+def10D = np.load("def10D.npy", allow_pickle=True)
+scale10D = np.load("scale10D.npy", allow_pickle=True)
 # data_box10_visc = np.load("data10_visc.npy")
 
 # data_box20 = np.load("data20.npy")
@@ -138,7 +143,15 @@ time_end = "1997-03-31-18-00"
 # plots at 10 km
 # dataset10.pdf_plot_vect(def10, L10)
 # dataset10.cdf_plot(data_box10)
-# dataset10.scale_plot_vect(def10, scale10, L10)
+mean_def, mean_scale = dataset10.scale_plot_vect(
+    def10, scale10, L10, save=False, fig_name_supp="_1997"
+)
+mean_defD, mean_scaleD = dataset10.scale_plot_vect(
+    def10D, scale10D, L10, save=False, fig_name_supp="D_1997"
+)
+mean_def_stack = np.stack((mean_def, mean_defD), axis=1)
+mean_scale_stack = np.stack((mean_scale, mean_scaleD), axis=1)
+dataset10.multi_plot(mean_def_stack, mean_scale_stack)
 
 # plots at 20 km
 # dataset20.pdf_plot(data_box20)
@@ -150,4 +163,4 @@ time_end = "1997-03-31-18-00"
 # dataset40.pdf_plot(data_box40)
 # dataset40.cdf_plot(data_box40)
 # dataset40.scale_plot(data_box40, L40, data_box40_visc)
-# dataset40.scale_plot_vect(def40, scale40, L40)
+# mean_def, mean_scale = dataset40.scale_plot_vect(def40, scale40, L40)

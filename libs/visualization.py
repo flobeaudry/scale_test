@@ -456,7 +456,9 @@ class Arctic(sts.Scale):
         deformation: np.ndarray,
         scaling: np.ndarray,
         scales: list,
+        fig_name_supp: str,
         viscosity: np.ndarray = None,
+        save: bool = True,
     ):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression. It is the same as above but for the vectorized version of the code.
@@ -636,9 +638,78 @@ class Arctic(sts.Scale):
         ax.set_xscale("log")
         ax.set_yscale("log")
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
-        if self.save:
+        if save:
             fig.savefig(
                 "images/spatial_scale{}".format(self.resolution)
+                + fig_name_supp
+                + ".{}".format(self.fig_type)
+            )
+
+        return mean_def, mean_scale
+
+    def _multiplot_precond(self):
+
+        fig = plt.figure(dpi=300, figsize=(6, 4))
+
+        # definitions for the axes
+        left, width = 0.14, 0.73
+        bottom, height = 0.12, 0.8
+
+        rect_scatter = [left, bottom, width, height]
+        ax = fig.add_axes(rect_scatter)
+
+        # ticks style
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both", direction="in", bottom=True, top=True, left=True, right=True,
+        )
+        ax.tick_params(
+            which="minor", labelleft=False,
+        )
+        # axe labels
+        ax.set_xlabel("Spatial scale [km]")
+        ax.set_ylabel("Total deformation rate [day$^{-1}$]")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_ylim(ymin=1e-2, ymax=1e-1)
+        ax.set_xlim(xmin=1e1, xmax=1e3)
+        # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
+
+        return fig, ax
+
+    def multi_plot(self, mean_def, mean_scale):
+
+        fig, ax = self._multiplot_precond()
+        colors = np.array(["xkcd:dark blue grey", "xkcd:tomato"])
+        shape = np.array(["^", "v"])
+        # loop over
+        for k in range(mean_def.shape[1]):
+            # linear regression over the means
+            coefficients = np.polyfit(
+                np.log(mean_scale[:, k]), np.log(mean_def[:, k]), 1
+            )
+            fit = np.poly1d(coefficients)
+            t = np.linspace(mean_scale[0, k], mean_scale[-1, k], 10)
+
+            # correlation
+            corr, _ = pearsonr(mean_scale[:, k], mean_def[:, k])
+            # corr_cut, _ = pearsonr(mean_scale_cut, mean_def_cut)
+
+            # plots for the means on all data
+            ax.plot(
+                mean_scale[:, k],
+                mean_def[:, k],
+                "^",
+                color=colors[k],
+                label="H = {:.2f}, corr = {:.2f}".format(coefficients[0], corr),
+                markersize=5,
+            )
+            ax.plot(t, np.exp(fit(np.log(t))), color=colors[k])
+
+        ax.legend(loc=1, fontsize="x-small")
+        if self.save:
+            fig.savefig(
+                "images/spatial_scale_multiplot{}".format(self.resolution)
                 + self.fig_name_supp
                 + ".{}".format(self.fig_type)
             )
