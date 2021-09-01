@@ -2,16 +2,12 @@
 /images/
 
 # data
-/output10/
-/output20/
-/output40/
 /output*/
-/spin_up10/
-/spin_up40/
 /40/
 /80/
 *.gz
 *.npy
+/RGPS*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

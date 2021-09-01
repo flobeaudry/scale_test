@@ -33,6 +33,7 @@
 # ----------------------------------------------------------------------
 
 import numpy as np
+import netCDF4 as nc
 from os import path, listdir
 from datetime import datetime, timedelta
 
@@ -165,7 +166,9 @@ class Data:
                     self.directory = None
 
                 else:
-                    raise SystemExit("\nError in directory name, it does not exist.")
+                    raise SystemExit(
+                        "\nError in directory name, it does not exist."
+                    )
 
     def _load_time(self, time: str):
         """
@@ -189,9 +192,9 @@ class Data:
 
             # enter date and time and split it
             if self.time is None:
-                self.time = input("At what time? (format is yyyy-mm-dd-hh-mm) ").split(
-                    "-"
-                )
+                self.time = input(
+                    "At what time? (format is yyyy-mm-dd-hh-mm) "
+                ).split("-")
                 n += 1
 
             # if arguments, split it
@@ -671,7 +674,9 @@ class Data:
                     formated_data_u = self._velocity_format(data_u, "u")
                     formated_data_v = self._velocity_format(data_v, "v")
 
-                    self.data = np.stack((formated_data_u, formated_data_v), axis=2)
+                    self.data = np.stack(
+                        (formated_data_u, formated_data_v), axis=2
+                    )
                     self.name = "Ice velocity [m/s]"
                 break
 
@@ -694,7 +699,9 @@ class Data:
         print("Done")
         return self.data
 
-    def _velocity_format(self, raw_vel: np.ndarray, vel_type: str) -> np.ndarray:
+    def _velocity_format(
+        self, raw_vel: np.ndarray, vel_type: str
+    ) -> np.ndarray:
         """
         Function that formats the velocity data. Note that only the velocities needs
         formating, since we are on an Arakawa C-grid.
@@ -787,13 +794,22 @@ class Data:
 
         if self.resolution is None:
             # resolution computation
-            if self.nx * self.ny == 520 * 440 or self.nx * self.ny == 518 * 438:
+            if (
+                self.nx * self.ny == 520 * 440
+                or self.nx * self.ny == 518 * 438
+            ):
                 self.resolution = 10
 
-            elif self.nx * self.ny == 260 * 220 or self.nx * self.ny == 258 * 218:
+            elif (
+                self.nx * self.ny == 260 * 220
+                or self.nx * self.ny == 258 * 218
+            ):
                 self.resolution = 20
 
-            elif self.nx * self.ny == 130 * 110 or self.nx * self.ny == 128 * 108:
+            elif (
+                self.nx * self.ny == 130 * 110
+                or self.nx * self.ny == 128 * 108
+            ):
                 self.resolution = 40
 
             elif self.nx * self.ny == 65 * 55 or self.nx * self.ny == 63 * 53:
@@ -871,23 +887,35 @@ class Data:
 
         if dtlist[0]:
             time_stamps = [
-                datetime.strftime(time_ini + timedelta(days=x), "%Y-%m-%d-%H-%M")
-                for x in range(0, int(abs(time_end - time_ini).days), dtlist[0])
+                datetime.strftime(
+                    time_ini + timedelta(days=x), "%Y-%m-%d-%H-%M"
+                )
+                for x in range(
+                    0, int(abs(time_end - time_ini).days), dtlist[0]
+                )
             ]
 
         elif dtlist[1]:
             time_stamps = [
-                datetime.strftime(time_ini + timedelta(hours=x), "%Y-%m-%d-%H-%M")
+                datetime.strftime(
+                    time_ini + timedelta(hours=x), "%Y-%m-%d-%H-%M"
+                )
                 for x in range(
-                    0, int(abs(time_end - time_ini).total_seconds() / 3600), dtlist[1],
+                    0,
+                    int(abs(time_end - time_ini).total_seconds() / 3600),
+                    dtlist[1],
                 )
             ]
 
         elif dtlist[2]:
             time_stamps = [
-                datetime.strftime(time_ini + timedelta(minutes=x), "%Y-%m-%d-%H-%M")
+                datetime.strftime(
+                    time_ini + timedelta(minutes=x), "%Y-%m-%d-%H-%M"
+                )
                 for x in range(
-                    0, int(abs(time_end - time_ini).total_seconds() / 60), dtlist[2],
+                    0,
+                    int(abs(time_end - time_ini).total_seconds() / 60),
+                    dtlist[2],
                 )
             ]
 
@@ -895,7 +923,9 @@ class Data:
 
         return time_stamps
 
-    def _coordinates(self, x0: np.ndarray, y0: np.ndarray) -> np.ndarray:
+    def _coordinates(
+        self, x0: np.ndarray, y0: np.ndarray, RGPS: bool = False
+    ) -> np.ndarray:
         """
         Function that computes the latitude and longitude of the grid data using a moving cone inside (see book 1, page 147-148).
 
@@ -906,20 +936,35 @@ class Data:
         Returns:
             np.ndarray: returns lon, lat in degrees
         """
-        # convert to matrix
-        x = np.broadcast_to(x0, (len(y0), len(x0)))
-        y = np.broadcast_to(y0, (len(x0), len(y0))).T
+        if RGPS:
+            # put in good units (m to km)
+            x, y = x0 / 1000, y0 / 1000
 
-        # polar coordinates on the plane
-        r = np.sqrt((x) ** 2 + (y) ** 2)
-        lon = np.degrees(np.arctan2(y, x)) + self.BETA
+            # polar coordinates on the plane
+            r = np.sqrt((x) ** 2 + (y) ** 2)
+            lon = np.degrees(np.arctan2(y, x)) + 45
+            # angle of the cone
+            tan_theta = r / (2 * self.R_EARTH)
+            # short radius on sphere
+            rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
 
-        # angle of the cone
-        tan_theta = r / (2 * self.R_EARTH)
-        # short radius on sphere
-        rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
+            lat = np.degrees(np.arccos(rs / self.R_EARTH))
 
-        lat = np.degrees(np.arccos(rs / self.R_EARTH))
+        elif not RGPS:
+            # convert to matrix
+            x = np.broadcast_to(x0, (len(y0), len(x0)))
+            y = np.broadcast_to(y0, (len(x0), len(y0))).T
+
+            # polar coordinates on the plane
+            r = np.sqrt((x) ** 2 + (y) ** 2)
+            lon = np.degrees(np.arctan2(y, x)) + self.BETA
+
+            # angle of the cone
+            tan_theta = r / (2 * self.R_EARTH)
+            # short radius on sphere
+            rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
+
+            lat = np.degrees(np.arccos(rs / self.R_EARTH))
 
         return lon, lat
 
@@ -943,7 +988,9 @@ class Data:
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2),
         )
 
-    def _deformation(self, du: np.ndarray, dv: np.ndarray, choice: int) -> np.ndarray:
+    def _deformation(
+        self, du: np.ndarray, dv: np.ndarray, choice: int
+    ) -> np.ndarray:
         """
         Function that computes deformation rates from velocity derivatives.
 
@@ -968,7 +1015,9 @@ class Data:
         elif choice == 2:
             return divergence * 86400
 
-    def _derivative(self, u: np.ndarray, v: np.ndarray, scale: int = 1) -> np.array:
+    def _derivative(
+        self, u: np.ndarray, v: np.ndarray, scale: int = 1
+    ) -> np.array:
         """
         Function that computes derivatives from velocities.
 
@@ -1042,3 +1091,20 @@ class Data:
         zeta = zeta_max * np.tanh(p / (2 * delta * zeta_max))
 
         return zeta, zeta_max
+
+    def nc_load(self, file: str):
+
+        ds = nc.Dataset(file)
+        print(ds["xgrid"][:])
+        print(ds["Polar_Stereographic"])
+        lat = ds["latitude"][:]
+        lon = ds["longitude"][:]
+        div = ds["divergence"][:]
+        shear = ds["shear"][:]
+        time = ds["time"][:]
+        xgrid = ds["xgrid"][:]
+        ygrid = ds["ygrid"][:]
+        mask = ds["mask"][:]
+
+        return div, shear, lat, lon, xgrid, ygrid, mask, time
+
