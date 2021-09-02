@@ -32,6 +32,7 @@
 #   load anytype of data.
 # ----------------------------------------------------------------------
 
+from matplotlib.pyplot import axis
 import numpy as np
 import netCDF4 as nc
 from os import path, listdir
@@ -936,35 +937,25 @@ class Data:
         Returns:
             np.ndarray: returns lon, lat in degrees
         """
-        if RGPS:
-            # put in good units (m to km)
-            x, y = x0 / 1000, y0 / 1000
 
-            # polar coordinates on the plane
-            r = np.sqrt((x) ** 2 + (y) ** 2)
-            lon = np.degrees(np.arctan2(y, x)) + 45
-            # angle of the cone
-            tan_theta = r / (2 * self.R_EARTH)
-            # short radius on sphere
-            rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
+        # convert to matrix
+        x = np.broadcast_to(x0, (len(y0), len(x0)))
+        y = np.broadcast_to(y0, (len(x0), len(y0))).T
 
-            lat = np.degrees(np.arccos(rs / self.R_EARTH))
+        # polar coordinates on the plane
+        r = np.sqrt((x) ** 2 + (y) ** 2)
 
-        elif not RGPS:
-            # convert to matrix
-            x = np.broadcast_to(x0, (len(y0), len(x0)))
-            y = np.broadcast_to(y0, (len(x0), len(y0))).T
-
-            # polar coordinates on the plane
-            r = np.sqrt((x) ** 2 + (y) ** 2)
+        if not RGPS:
             lon = np.degrees(np.arctan2(y, x)) + self.BETA
+        elif RGPS:
+            lon = np.degrees(np.arctan2(y, x)) + 45
 
-            # angle of the cone
-            tan_theta = r / (2 * self.R_EARTH)
-            # short radius on sphere
-            rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
+        # angle of the cone
+        tan_theta = r / (2 * self.R_EARTH)
+        # short radius on sphere
+        rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
 
-            lat = np.degrees(np.arccos(rs / self.R_EARTH))
+        lat = np.degrees(np.arccos(rs / self.R_EARTH))
 
         return lon, lat
 
@@ -1092,19 +1083,20 @@ class Data:
 
         return zeta, zeta_max
 
-    def nc_load(self, file: str):
+    def nc_load(self, datatype: str, file: str):
 
+        self.datatype = datatype
         ds = nc.Dataset(file)
-        print(ds["xgrid"][:])
-        print(ds["Polar_Stereographic"])
-        lat = ds["latitude"][:]
-        lon = ds["longitude"][:]
-        div = ds["divergence"][:]
-        shear = ds["shear"][:]
-        time = ds["time"][:]
-        xgrid = ds["xgrid"][:]
-        ygrid = ds["ygrid"][:]
+
+        if datatype == "div":
+            data = np.flip(
+                np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0
+            )
+
+        elif datatype == "shear":
+            data = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
+
         mask = ds["mask"][:]
 
-        return div, shear, lat, lon, xgrid, ygrid, mask, time
+        return data, mask
 

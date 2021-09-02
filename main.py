@@ -10,7 +10,7 @@ dataset10 = vis.Arctic(
     directory="output10_1997",
     time="1997-01-01-00-00",
     expno="12",
-    datatype="u",
+    datatype="h",
     fig_shape="round",
     save=1,
     resolution=10,
@@ -52,7 +52,7 @@ dataset10D = vis.Arctic(
 
 # ----------------------------------------------------------------------
 
-# dataset10.arctic_plot(dataset10.load())
+dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
 L10 = [20, 40, 80, 160, 320, 640]
@@ -126,11 +126,10 @@ time_end = "1997-03-31-18-00"
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-div, shear, lat, lon, xgrid, ygrid, mask, time = dataset10.nc_load(
-    "RGPS12_3dg_1997/w9697n_3dys.nc"
-)
-print(lat.shape)
-dataset10.arctic_plot_RGPS(div[0], xgrid, ygrid)
+div, __ = dataset10.nc_load("div", "RGPS12_3dg_1997/w9697n_3dys.nc")
+shear, __ = dataset10.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
+
+dataset10.arctic_plot_RGPS(shear[..., 10])
 
 # ----------------------------------------------------------------------
 # save data in file

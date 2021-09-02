@@ -278,9 +278,13 @@ class Arctic(sts.Scale):
                 + self.fig_type
             )
 
-    def arctic_plot_RGPS(self, data, x, y):
+    def arctic_plot_RGPS(
+        self, data: np.ndarray, fig_name_supp: str = "_1997_RGPS",
+    ):
+        x0 = np.arange(data.shape[0] + 1) * 12.5 - 2300
+        y0 = np.arange(data.shape[0] + 1) * 12.5 - 1000
 
-        lon, lat = self._coordinates(x, y, RGPS=True)
+        lon, lat = self._coordinates(x0, y0, RGPS=True)
 
         # figure initialization
         fig = plt.figure(dpi=300)
@@ -312,7 +316,7 @@ class Arctic(sts.Scale):
             cmap=cmocean.cm.amp,
             norm=colors.Normalize(vmin=0, vmax=0.1),
             transform=ccrs.PlateCarree(),
-            zorder=1,
+            zorder=8,
         )
         cbar = fig.colorbar(cf)
         cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
@@ -326,7 +330,7 @@ class Arctic(sts.Scale):
                 "images/"
                 + self.datatype
                 + str(self.resolution)
-                + self.fig_name_supp
+                + fig_name_supp
                 + "."
                 + self.fig_type
             )
