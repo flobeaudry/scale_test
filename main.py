@@ -10,7 +10,7 @@ dataset10 = vis.Arctic(
     directory="output10_1997",
     time="1997-01-01-00-00",
     expno="12",
-    datatype="h",
+    datatype="u",
     fig_shape="round",
     save=1,
     resolution=10,
@@ -26,6 +26,10 @@ dataset10D = vis.Arctic(
     save=1,
     resolution=10,
     fig_name_supp="D_1997",
+)
+
+dataset_RGPS = vis.Arctic(
+    fig_shape="round", save=1, resolution=12.5, fig_name_supp="_1997_RGPS",
 )
 
 # dataset20 = vis.Arctic(
@@ -52,9 +56,10 @@ dataset10D = vis.Arctic(
 
 # ----------------------------------------------------------------------
 
-dataset10.arctic_plot(dataset10.load())
+# dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
+L_RGPS = [25, 50, 100, 200]
 L10 = [20, 40, 80, 160, 320, 640]
 L20 = [40, 80, 160, 320, 640]
 L40 = [80, 160, 320, 640]
@@ -126,10 +131,17 @@ time_end = "1997-03-31-18-00"
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-div, __ = dataset10.nc_load("div", "RGPS12_3dg_1997/w9697n_3dys.nc")
-shear, __ = dataset10.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
+div, __ = dataset_RGPS.nc_load("div", "RGPS12_3dg_1997/w9697n_3dys.nc")
+shear, __ = dataset_RGPS.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
 
-dataset10.arctic_plot_RGPS(shear[..., 10])
+(
+    deps_RGPS,
+    shear_RGPS,
+    div_RGPS,
+    deps_scaling_RGPS,
+    shear_scaling_RGPS,
+    div_scaling_RGPS,
+) = dataset_RGPS.spatial_mean_RGPS(shear, div, L_RGPS)
 
 # ----------------------------------------------------------------------
 # save data in file
@@ -215,3 +227,16 @@ dataset10.arctic_plot_RGPS(shear[..., 10])
 # dataset40.cdf_plot(data_box40)
 # dataset40.scale_plot(data_box40, L40, data_box40_visc)
 # mean_def, mean_scale = dataset40.scale_plot_vect(def40, scale40, L40)
+
+# ----------------------------------------------------------------------
+# plots RGPS 12.5 km
+# ----------------------------------------------------------------------
+
+mean_deps_RGPS, mean_scale_RGPS = dataset_RGPS.scale_plot_vect(
+    deps_RGPS,
+    deps_scaling_RGPS,
+    L_RGPS,
+    save=True,
+    fig_name_supp="_dedt_1997_RGPS",
+)
+

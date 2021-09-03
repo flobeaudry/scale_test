@@ -32,11 +32,11 @@
 #   load anytype of data.
 # ----------------------------------------------------------------------
 
-from matplotlib.pyplot import axis
 import numpy as np
 import netCDF4 as nc
 from os import path, listdir
 from datetime import datetime, timedelta
+from libs.constants import *
 
 
 class Data:
@@ -55,13 +55,6 @@ class Data:
     multi_load : function that loads multiple snapshots
 
     """
-
-    R_EARTH = 6370  # Earth's radius (is smaller for better looking plots)
-    BETA = 32  # Angle between domain and Greenwich
-    E = 2  # ellipse ratio
-    ETA_MAX = 1e12  # max viscosity
-    P_STAR = 27500  # chosen value for the ice strenght parameter in N/m^2
-    C = 20  # arbitrary parameter
 
     def __init__(
         self,
@@ -946,16 +939,21 @@ class Data:
         r = np.sqrt((x) ** 2 + (y) ** 2)
 
         if not RGPS:
-            lon = np.degrees(np.arctan2(y, x)) + self.BETA
+            lon = np.degrees(np.arctan2(y, x)) + BETA
+
+            # angle of the cone
+            tan_theta = r / (2 * R_EARTH)
+            # short radius on sphere
+            rs = 2 * R_EARTH * tan_theta / (1 + tan_theta ** 2)
+
+            lat = np.degrees(np.arccos(rs / R_EARTH))
+
         elif RGPS:
-            lon = np.degrees(np.arctan2(y, x)) + 45
+            lon = np.degrees(np.arctan2(y, x)) + BETA_RGPS
 
-        # angle of the cone
-        tan_theta = r / (2 * self.R_EARTH)
-        # short radius on sphere
-        rs = 2 * self.R_EARTH * tan_theta / (1 + tan_theta ** 2)
-
-        lat = np.degrees(np.arccos(rs / self.R_EARTH))
+            # small radius corresponding to plane at phi = 70
+            rhat = R_EARTH * np.cos(np.pi / 2 - np.radians(PLANE_RGPS))
+            lat = np.degrees(np.pi / 2 - np.arctan(r / rhat))
 
         return lon, lat
 
@@ -1041,9 +1039,9 @@ class Data:
 
         # computes the delta function
         delta = np.sqrt(
-            (eps11 ** 2 + eps22 ** 2) * (1 + 1 / self.E ** 2)
-            + 4 / self.E ** 2 * eps12 ** 2
-            + 2 * eps11 * eps22 * (1 - 1 / self.E ** 2)
+            (eps11 ** 2 + eps22 ** 2) * (1 + 1 / E ** 2)
+            + 4 / E ** 2 * eps12 ** 2
+            + 2 * eps11 * eps22 * (1 - 1 / E ** 2)
         )
 
         return delta
@@ -1061,7 +1059,7 @@ class Data:
         """
 
         # compute the pressure
-        p = self.P_STAR * h * np.exp(-self.C * (1 - A))
+        p = P_STAR * h * np.exp(-C * (1 - A))
 
         return p[1:-1, 1:-1]
 
@@ -1088,13 +1086,20 @@ class Data:
         self.datatype = datatype
         ds = nc.Dataset(file)
 
+        # indices for the period of interest
+        indices = (ds["time"][:] / 60 / 60 / 24 > 0) & (
+            ds["time"][:] / 60 / 60 / 24 < 90
+        )
+
         if datatype == "div":
             data = np.flip(
                 np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0
             )
+            data = data[..., indices]
 
         elif datatype == "shear":
             data = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
+            data = data[..., indices]
 
         mask = ds["mask"][:]
 

@@ -32,6 +32,7 @@ import cmocean
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 import matplotlib.ticker
+from libs.constants import *
 
 
 class Arctic(sts.Scale):
@@ -316,7 +317,7 @@ class Arctic(sts.Scale):
             cmap=cmocean.cm.amp,
             norm=colors.Normalize(vmin=0, vmax=0.1),
             transform=ccrs.PlateCarree(),
-            zorder=8,
+            zorder=1,
         )
         cbar = fig.colorbar(cf)
         cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
@@ -401,12 +402,10 @@ class Arctic(sts.Scale):
                 c=viscosity[k, indices],
                 s=0.5,
                 cmap=newcmp,
-                norm=colors.Normalize(
-                    vmin=0, vmax=5 * self.ETA_MAX * self.E ** 2
-                ),
+                norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E ** 2),
             )
             # same thing with only viscosities that are under visc_max (plastic def)
-            viscosity[k, viscosity[k] >= self.ETA_MAX * self.E ** 2] = np.NaN
+            viscosity[k, viscosity[k] >= ETA_MAX * E ** 2] = np.NaN
             indices = ~np.isnan(viscosity[k])
             mean_def_cut[k] = np.average(deformation[k, indices, 0],)
             mean_scale_cut[k] = np.average(deformation[k, indices, 1],)
@@ -421,9 +420,9 @@ class Arctic(sts.Scale):
         # add red line for zeta max
         cax = cbar.ax
         cax.hlines(
-            self.ETA_MAX * self.E ** 2,
+            ETA_MAX * E ** 2,
             0,
-            self.ETA_MAX * self.E ** 2 * 10,
+            ETA_MAX * E ** 2 * 10,
             colors="r",
             linewidth=2,
         )
@@ -608,12 +607,10 @@ class Arctic(sts.Scale):
                 ),  # viscosity[k, indices],
                 s=0.5,
                 cmap=newcmp,
-                norm=colors.Normalize(
-                    vmin=0, vmax=5 * self.ETA_MAX * self.E ** 2
-                ),
+                norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E ** 2),
             )
             # same thing with only viscosities that are under visc_max (plastic def)
-            # viscosity[k, viscosity[k] >= self.ETA_MAX * self.E ** 2] = np.NaN
+            # viscosity[k, viscosity[k] >= ETA_MAX * E ** 2] = np.NaN
             # indices = ~np.isnan(viscosity[k])
             # mean_def_cut[k] = np.average(deformation[k, indices, 0],)
             # mean_scale_cut[k] = np.average(deformation[k, indices, 1],)
@@ -628,9 +625,9 @@ class Arctic(sts.Scale):
         # add red line for zeta max
         cax = cbar.ax
         cax.hlines(
-            self.ETA_MAX * self.E ** 2,
+            ETA_MAX * E ** 2,
             0,
-            self.ETA_MAX * self.E ** 2 * 10,
+            ETA_MAX * E ** 2 * 10,
             colors="r",
             linewidth=2,
         )
