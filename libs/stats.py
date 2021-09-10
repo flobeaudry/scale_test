@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy as np
+from numpy.core.arrayprint import DatetimeFormat
 import libs.selection as sel
 from libs.constants import *
 
@@ -545,8 +546,9 @@ class Scale(sel.Data):
         # time average the data
         u_v_ta = self._time_average(u_v, dt)
 
-        u_v_ta_bool = u_v_ta != 0
+        u_v_ta_bool = u_v_ta != 0.0
         u_v_ta_bool = u_v_ta_bool.astype(int)
+        u_v_ta = np.where(u_v_ta == 0.0, np.NaN, u_v_ta)
 
         # initialize output
         deps = []
@@ -557,10 +559,19 @@ class Scale(sel.Data):
         # loop over all scales
         for scale_km_unit in scales:
             # verify validity of scale
-            if scale_km_unit <= self.resolution:
-                raise SystemExit(
-                    "Scale is smaller than or equal to resolution. It's not implemented yet."
+            if scale_km_unit <= int(self.resolution):
+                du, dv = self._derivative(
+                    u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :],
                 )
+                deps.append(self._deformation(du, dv, 0))
+                shear.append(self._deformation(du, dv, 1))
+                div.append(self._deformation(du, dv, 2))
+                scaling.append(
+                    self.resolution
+                    * np.ones_like(self._deformation(du, dv, 0))
+                )
+                print("Done with scale {}.".format(scale_km_unit))
+                continue
 
             # convert km into grid cell units
             scale_grid_unit = scale_km_unit // self.resolution
@@ -613,7 +624,7 @@ class Scale(sel.Data):
                         ),
                         axis=0,
                     )
-                    u_v_ta_sum[i, j, :, :] = np.sum(
+                    u_v_ta_sum[i, j, :, :] = np.nansum(
                         u_v_ta[
                             scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
                             + scale_grid_unit,
@@ -644,7 +655,7 @@ class Scale(sel.Data):
                     )
 
             u_v_ta_bool_sum = np.where(
-                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2,
+                u_v_ta_bool_sum < 3 * scale_grid_unit ** 2 // 4,
                 np.NaN,
                 u_v_ta_bool_sum,
             )
@@ -722,9 +733,16 @@ class Scale(sel.Data):
         for scale_km_unit in scales:
             # verify validity of scale
             if scale_km_unit <= RES_RGPS:
-                raise SystemExit(
-                    "Scale is smaller than or equal to resolution. It's not implemented yet."
+                shear_list.append(shear)
+                div_list.append(div)
+                deps_list.append(np.sqrt(div ** 2 + shear ** 2))
+                deps_scaling_list.append(
+                    RES_RGPS * np.ones_like(np.sqrt(div ** 2 + shear ** 2))
                 )
+                shear_scaling_list.append(RES_RGPS * np.ones_like(shear))
+                div_scaling_list.append(RES_RGPS * np.ones_like(div))
+                print("Done with scale 12.5.")
+                continue
 
             # convert km into grid cell units
             scale_grid_unit = int(scale_km_unit // RES_RGPS)
@@ -773,7 +791,7 @@ class Scale(sel.Data):
                         ),
                         axis=0,
                     )
-                    shear_sum[i, j, :] = np.sum(
+                    shear_sum[i, j, :] = np.nansum(
                         shear[
                             scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
                             + scale_grid_unit,
@@ -802,7 +820,7 @@ class Scale(sel.Data):
                     )
 
             shear_bool_sum = np.where(
-                shear_bool_sum < scale_grid_unit ** 2 // 2,
+                shear_bool_sum < 3 * scale_grid_unit ** 2 // 4,
                 np.NaN,
                 shear_bool_sum,
             )
@@ -853,7 +871,7 @@ class Scale(sel.Data):
                         ),
                         axis=0,
                     )
-                    div_sum[i, j, :] = np.sum(
+                    div_sum[i, j, :] = np.nansum(
                         div[
                             scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
                             + scale_grid_unit,
@@ -882,7 +900,9 @@ class Scale(sel.Data):
                     )
 
             div_bool_sum = np.where(
-                div_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, div_bool_sum,
+                div_bool_sum < 3 * scale_grid_unit ** 2 // 4,
+                np.NaN,
+                div_bool_sum,
             )
 
             div_mean = div_sum / div_bool_sum

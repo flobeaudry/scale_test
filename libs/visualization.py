@@ -33,6 +33,7 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 import matplotlib.ticker
 from libs.constants import *
+from scipy.spatial import ConvexHull
 
 
 class Arctic(sts.Scale):
@@ -279,13 +280,36 @@ class Arctic(sts.Scale):
                 + self.fig_type
             )
 
+    def _encircle(self, x, y, ax, **kw):
+        p = np.c_[x, y]
+        hull = ConvexHull(p)
+        for simplex in hull.simplices:
+            ax.plot(
+                p[simplex, 0],
+                p[simplex, 1],
+                "k-",
+                transform=ccrs.PlateCarree(),
+            )
+
+        poly = plt.Polygon(
+            p[hull.vertices, :], transform=ccrs.PlateCarree(), **kw
+        )
+        ax.add_patch(poly)
+
     def arctic_plot_RGPS(
-        self, data: np.ndarray, fig_name_supp: str = "_1997_RGPS",
+        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_",
     ):
         x0 = np.arange(data.shape[0] + 1) * 12.5 - 2300
         y0 = np.arange(data.shape[0] + 1) * 12.5 - 1000
 
+        x1 = np.arange(data.shape[0]) * 12.5 - 2300
+        y1 = np.arange(data.shape[0]) * 12.5 - 1000
+
+        x = np.broadcast_to(x1, (len(y1), len(x1)))
+        y = np.broadcast_to(y1, (len(x1), len(y1))).T
+
         lon, lat = self._coordinates(x0, y0, RGPS=True)
+        lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
 
         # figure initialization
         fig = plt.figure(dpi=300)
@@ -315,12 +339,16 @@ class Arctic(sts.Scale):
             data,
             # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
             cmap=cmocean.cm.amp,
-            norm=colors.Normalize(vmin=0, vmax=0.1),
+            norm=colors.Normalize(vmin=0, vmax=1),
             transform=ccrs.PlateCarree(),
             zorder=1,
         )
+
+        indices = np.where(data == 1)
+        self._encircle(lon1[indices], lat1[indices], ax=ax, ec="k", fc="none")
+
         cbar = fig.colorbar(cf)
-        cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
+        # cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
@@ -329,9 +357,10 @@ class Arctic(sts.Scale):
         if self.save:
             fig.savefig(
                 "images/"
-                + self.datatype
+                + datatype
                 + str(self.resolution)
                 + fig_name_supp
+                + "RGPS"
                 + "."
                 + self.fig_type
             )
@@ -537,7 +566,7 @@ class Arctic(sts.Scale):
         Args:
             deformation (np.ndarray): array of the data inside each box. Shape (nL, ny, nx, nt). The first index is the studied scale.
 
-            scaling (np.ndarray): array of the data for the scaling same shaoe as deformation.
+            scaling (np.ndarray): array of the data for the scaling same shape as deformation.
 
             scales (list): list of all scales under study.
 
@@ -570,6 +599,8 @@ class Arctic(sts.Scale):
         for k in range(len(scales)):
             ymax.append(np.nanmax(np.abs(deformation[k])))
             ymin.append(np.nanmin(np.abs(deformation[k])))
+            if ymin[k] < 1e-10:
+                ymin[k] = 1e-10
             all_def.append(deformation[k].flatten())
         all_def_array = np.concatenate(all_def)
         n = np.logspace(
@@ -592,6 +623,7 @@ class Arctic(sts.Scale):
             indices = indices1 * indices2
             mean_def[k] = np.average(deformation[k][indices])
             mean_scale[k] = np.average(scaling[k][indices])
+
             # colormap
             base = cm.get_cmap("cmo.haline", 256)
             newcolors = base(np.linspace(0, 1, 256))
@@ -717,10 +749,11 @@ class Arctic(sts.Scale):
         ax.set_ylabel("Total deformation rate [day$^{-1}$]")
         ax.set_xscale("log")
         ax.set_yscale("log")
+        ax.set_xlim(xmin=8, xmax=7e2)
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
         if save:
             fig.savefig(
-                "images/spatial_scale{}".format(self.resolution)
+                "images/ss{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type)
             )
@@ -763,7 +796,7 @@ class Arctic(sts.Scale):
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_ylim(ymin=1e-2, ymax=1e-1)
-        ax.set_xlim(xmin=8, xmax=1e3)
+        ax.set_xlim(xmin=6, xmax=1e3)
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
 
         return fig, ax
@@ -785,9 +818,9 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond()
-        colors = np.array(["xkcd:dark blue grey", "xkcd:tomato"])
+        colors = np.array(["xkcd:dark blue grey", "xkcd:tomato", "xkcd:blush"])
         shape = np.array(["^", "v"])
-        dam = np.array(["No damage: ", "Damage: "])
+        dam = np.array(["No damage: ", "Damage: ", "RGPS: "])
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -816,7 +849,7 @@ class Arctic(sts.Scale):
         ax.legend(loc=1, fontsize="x-small")
         if save:
             fig.savefig(
-                "images/spatial_scale_multiplot{}".format(self.resolution)
+                "images/ssm{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type)
             )

@@ -14,7 +14,7 @@ dataset10 = vis.Arctic(
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="_1997",
+    fig_name_supp="_97",
 )
 
 dataset10D = vis.Arctic(
@@ -25,11 +25,11 @@ dataset10D = vis.Arctic(
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="D_1997",
+    fig_name_supp="D_97",
 )
 
 dataset_RGPS = vis.Arctic(
-    fig_shape="round", save=1, resolution=12.5, fig_name_supp="_1997_RGPS",
+    fig_shape="round", save=1, resolution=12.5, fig_name_supp="_02_RGPS",
 )
 
 # dataset20 = vis.Arctic(
@@ -59,10 +59,10 @@ dataset_RGPS = vis.Arctic(
 # dataset10.arctic_plot(dataset10.load())
 # dataset.multi_load("01-00-00", "1997-03-31-00-00")
 
-L_RGPS = [25, 50, 100, 200]
-L10 = [20, 40, 80, 160, 320, 640]
-L20 = [40, 80, 160, 320, 640]
-L40 = [80, 160, 320, 640]
+L_RGPS = [12.5, 25, 50, 100, 200, 400]
+L10 = [10, 20, 40, 80, 160, 320, 640]
+L20 = [20, 40, 80, 160, 320, 640]
+L40 = [40, 80, 160, 320, 640]
 dt = "00-06-00"
 time_end = "1997-03-31-18-00"
 
@@ -131,17 +131,23 @@ time_end = "1997-03-31-18-00"
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-div, __ = dataset_RGPS.nc_load("div", "RGPS12_3dg_1997/w9697n_3dys.nc")
-shear, __ = dataset_RGPS.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
+deps, div, shear, mask = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc")
+
+mask80 = dataset_RGPS.mask80("RGPS_data")
+mask80 = np.where(mask80 == 0, np.NaN, 1)
+# dataset_RGPS.arctic_plot_RGPS(mask80, "mask")
+
+shear80 = np.transpose(np.transpose(shear, (2, 0, 1)) * mask80, (1, 2, 0))
+div80 = np.transpose(np.transpose(div, (2, 0, 1)) * mask80, (1, 2, 0))
 
 (
     deps_RGPS,
     shear_RGPS,
     div_RGPS,
-    deps_scaling_RGPS,
-    shear_scaling_RGPS,
-    div_scaling_RGPS,
-) = dataset_RGPS.spatial_mean_RGPS(shear, div, L_RGPS)
+    deps_scale_RGPS,
+    shear_scale_RGPS,
+    div_scale_RGPS,
+) = dataset_RGPS.spatial_mean_RGPS(shear80, div80, L_RGPS)
 
 # ----------------------------------------------------------------------
 # save data in file
@@ -167,18 +173,25 @@ shear, __ = dataset_RGPS.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
 # np.save("processed_data/def40.npy", def40)
 # np.save("processed_data/scale40.npy", scale40)
 
+# np.save("processed_data/deps_RGPS.npy", deps_RGPS)
+# np.save("processed_data/shear_RGPS.npy", shear_RGPS)
+# np.save("processed_data/div_RGPS.npy", div_RGPS)
+# np.save("processed_data/deps_scale_RGPS.npy", deps_scale_RGPS)
+# np.save("processed_data/shear_scale_RGPS.npy", shear_scale_RGPS)
+# np.save("processed_data/div_scale_RGPS.npy", div_scale_RGPS)
+
 # ----------------------------------------------------------------------
 # load data if previously saved
 # ----------------------------------------------------------------------
 
-# deps10 = np.load("processed_data/deps10.npy", allow_pickle=True)
-# shear10 = np.load("processed_data/shear10.npy", allow_pickle=True)
-# div10 = np.load("processed_data/div10.npy", allow_pickle=True)
-# scale10 = np.load("processed_data/scale10.npy", allow_pickle=True)
-# deps10D = np.load("processed_data/deps10D.npy", allow_pickle=True)
-# shear10D = np.load("processed_data/shear10D.npy", allow_pickle=True)
-# div10D = np.load("processed_data/div10D.npy", allow_pickle=True)
-# scale10D = np.load("processed_data/scale10D.npy", allow_pickle=True)
+deps10 = np.load("processed_data/deps10.npy", allow_pickle=True)
+shear10 = np.load("processed_data/shear10.npy", allow_pickle=True)
+div10 = np.load("processed_data/div10.npy", allow_pickle=True)
+scale10 = np.load("processed_data/scale10.npy", allow_pickle=True)
+deps10D = np.load("processed_data/deps10D.npy", allow_pickle=True)
+shear10D = np.load("processed_data/shear10D.npy", allow_pickle=True)
+div10D = np.load("processed_data/div10D.npy", allow_pickle=True)
+scale10D = np.load("processed_data/scale10D.npy", allow_pickle=True)
 # data_box10_visc = np.load("data10_visc.npy")
 
 # data_box20 = np.load("data20.npy")
@@ -191,24 +204,31 @@ shear, __ = dataset_RGPS.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
 # def40 = np.load("processed_data/def40.npy", allow_pickle=True)
 # scale40 = np.load("processed_data/scale40.npy", allow_pickle=True)
 
+# deps_RGPS = np.load("processed_data/deps_RGPS.npy", allow_pickle=True)
+# shear_RGPS = np.load("processed_data/shear_RGPS.npy", allow_pickle=True)
+# div_RGPS = np.load("processed_data/div_RGPS.npy", allow_pickle=True)
+# deps_scale_RGPS = np.load(
+#     "processed_data/deps_scale_RGPS.npy", allow_pickle=True
+# )
+# shear_scale_RGPS = np.load(
+#     "processed_data/shear_scale_RGPS.npy", allow_pickle=True
+# )
+# div_scale_RGPS = np.load(
+#     "processed_data/div_scale_RGPS.npy", allow_pickle=True
+# )
+
 # ----------------------------------------------------------------------
 # plots at 10 km
 # ----------------------------------------------------------------------
 
 # dataset10.pdf_plot_vect(def10, L10)
 # dataset10.cdf_plot(data_box10)
-# mean_deps, mean_scale = dataset10.scale_plot_vect(
-#     deps10, scale10, L10, save=False, fig_name_supp="_dedt_1997"
-# )
-# mean_depsD, mean_scaleD = dataset10D.scale_plot_vect(
-#     deps10D, scale10D, L10, save=False, fig_name_supp="D_dedt_1997"
-# )
-# mean_deps_stack = np.stack((mean_deps, mean_depsD), axis=1)
-# mean_scale_stack = np.stack((mean_scale, mean_scaleD), axis=1)
-
-# dataset10.multi_plot(
-#     mean_deps_stack, mean_scale_stack, fig_name_supp="_dedt_1997"
-# )
+mean_deps, mean_scale = dataset10.scale_plot_vect(
+    deps10, scale10, L10, save=0, fig_name_supp="_dedt_97"
+)
+mean_depsD, mean_scaleD = dataset10D.scale_plot_vect(
+    deps10D, scale10D, L10, save=0, fig_name_supp="D_dedt_97"
+)
 
 # ----------------------------------------------------------------------
 # plots at 20 km
@@ -233,10 +253,20 @@ shear, __ = dataset_RGPS.nc_load("shear", "RGPS12_3dg_1997/w9697n_3dys.nc")
 # ----------------------------------------------------------------------
 
 mean_deps_RGPS, mean_scale_RGPS = dataset_RGPS.scale_plot_vect(
-    deps_RGPS,
-    deps_scaling_RGPS,
-    L_RGPS,
-    save=True,
-    fig_name_supp="_dedt_1997_RGPS",
+    deps_RGPS, deps_scale_RGPS, L_RGPS, save=1, fig_name_supp="_dedt_02_RGPS",
 )
 
+# ----------------------------------------------------------------------
+# multiplot
+# ----------------------------------------------------------------------
+
+mean_deps_stack = np.stack(
+    (mean_deps[0:6], mean_depsD[0:6], mean_deps_RGPS), axis=1
+)
+mean_scale_stack = np.stack(
+    (mean_scale[0:6], mean_scaleD[0:6], mean_scale_RGPS), axis=1
+)
+
+dataset10.multi_plot(
+    mean_deps_stack, mean_scale_stack, fig_name_supp="_dedt_97"
+)

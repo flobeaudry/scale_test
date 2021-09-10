@@ -1081,27 +1081,92 @@ class Data:
 
         return zeta, zeta_max
 
-    def nc_load(self, datatype: str, file: str):
+    def nc_load(self, file: str, all: bool = 0):
+        """
+        Loads pertinent data from RGPS.
 
-        self.datatype = datatype
+        Args:
+            file (str): what is the name of the file we are loading from.
+            all (bool, optional): whether to load all times or only the months of January February and March.
+
+        Returns:
+            [type]: wanted data and associated mask.
+        """
         ds = nc.Dataset(file)
 
-        # indices for the period of interest
-        indices = (ds["time"][:] / 60 / 60 / 24 > 0) & (
-            ds["time"][:] / 60 / 60 / 24 < 90
-        )
-
-        if datatype == "div":
-            data = np.flip(
-                np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0
+        if not all:
+            # indices for the period of interest
+            indices = (ds["time"][:] / 60 / 60 / 24 >= 0) & (
+                ds["time"][:] / 60 / 60 / 24 <= 90
             )
-            data = data[..., indices]
 
-        elif datatype == "shear":
-            data = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
-            data = data[..., indices]
+            div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
+            div = div[..., indices]
+            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
 
-        mask = ds["mask"][:]
+            shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
+            shear = shear[..., indices]
+            # shear = np.where(shear < 5e-3, np.NaN, shear)
 
-        return data, mask
+            deps = np.sqrt(div ** 2 + shear ** 2)
+            deps.mask = 0
+            deps = np.where(deps == 0.0, np.NaN, deps)
+
+            mask = np.flip(ds["mask"][:], axis=0)
+            mask = np.where(mask > -1, mask, 0)
+            print("Done loading RGPS data.")
+            print(
+                "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
+            )
+
+        else:
+            div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
+            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
+
+            shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
+            # shear = np.where(shear < 5e-3, np.NaN, shear)
+
+            deps = np.sqrt(div ** 2 + shear ** 2)
+            deps.mask = 0
+            deps = np.where(deps == 0.0, np.NaN, deps)
+
+            mask = np.flip(ds["mask"][:], axis=0)
+            mask = np.where(mask > -1, mask, 0)
+
+        return deps, div, shear, mask
+
+    def mask80(self, directory: str):
+        """
+        Function that loads all files and computes the mask80, that is the mask that represent where there is a least 80% of data in time.
+
+        Args:
+            directory (str): directory where the RGPS data is.
+
+        Returns:
+            mask 80 (array): array of size (248, 248) of where there is at least 80% temporal data presence. 
+        """
+
+        # list all .nc files in directory
+        files_list = self._list_files(directory, "nc")
+
+        # create empty array to stock data
+        mask_array = np.zeros((248, 248, len(files_list)))
+
+        i = 0
+        # loop on file name
+        for file in files_list:
+            temp_bool = ~np.isnan(
+                self.nc_load(directory + "/" + file, all=1)[0]
+            )
+            temp_sum = np.sum(temp_bool, axis=-1)
+            temp = np.where(temp_sum / temp_bool.shape[-1] >= 0.8, 1, 0)
+            mask_array[..., i] = temp
+            i += 1
+
+        print("Done loading RGPS data.")
+        # sum all layers and divide by the number of layer to test which cells are covered for a least 80% of the time
+        mask_sum = np.sum(mask_array, axis=-1)
+        mask80 = np.where(mask_sum / i >= 0.8, 1, 0)
+
+        return mask80
 
