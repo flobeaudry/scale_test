@@ -134,11 +134,16 @@ time_end = "1997-03-31-18-00"
 deps, div, shear, mask = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc")
 
 mask80 = dataset_RGPS.mask80("RGPS_data")
-mask80 = np.where(mask80 == 0, np.NaN, 1)
-# dataset_RGPS.arctic_plot_RGPS(mask80, "mask")
 
 shear80 = np.transpose(np.transpose(shear, (2, 0, 1)) * mask80, (1, 2, 0))
 div80 = np.transpose(np.transpose(div, (2, 0, 1)) * mask80, (1, 2, 0))
+
+# shear80 = shear * mask80
+# div80 = div * mask80
+
+# dataset_RGPS.arctic_plot_RGPS(
+#     shear80[..., 10], datatype="shear80", fig_name_supp="_02_", mask=0
+# )
 
 (
     deps_RGPS,

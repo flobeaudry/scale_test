@@ -921,7 +921,7 @@ class Data:
         self, x0: np.ndarray, y0: np.ndarray, RGPS: bool = False
     ) -> np.ndarray:
         """
-        Function that computes the latitude and longitude of the grid data using a moving cone inside (see book 1, page 147-148).
+        Function that computes the latitude and longitude of the grid data using a moving cone inside (see book 1, page 147-148) and (see book 2, page 22 for RGPS).
 
         Args:
             x0 (np.ndarray): x distance in the tangent plane from the north pole
@@ -1081,13 +1081,14 @@ class Data:
 
         return zeta, zeta_max
 
-    def nc_load(self, file: str, all: bool = 0):
+    def nc_load(self, file: str, all: bool = 0, tt: int = 90):
         """
         Loads pertinent data from RGPS.
 
         Args:
             file (str): what is the name of the file we are loading from.
-            all (bool, optional): whether to load all times or only the months of January February and March.
+            all (bool, optional): whether to load all times or only the months of January February and March. Defaults to 0
+            tt (int, optional): extent in time in days from january first. Defaults to 90.
 
         Returns:
             [type]: wanted data and associated mask.
@@ -1097,16 +1098,16 @@ class Data:
         if not all:
             # indices for the period of interest
             indices = (ds["time"][:] / 60 / 60 / 24 >= 0) & (
-                ds["time"][:] / 60 / 60 / 24 <= 90
+                ds["time"][:] / 60 / 60 / 24 <= tt
             )
 
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
-            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
+            # div = np.nanmean(div, axis=-1)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
             shear = shear[..., indices]
-            # shear = np.where(shear < 5e-3, np.NaN, shear)
+            # shear = np.nanmean(shear, axis=-1)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
             deps.mask = 0
@@ -1120,11 +1121,10 @@ class Data:
             )
 
         else:
+            # all months don't need to care about 0.005 treshold, just want to know where there is data this is for the mask.
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
-            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
-            # shear = np.where(shear < 5e-3, np.NaN, shear)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
             deps.mask = 0
@@ -1166,7 +1166,7 @@ class Data:
         print("Done loading RGPS data.")
         # sum all layers and divide by the number of layer to test which cells are covered for a least 80% of the time
         mask_sum = np.sum(mask_array, axis=-1)
-        mask80 = np.where(mask_sum / i >= 0.8, 1, 0)
+        mask80 = np.where(mask_sum / i >= 0.8, 1, np.NaN)
 
         return mask80
 

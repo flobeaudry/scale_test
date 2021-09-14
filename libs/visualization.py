@@ -280,7 +280,21 @@ class Arctic(sts.Scale):
                 + self.fig_type
             )
 
-    def _encircle(self, x, y, ax, **kw):
+    def _encircle(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        ax: matplotlib.axes.SubplotBase,
+        **kw
+    ):
+        """
+        Function that computes the polygon around the relevant data in order to trace the taken values only (for plots only)
+
+        Args:
+            x (np.ndarray): x coordinates of the data 1D
+            y (np.ndarray): y coordinates of the data 1D
+            ax (matplotlib.axes.SubplotBase): the axis where to plot polygon
+        """
         p = np.c_[x, y]
         hull = ConvexHull(p)
         for simplex in hull.simplices:
@@ -297,19 +311,25 @@ class Arctic(sts.Scale):
         ax.add_patch(poly)
 
     def arctic_plot_RGPS(
-        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_",
+        self,
+        data: np.ndarray,
+        datatype: str,
+        fig_name_supp: str = "_",
+        mask: bool = 0,
     ):
-        x0 = np.arange(data.shape[0] + 1) * 12.5 - 2300
-        y0 = np.arange(data.shape[0] + 1) * 12.5 - 1000
+        """
+        Function that plots data over the Arctic same as the other one but specifically for RGPS.
 
-        x1 = np.arange(data.shape[0]) * 12.5 - 2300
-        y1 = np.arange(data.shape[0]) * 12.5 - 1000
-
-        x = np.broadcast_to(x1, (len(y1), len(x1)))
-        y = np.broadcast_to(y1, (len(x1), len(y1))).T
+        Args:
+            data (np.ndarray): data to plot in 2D
+            datatype (str): type of the data
+            fig_name_supp (str, optional): supplementary figure description in the name when saving the figure. Defaults to "_".
+            mask (bool, optional): whether to plot the mask polygon or not on top of the data. Defaults to 0.
+        """
+        x0 = np.arange(data.shape[0] + 1) * RES_RGPS - 2300
+        y0 = np.arange(data.shape[1] + 1) * RES_RGPS - 1000
 
         lon, lat = self._coordinates(x0, y0, RGPS=True)
-        lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
 
         # figure initialization
         fig = plt.figure(dpi=300)
@@ -339,16 +359,21 @@ class Arctic(sts.Scale):
             data,
             # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
             cmap=cmocean.cm.amp,
-            norm=colors.Normalize(vmin=0, vmax=1),
+            norm=colors.Normalize(vmin=0, vmax=0.1),
             transform=ccrs.PlateCarree(),
             zorder=1,
         )
 
-        indices = np.where(data == 1)
-        self._encircle(lon1[indices], lat1[indices], ax=ax, ec="k", fc="none")
-
         cbar = fig.colorbar(cf)
-        # cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
+        cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
+        if mask:
+            x1 = np.arange(data.shape[0]) * 12.5 - 2300
+            y1 = np.arange(data.shape[0]) * 12.5 - 1000
+            lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
+            indices = np.where(data == 1)
+            self._encircle(
+                lon1[indices], lat1[indices], ax=ax, ec="k", fc="none"
+            )
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
@@ -795,8 +820,8 @@ class Arctic(sts.Scale):
         ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_ylim(ymin=1e-2, ymax=1e-1)
-        ax.set_xlim(xmin=6, xmax=1e3)
+        ax.set_ylim(ymin=4e-3, ymax=2e-1)
+        ax.set_xlim(xmin=6, xmax=8e2)
         # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
 
         return fig, ax

@@ -655,7 +655,7 @@ class Scale(sel.Data):
                     )
 
             u_v_ta_bool_sum = np.where(
-                u_v_ta_bool_sum < 3 * scale_grid_unit ** 2 // 4,
+                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2,
                 np.NaN,
                 u_v_ta_bool_sum,
             )
@@ -733,181 +733,67 @@ class Scale(sel.Data):
         for scale_km_unit in scales:
             # verify validity of scale
             if scale_km_unit <= RES_RGPS:
-                shear_list.append(shear)
-                div_list.append(div)
-                deps_list.append(np.sqrt(div ** 2 + shear ** 2))
+                shear_cut = np.where(shear < 5e-3, np.NaN, shear)
+                div_cut = np.where(np.abs(div) < 5e-3, np.NaN, div)
+                shear_list.append(shear_cut)
+                div_list.append(div_cut)
+                deps_list.append(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 deps_scaling_list.append(
-                    RES_RGPS * np.ones_like(np.sqrt(div ** 2 + shear ** 2))
+                    RES_RGPS
+                    * np.ones_like(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 )
-                shear_scaling_list.append(RES_RGPS * np.ones_like(shear))
-                div_scaling_list.append(RES_RGPS * np.ones_like(div))
+                shear_scaling_list.append(RES_RGPS * np.ones_like(shear_cut))
+                div_scaling_list.append(RES_RGPS * np.ones_like(div_cut))
                 print("Done with scale 12.5.")
                 continue
 
             # convert km into grid cell units
             scale_grid_unit = int(scale_km_unit // RES_RGPS)
 
-            # implementation of the algorithm for shear
-            shear_bool_sum = np.empty(
-                (
-                    shear.shape[0] // scale_grid_unit * 2,
-                    shear.shape[1] // scale_grid_unit * 2,
-                    shear.shape[2],
-                )
+            # implementation of the algorithm
+            # definitions
+            shear_bool_sum, shear_sum = self._definitions_RGPS(
+                shear, scale_grid_unit
             )
-            shear_sum = np.empty(
-                (
-                    shear.shape[0] // scale_grid_unit * 2,
-                    shear.shape[1] // scale_grid_unit * 2,
-                    shear.shape[2],
-                )
+            div_bool_sum, div_sum = self._definitions_RGPS(
+                div, scale_grid_unit
             )
+
+            # big loop over all the indices
             for i in range(shear.shape[0] // scale_grid_unit * 2):
                 for j in range(shear.shape[1] // scale_grid_unit * 2):
-                    shear_bool_sum[i, j, :] = np.sum(
-                        shear_bool[
-                            scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                            + scale_grid_unit,
-                            scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                            + scale_grid_unit,
-                            :,
-                        ].reshape(
-                            -1,
-                            *shear_bool[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
-                                + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
-                                + scale_grid_unit,
-                                :,
-                            ].shape[-1:]
-                        ),
-                        axis=0,
+                    # algo for shear and div
+                    (
+                        shear_bool_sum[i, j, :],
+                        shear_sum[i, j, :],
+                    ) = self._loop_interior_RGPS(
+                        i, j, shear_bool, shear, scale_grid_unit
                     )
-                    shear_sum[i, j, :] = np.nansum(
-                        shear[
-                            scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                            + scale_grid_unit,
-                            scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                            + scale_grid_unit,
-                            :,
-                        ].reshape(
-                            -1,
-                            *shear[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
-                                + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
-                                + scale_grid_unit,
-                                :,
-                            ].shape[-1:]
-                        ),
-                        axis=0,
+                    (
+                        div_bool_sum[i, j, :],
+                        div_sum[i, j, :],
+                    ) = self._loop_interior_RGPS(
+                        i, j, div_bool, div, scale_grid_unit
                     )
 
+            # take only boxes that are at least 50% filled
             shear_bool_sum = np.where(
-                shear_bool_sum < 3 * scale_grid_unit ** 2 // 4,
+                shear_bool_sum < scale_grid_unit ** 2 // 2,
                 np.NaN,
                 shear_bool_sum,
             )
 
-            shear_mean = shear_sum / shear_bool_sum
-
-            # implementation of the algorithm for div
-            div_bool_sum = np.empty(
-                (
-                    div.shape[0] // scale_grid_unit * 2,
-                    div.shape[1] // scale_grid_unit * 2,
-                    div.shape[2],
-                )
-            )
-            div_sum = np.empty(
-                (
-                    div.shape[0] // scale_grid_unit * 2,
-                    div.shape[1] // scale_grid_unit * 2,
-                    div.shape[2],
-                )
-            )
-            for i in range(div.shape[0] // scale_grid_unit * 2):
-                for j in range(div.shape[1] // scale_grid_unit * 2):
-                    div_bool_sum[i, j, :] = np.sum(
-                        div_bool[
-                            scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                            + scale_grid_unit,
-                            scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                            + scale_grid_unit,
-                            :,
-                        ].reshape(
-                            -1,
-                            *div_bool[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
-                                + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
-                                + scale_grid_unit,
-                                :,
-                            ].shape[-1:]
-                        ),
-                        axis=0,
-                    )
-                    div_sum[i, j, :] = np.nansum(
-                        div[
-                            scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                            + scale_grid_unit,
-                            scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                            + scale_grid_unit,
-                            :,
-                        ].reshape(
-                            -1,
-                            *div[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
-                                + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
-                                + scale_grid_unit,
-                                :,
-                            ].shape[-1:]
-                        ),
-                        axis=0,
-                    )
-
             div_bool_sum = np.where(
-                div_bool_sum < 3 * scale_grid_unit ** 2 // 4,
-                np.NaN,
-                div_bool_sum,
+                div_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, div_bool_sum,
             )
 
+            # compute the means
+            shear_mean = shear_sum / shear_bool_sum
             div_mean = div_sum / div_bool_sum
 
-            # compute the deformation
+            # delete boxes with mean smaller than 5e-3 and compute the deformation
+            shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
+            div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
             deps_mean = np.sqrt(shear_mean ** 2 + div_mean ** 2)
 
             # compute the scaling associated with each box note here that I multiply by v then divide by v so that I get both the NaNs in u and v (to match the NaNs in deps).
@@ -936,4 +822,72 @@ class Scale(sel.Data):
         div_scaling = np.asarray(div_scaling_list, dtype=object)
 
         return deps, shear, div, deps_scaling, shear_scaling, div_scaling
+
+    def _definitions_RGPS(
+        self, data: np.ndarray, scale_grid_unit: int
+    ) -> np.ndarray:
+        bool_sum = np.empty(
+            (
+                data.shape[0] // scale_grid_unit * 2,
+                data.shape[1] // scale_grid_unit * 2,
+                data.shape[2],
+            )
+        )
+        data_sum = np.empty(
+            (
+                data.shape[0] // scale_grid_unit * 2,
+                data.shape[1] // scale_grid_unit * 2,
+                data.shape[2],
+            )
+        )
+        return bool_sum, data_sum
+
+    def _loop_interior_RGPS(
+        self,
+        i: int,
+        j: int,
+        data_bool: np.ndarray,
+        data: np.ndarray,
+        scale_grid_unit: int,
+    ) -> np.ndarray:
+        # algo
+        bool_sum = np.sum(
+            data_bool[
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                + scale_grid_unit,
+                :,
+            ].reshape(
+                -1,
+                *data_bool[
+                    scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                    + scale_grid_unit,
+                    scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                    + scale_grid_unit,
+                    :,
+                ].shape[-1:]
+            ),
+            axis=0,
+        )
+        data_sum = np.nansum(
+            data[
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                + scale_grid_unit,
+                :,
+            ].reshape(
+                -1,
+                *data[
+                    scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                    + scale_grid_unit,
+                    scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                    + scale_grid_unit,
+                    :,
+                ].shape[-1:]
+            ),
+            axis=0,
+        )
+        return bool_sum, data_sum
 
