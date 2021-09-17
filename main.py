@@ -131,12 +131,13 @@ time_end = "1997-03-31-18-00"
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-deps, div, shear, mask = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc")
+deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tt=90)
 
 mask80 = dataset_RGPS.mask80("RGPS_data")
 
 shear80 = np.transpose(np.transpose(shear, (2, 0, 1)) * mask80, (1, 2, 0))
 div80 = np.transpose(np.transpose(div, (2, 0, 1)) * mask80, (1, 2, 0))
+dataset_RGPS.pdf_plot_vect(shear80.flatten())
 
 # shear80 = shear * mask80
 # div80 = div * mask80
