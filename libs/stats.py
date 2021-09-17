@@ -701,7 +701,7 @@ class Scale(sel.Data):
         return deps, shear, div, scaling
 
     def spatial_mean_RGPS(
-        self, shear: np.ndarray, div: np.ndarray, scales: list,
+        self, shear: np.ndarray, div: np.ndarray, scales: list
     ) -> np.ndarray:
         """
         Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
@@ -709,8 +709,6 @@ class Scale(sel.Data):
         Args:
             shear/div (np.ndarray): deformations in x and y, shape is (ny, nx, nt), already time averaged
             scales (list): list of scales to compute.
-        Raises:
-            SystemExit: If the input scale is equal to or smaller than the resolution of the data.
 
         Returns:
             np.ndarray: returns an array of size (len(scales),) where each element of the array are of different sizes (because it depends on the sizes of the boxes, therefore, for each scale the size of the data changes).
@@ -764,14 +762,14 @@ class Scale(sel.Data):
                 for j in range(shear.shape[1] // scale_grid_unit * 2):
                     # algo for shear and div
                     (
-                        shear_bool_sum[i, j, :],
-                        shear_sum[i, j, :],
+                        shear_bool_sum[i, j],
+                        shear_sum[i, j],
                     ) = self._loop_interior_RGPS(
                         i, j, shear_bool, shear, scale_grid_unit
                     )
                     (
-                        div_bool_sum[i, j, :],
-                        div_sum[i, j, :],
+                        div_bool_sum[i, j],
+                        div_sum[i, j],
                     ) = self._loop_interior_RGPS(
                         i, j, div_bool, div, scale_grid_unit
                     )
@@ -792,8 +790,8 @@ class Scale(sel.Data):
             div_mean = div_sum / div_bool_sum
 
             # delete boxes with mean smaller than 5e-3 and compute the deformation
-            shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
-            div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
+            # shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
+            # div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
             deps_mean = np.sqrt(shear_mean ** 2 + div_mean ** 2)
 
             # compute the scaling associated with each box note here that I multiply by v then divide by v so that I get both the NaNs in u and v (to match the NaNs in deps).
@@ -826,20 +824,15 @@ class Scale(sel.Data):
     def _definitions_RGPS(
         self, data: np.ndarray, scale_grid_unit: int
     ) -> np.ndarray:
-        bool_sum = np.empty(
-            (
-                data.shape[0] // scale_grid_unit * 2,
-                data.shape[1] // scale_grid_unit * 2,
-                data.shape[2],
-            )
-        )
-        data_sum = np.empty(
-            (
-                data.shape[0] // scale_grid_unit * 2,
-                data.shape[1] // scale_grid_unit * 2,
-                data.shape[2],
-            )
-        )
+
+        shape = list(data.shape)
+        shape[0] = shape[0] // scale_grid_unit * 2
+        shape[1] = shape[1] // scale_grid_unit * 2
+        shape = tuple(shape)
+
+        bool_sum = np.empty(shape)
+        data_sum = np.empty(shape)
+
         return bool_sum, data_sum
 
     def _loop_interior_RGPS(
@@ -889,5 +882,6 @@ class Scale(sel.Data):
             ),
             axis=0,
         )
+
         return bool_sum, data_sum
 

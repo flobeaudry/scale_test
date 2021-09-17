@@ -1103,18 +1103,18 @@ class Data:
 
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
-            # div = np.nanmean(div, axis=-1)
+            div = np.where(np.abs(div) < 5e-3, np.NaN, div)
+            # div = np.nanmean(div, axis=-1, keepdims=1)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
             shear = shear[..., indices]
-            # shear = np.nanmean(shear, axis=-1)
+            shear = np.where(shear < 5e-3, np.NaN, shear)
+            # shear = np.nanmean(shear, axis=-1, keepdims=1)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
-            deps.mask = 0
-            deps = np.where(deps == 0.0, np.NaN, deps)
+            # deps.mask = np.NaN
+            # deps = np.where(deps == 0.0, np.NaN, deps)
 
-            mask = np.flip(ds["mask"][:], axis=0)
-            mask = np.where(mask > -1, mask, 0)
             print("Done loading RGPS data.")
             print(
                 "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
@@ -1130,10 +1130,7 @@ class Data:
             deps.mask = 0
             deps = np.where(deps == 0.0, np.NaN, deps)
 
-            mask = np.flip(ds["mask"][:], axis=0)
-            mask = np.where(mask > -1, mask, 0)
-
-        return deps, div, shear, mask
+        return deps, div, shear
 
     def mask80(self, directory: str):
         """

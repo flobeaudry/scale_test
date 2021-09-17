@@ -935,7 +935,7 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type)
             )
 
-    def pdf_plot_vect(self, deformation: np.ndarray, scales):
+    def pdf_plot_vect(self, data: np.ndarray):
         """
         Function that computes the PDF plot with the MLE fit. Same as above but for vectorized output.
 
@@ -943,7 +943,7 @@ class Arctic(sts.Scale):
             deformation (np.ndarray): Data from box data.
             scales (list): scales of interests
         """
-        data = self._clean_vect(deformation, scales)
+        # data = self._clean_vect(deformation, scales)
 
         # get correct data from box data
         n = np.logspace(np.log10(5e-3), 0, num=50)
@@ -970,8 +970,9 @@ class Arctic(sts.Scale):
         # plots
         fig = plt.figure(dpi=300, figsize=(6, 4))
         ax = plt.subplot()
-        ax.plot(x, p, "o", color="black", markersize=3)
-        ax.plot(t, np.exp(best_fit(np.log(t))), "--", color="red")
+        ax.plot(x, p, ".", color="black", markersize=3)
+        ax.plot(x, p, color="black")
+        ax.plot(t, np.exp(best_fit(np.log(t)) + 1), "--", color="red")
         # ticks
         ax.grid(linestyle=":")
         ax.tick_params(
@@ -988,6 +989,8 @@ class Arctic(sts.Scale):
         ax.set_ylabel("PDF")
         ax.set_xscale("log")
         ax.set_yscale("log")
+        ax.set_ylim(ymin=1e-6, ymax=2e2)
+        ax.set_xlim(xmin=5e-3, xmax=10)
         ax.set_title(
             r"$\hat\alpha$ = {:.1f}$\pm${:.1f}, KS-distance = {:.2f}".format(
                 alpha, sigma, ks_dist
