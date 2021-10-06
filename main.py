@@ -131,21 +131,71 @@ time_end = "1997-03-31-18-00"
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tt=90)
+# mask80
+mask80 = dataset_RGPS.mask80("RGPS_data", tt=30)
 
-mask80 = dataset_RGPS.mask80("RGPS_data")
+# RGPS data
+# load everything
+deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tt=30)
+# plot initial values everything
+# dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
+# dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
+# dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
+# dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "shear", "_02_")
+# mask it using mask80
+shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
+div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
+# split the divergence in -/+
+ndiv80 = np.where(div80 < 0, div80, np.NaN)
+pdiv80 = np.where(div80 > 0, div80, np.NaN)
+# remove nans
+shear80_cut = shear80[~np.isnan(shear80)]
+ndiv80_cut = ndiv80[~np.isnan(ndiv80)]
+pdiv80_cut = pdiv80[~np.isnan(pdiv80)]
 
-shear80 = np.transpose(np.transpose(shear, (2, 0, 1)) * mask80, (1, 2, 0))
-div80 = np.transpose(np.transpose(div, (2, 0, 1)) * mask80, (1, 2, 0))
-dataset_RGPS.pdf_plot_vect(shear80.flatten())
+# # my data
+# # load everything
+# shear10 = dataset10.multi_load(dt, "1997-01-31-18-00", datatype="shear")
+# div10 = dataset10.multi_load(dt, "1997-01-31-18-00", datatype="divergence")
+# # time average it
+# shear10 = dataset10._time_average(shear10, dt)
+# div10 = dataset10._time_average(div10, dt)
+# # mask it using mask 80
+# shear10 = dataset10.mask80_times(shear10, mask80)
+# div10 = dataset10.mask80_times(div10, mask80)
+# # split the divergence in -/+
+# ndiv10 = np.where(div10 < 0, div10, np.NaN)
+# pdiv10 = np.where(div10 > 0, div10, np.NaN)
+# # get rid of nans
+# shear10_cut = shear10[~np.isnan(shear10)]
+# ndiv10_cut = ndiv10[~np.isnan(ndiv10)]
+# pdiv10_cut = pdiv10[~np.isnan(pdiv10)]
 
-# shear80 = shear * mask80
-# div80 = div * mask80
+# # damage data
+# # load everything
+# shear10D = dataset10D.multi_load(dt, "1997-01-31-18-00", datatype="shear")
+# div10D = dataset10D.multi_load(dt, "1997-01-31-18-00", datatype="divergence")
+# # time average it
+# shear10D = dataset10D._time_average(shear10D, dt)
+# div10D = dataset10D._time_average(div10D, dt)
+# # mask it using mask 80
+# shear10D = dataset10D.mask80_times(shear10D, mask80)
+# div10D = dataset10D.mask80_times(div10D, mask80)
+# # split the divergence in -/+
+# ndiv10D = np.where(div10D < 0, div10D, np.NaN)
+# pdiv10D = np.where(div10D > 0, div10D, np.NaN)
+# # get rid of nans
+# shear10D_cut = shear10D[~np.isnan(shear10D)]
+# ndiv10D_cut = ndiv10D[~np.isnan(ndiv10D)]
+# pdiv10D_cut = pdiv10D[~np.isnan(pdiv10D)]
+# print(shear10D_cut.shape, shear80_cut.shape)
 
-# dataset_RGPS.arctic_plot_RGPS(
-#     shear80[..., 10], datatype="shear80", fig_name_supp="_02_", mask=0
-# )
+# make the pdf plots for each of them
+dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
+# dataset10.pdf_plot_vect(shear10_cut, -ndiv10_cut, pdiv10_cut)
+# dataset10D.pdf_plot_vect(shear10D_cut, -ndiv10D_cut, pdiv10D_cut)
 
+# compute scaling of RGPS
 (
     deps_RGPS,
     shear_RGPS,
@@ -235,6 +285,9 @@ mean_deps, mean_scale = dataset10.scale_plot_vect(
 mean_depsD, mean_scaleD = dataset10D.scale_plot_vect(
     deps10D, scale10D, L10, save=0, fig_name_supp="D_dedt_97"
 )
+
+# dataset10.arctic_plot(dataset10.load())
+# dataset10D.arctic_plot(dataset10D.load())
 
 # ----------------------------------------------------------------------
 # plots at 20 km

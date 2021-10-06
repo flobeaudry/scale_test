@@ -1091,7 +1091,7 @@ class Data:
             tt (int, optional): extent in time in days from january first. Defaults to 90.
 
         Returns:
-            [type]: wanted data and associated mask.
+            [type]: wanted data
         """
         ds = nc.Dataset(file)
 
@@ -1122,9 +1122,20 @@ class Data:
 
         else:
             # all months don't need to care about 0.005 treshold, just want to know where there is data this is for the mask.
+            # indices for the period of interest
+            indices = (ds["time"][:] / 60 / 60 / 24 >= 0) & (
+                ds["time"][:] / 60 / 60 / 24 <= tt
+            )
+            if not indices.any():
+                indices = (ds["time"][:] / 60 / 60 / 24 - 365 >= 0) & (
+                    ds["time"][:] / 60 / 60 / 24 - 365 <= tt
+                )
+
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
+            div = div[..., indices]
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
+            shear = shear[..., indices]
 
             deps = np.sqrt(div ** 2 + shear ** 2)
             deps.mask = 0
@@ -1132,7 +1143,7 @@ class Data:
 
         return deps, div, shear
 
-    def mask80(self, directory: str):
+    def mask80(self, directory: str, tt: int = 90):
         """
         Function that loads all files and computes the mask80, that is the mask that represent where there is a least 80% of data in time.
 
@@ -1153,7 +1164,7 @@ class Data:
         # loop on file name
         for file in files_list:
             temp_bool = ~np.isnan(
-                self.nc_load(directory + "/" + file, all=1)[0]
+                self.nc_load(directory + "/" + file, all=1, tt=tt)[0]
             )
             temp_sum = np.sum(temp_bool, axis=-1)
             temp = np.where(temp_sum / temp_bool.shape[-1] >= 0.8, 1, 0)
@@ -1167,3 +1178,63 @@ class Data:
 
         return mask80
 
+    def mask80_times_RGPS(
+        self, data: np.ndarray, mask80: np.ndarray
+    ) -> np.ndarray:
+        """
+        Function that multiplies data and mask.
+
+        Args:
+            data (np.ndarray): data to mask.
+            mask80 (np.ndarray): mask to apply
+
+        Returns:
+            np.ndarray: masked data.
+        """
+        if len(data.shape) == 3:
+            data80 = np.transpose(
+                np.transpose(data, (2, 0, 1)) * mask80, (1, 2, 0)
+            )
+        else:
+            data80 = data * mask80
+
+        return data80
+
+    def mask80_times(self, data: np.ndarray, mask80: np.ndarray) -> np.ndarray:
+        """
+        Function that multiplies data and mask.
+
+        Args:
+            data (np.ndarray): data to mask.
+            mask80 (np.ndarray): mask to apply
+
+        Returns:
+            np.ndarray: masked data.
+        """
+        mask = np.zeros((self.ny, self.nx))
+
+        x = np.arange(self.nx + 1) * self.resolution - 2500
+        y = np.arange(self.ny + 1) * self.resolution - 2250
+
+        x_RGPS = np.arange(248 + 1) * RES_RGPS - 2300
+        y_RGPS = np.arange(248 + 1) * RES_RGPS - 1000
+
+        xmin = np.min(np.abs(x - np.min(x_RGPS)))
+        xmax = np.min(np.abs(x - np.max(x_RGPS)))
+
+        ymin = np.min(np.abs(y - np.min(y_RGPS)))
+        ymax = np.min(np.abs(y - np.max(y_RGPS)))
+
+        idxmin = np.argwhere(x == xmin)[0][0]
+        idxmax = np.argwhere(x == xmax)[0][0]
+        idymin = np.argwhere(y == ymin)[0][0]
+        idymax = np.argwhere(y == ymax)[0][0]
+        print(idxmin, idxmax, idymin, idymax)
+        # le probleme vient d'ici
+
+        mask[idymin : idymax + 1, idxmin : idxmax + 1] = 1
+        mask = np.where(mask == 0, np.NaN, mask)
+
+        data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask, (1, 2, 0))
+
+        return data80

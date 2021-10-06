@@ -34,6 +34,8 @@ from matplotlib.colors import ListedColormap
 import matplotlib.ticker
 from libs.constants import *
 from scipy.spatial import ConvexHull
+from descartes import PolygonPatch
+import alphashape
 
 
 class Arctic(sts.Scale):
@@ -186,7 +188,8 @@ class Arctic(sts.Scale):
             cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for deformation rates
-        elif self.datatype in ["dedt", "shear", "divergence"]:
+        elif self.datatype in ["dedt", "shear"]:
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
                 lon,
                 lat,
@@ -194,6 +197,21 @@ class Arctic(sts.Scale):
                 # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.amp,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
+
+        elif self.datatype == "divergence":
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                formated_data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.curl,
+                norm=colors.Normalize(vmin=-0.4, vmax=0.4),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
@@ -217,6 +235,7 @@ class Arctic(sts.Scale):
 
         # for damage
         elif self.datatype == "dam":
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
                 lon,
                 lat,
@@ -277,15 +296,12 @@ class Arctic(sts.Scale):
                 + str(self.resolution)
                 + self.fig_name_supp
                 + "."
-                + self.fig_type
+                + self.fig_type,
+                transparent=True,
             )
 
     def _encircle(
-        self,
-        x: np.ndarray,
-        y: np.ndarray,
-        ax: matplotlib.axes.SubplotBase,
-        **kw
+        self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase
     ):
         """
         Function that computes the polygon around the relevant data in order to trace the taken values only (for plots only)
@@ -295,20 +311,16 @@ class Arctic(sts.Scale):
             y (np.ndarray): y coordinates of the data 1D
             ax (matplotlib.axes.SubplotBase): the axis where to plot polygon
         """
-        p = np.c_[x, y]
-        hull = ConvexHull(p)
-        for simplex in hull.simplices:
-            ax.plot(
-                p[simplex, 0],
-                p[simplex, 1],
-                "k-",
-                transform=ccrs.PlateCarree(),
+        points = np.c_[x, y]
+        # alpha = 0.95 * alphashape.optimizealpha(points)
+        hull = alphashape.alphashape(points, 0.4)
+        ax.add_patch(
+            PolygonPatch(
+                hull, fill=False, color="black", transform=ccrs.PlateCarree()
             )
-
-        poly = plt.Polygon(
-            p[hull.vertices, :], transform=ccrs.PlateCarree(), **kw
         )
-        ax.add_patch(poly)
+
+        return ax
 
     def arctic_plot_RGPS(
         self,
@@ -349,20 +361,34 @@ class Arctic(sts.Scale):
             ax.set_boundary(circle, transform=ax.transAxes)
 
         # Limit the map to 65 degrees latitude and above.
-        ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+        ax.set_extent([-180, 180, 65, 90], crs=ccrs.PlateCarree())
 
         # all the plots
         # for deformation rates
-        cf = ax.pcolormesh(
-            lon,
-            lat,
-            data,
-            # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
-            cmap=cmocean.cm.amp,
-            norm=colors.Normalize(vmin=0, vmax=0.1),
-            transform=ccrs.PlateCarree(),
-            zorder=1,
-        )
+        if datatype == "div":
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.curl,
+                norm=colors.Normalize(vmin=-0.04, vmax=0.04),
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
+        else:
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.amp,
+                norm=colors.Normalize(vmin=0, vmax=0.1),
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
 
         cbar = fig.colorbar(cf)
         cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
@@ -371,9 +397,7 @@ class Arctic(sts.Scale):
             y1 = np.arange(data.shape[0]) * 12.5 - 1000
             lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
             indices = np.where(data == 1)
-            self._encircle(
-                lon1[indices], lat1[indices], ax=ax, ec="k", fc="none"
-            )
+            self._encircle(lon1[indices], lat1[indices], ax=ax)
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
@@ -387,7 +411,8 @@ class Arctic(sts.Scale):
                 + fig_name_supp
                 + "RGPS"
                 + "."
-                + self.fig_type
+                + self.fig_type,
+                transparent=True,
             )
 
     def scale_plot(
@@ -876,7 +901,8 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/ssm{}".format(self.resolution)
                 + fig_name_supp
-                + ".{}".format(self.fig_type)
+                + ".{}".format(self.fig_type),
+                transparent=True,
             )
 
     def pdf_plot(self, data: np.ndarray):
@@ -932,10 +958,13 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/pdf{}".format(self.resolution)
                 + self.fig_name_supp
-                + ".{}".format(self.fig_type)
+                + ".{}".format(self.fig_type),
+                transparent=True,
             )
 
-    def pdf_plot_vect(self, data: np.ndarray):
+    def pdf_plot_vect(
+        self, shear: np.ndarray, ndiv: np.ndarray, pdiv: np.ndarray
+    ):
         """
         Function that computes the PDF plot with the MLE fit. Same as above but for vectorized output.
 
@@ -943,39 +972,120 @@ class Arctic(sts.Scale):
             deformation (np.ndarray): Data from box data.
             scales (list): scales of interests
         """
-        # data = self._clean_vect(deformation, scales)
-
-        # get correct data from box data
-        n = np.logspace(np.log10(5e-3), 0, num=50)
-        p, x = np.histogram(data, bins=n, density=1)
-        p_size, x_size = np.histogram(data, bins=n)
-
-        # convert bin edges to centers
-        x = (x[:-1] + x[1:]) / 2
-
-        # compute best estimator
+        # init plot
+        fig = plt.figure(dpi=300, figsize=(12, 4))
         (
-            dedt_min,
-            ks_dist,
-            best_fit,
-            min_index,
-            coefficient,
-        ) = self.ks_distance_minimizer(x, p)
-        print(coefficient)
-        t = np.linspace(dedt_min, x[-1], 10)
-        alpha, sigma = self.mle_exponent(
-            data[-np.sum(p_size[min_index:]) :], dedt_min
-        )
+            x_shear,
+            p_shear,
+            ks_dist_shear,
+            best_fit_shear,
+            min_index_shear,
+            coefficient_shear,
+            dedt_min_shear,
+            alpha_shear,
+            sigma_shear,
+        ) = self._pdf_interior(shear, 1)
+
+        (
+            x_ndiv,
+            p_ndiv,
+            ks_dist_ndiv,
+            best_fit_ndiv,
+            min_index_ndiv,
+            coefficient_ndiv,
+            dedt_min_ndiv,
+            alpha_ndiv,
+            sigma_ndiv,
+        ) = self._pdf_interior(ndiv, 3)
+
+        (
+            x_pdiv,
+            p_pdiv,
+            ks_dist_pdiv,
+            best_fit_pdiv,
+            min_index_pdiv,
+            coefficient_pdiv,
+            dedt_min_pdiv,
+            alpha_pdiv,
+            sigma_pdiv,
+        ) = self._pdf_interior(pdiv, 3)
+
+        # fit definitions
+        t_shear = np.logspace(np.log10(dedt_min_shear), np.log10(2), 10)
+        t_ndiv = np.logspace(np.log10(dedt_min_ndiv), np.log10(0.3), 10)
+        t_pdiv = np.logspace(np.log10(dedt_min_pdiv), np.log10(0.3), 10)
+
+        # definitions for the axis
+        left_shear, width_shear = (1 - 3 * 0.267) / 4, 0.267
+        bottom_shear, height_shear = 0.12, 0.8
+        rect_scatter_shear = [
+            left_shear,
+            bottom_shear,
+            width_shear,
+            height_shear,
+        ]
+
+        left_ndiv, width_ndiv = (1 - 3 * 0.267) / 2 + 0.267, 0.267
+        bottom_ndiv, height_ndiv = 0.12, 0.8
+        rect_scatter_ndiv = [
+            left_ndiv,
+            bottom_ndiv,
+            width_ndiv,
+            height_ndiv,
+        ]
+
+        left_pdiv, width_pdiv = 3 * (1 - 3 * 0.267) / 4 + 2 * 0.267, 0.267
+        bottom_pdiv, height_pdiv = 0.12, 0.8
+        rect_scatter_pdiv = [
+            left_pdiv,
+            bottom_pdiv,
+            width_pdiv,
+            height_pdiv,
+        ]
+
+        ax_shear = fig.add_axes(rect_scatter_shear)
+        ax_ndiv = fig.add_axes(rect_scatter_ndiv)
+        ax_pdiv = fig.add_axes(rect_scatter_pdiv)
 
         # plots
-        fig = plt.figure(dpi=300, figsize=(6, 4))
-        ax = plt.subplot()
-        ax.plot(x, p, ".", color="black", markersize=3)
-        ax.plot(x, p, color="black")
-        ax.plot(t, np.exp(best_fit(np.log(t)) + 1), "--", color="red")
+        ax_shear.plot(x_shear, p_shear, ".", color="black", markersize=2)
+        ax_shear.plot(x_shear, p_shear, color="black", lw=0.7)
+        ax_shear.plot(
+            t_shear,
+            10 ** (best_fit_shear(np.log10(t_shear))),
+            "-.",
+            color="red",
+            lw=0.7,
+        )
+        ax_ndiv.plot(x_ndiv, p_ndiv, ".", color="black", markersize=2)
+        ax_ndiv.plot(x_ndiv, p_ndiv, color="black", lw=0.7)
+        ax_ndiv.plot(
+            t_ndiv,
+            10 ** (best_fit_ndiv(np.log10(t_ndiv))),
+            "-.",
+            color="red",
+            lw=0.7,
+        )
+        ax_pdiv.plot(x_pdiv, p_pdiv, ".", color="black", markersize=2)
+        ax_pdiv.plot(x_pdiv, p_pdiv, color="black", lw=0.7)
+        ax_pdiv.plot(
+            t_pdiv,
+            10 ** (best_fit_pdiv(np.log10(t_pdiv))),
+            "-.",
+            color="red",
+            lw=0.7,
+        )
         # ticks
-        ax.grid(linestyle=":")
-        ax.tick_params(
+        ax_shear.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.tick_params(
             which="both",
             direction="in",
             bottom=True,
@@ -984,23 +1094,85 @@ class Arctic(sts.Scale):
             right=True,
             labelleft=True,
         )
-        # axe labels
-        ax.set_xlabel("Total deformation rate [day$^{-1}$]")
-        ax.set_ylabel("PDF")
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.set_ylim(ymin=1e-6, ymax=2e2)
-        ax.set_xlim(xmin=5e-3, xmax=10)
-        ax.set_title(
-            r"$\hat\alpha$ = {:.1f}$\pm${:.1f}, KS-distance = {:.2f}".format(
-                alpha, sigma, ks_dist
+        ax_ndiv.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_ndiv.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_ndiv.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_ndiv.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        ax_pdiv.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        # axis labels
+        ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
+        ax_shear.set_ylabel("PDF")
+        ax_shear.set_xscale("log")
+        ax_shear.set_yscale("log")
+        ax_shear.set_ylim(ymin=1e-6, ymax=1e3)
+        ax_shear.set_xlim(xmin=5e-3, xmax=10)
+        ax_shear.locator_params(axis="y", numticks=5)
+        ax_shear.set_title(
+            r"$\hat\alpha$ = {:.2f}$\pm${:.1f}, KS-distance = {:.2f}".format(
+                alpha_shear, sigma_shear, ks_dist_shear
             )
         )
+        ax_ndiv.set_xlabel("Negative divergence rate [day$^{-1}$]")
+        ax_ndiv.set_yscale("log")
+        ax_ndiv.set_xscale("log")
+        ax_ndiv.set_ylim(ymin=1e-6, ymax=1e3)
+        ax_ndiv.set_xlim(xmin=5e-3, xmax=1e0)
+        ax_ndiv.invert_xaxis()
+        ax_ndiv.locator_params(axis="y", numticks=5)
+        ax_ndiv.set_title(
+            r"$\hat\alpha$ = {:.2f}$\pm${:.1f}, KS-distance = {:.2f}".format(
+                alpha_ndiv, sigma_ndiv, ks_dist_ndiv
+            )
+        )
+        ax_pdiv.set_xlabel("Positive divergence rate [day$^{-1}$]")
+        ax_pdiv.set_xscale("log")
+        ax_pdiv.set_yscale("log")
+        ax_pdiv.set_ylim(ymin=1e-6, ymax=1e3)
+        ax_pdiv.set_xlim(xmin=5e-3, xmax=1)
+        ax_pdiv.locator_params(axis="y", numticks=5)
+        ax_pdiv.set_title(
+            r"$\hat\alpha$ = {:.2f}$\pm${:.1f}, KS-distance = {:.2f}".format(
+                alpha_pdiv, sigma_pdiv, ks_dist_pdiv
+            )
+        )
+        # save fig
         if self.save:
             fig.savefig(
                 "images/pdf{}".format(self.resolution)
                 + self.fig_name_supp
-                + ".{}".format(self.fig_type)
+                + ".{}".format(self.fig_type),
+                transparent=True,
             )
 
     def cdf_plot(self, data: np.ndarray):
@@ -1051,6 +1223,7 @@ class Arctic(sts.Scale):
         ax.set_xscale("log")
         if self.save:
             fig.savefig(
-                "images/cdf{}.{}".format(self.resolution, self.fig_type)
+                "images/cdf{}.{}".format(self.resolution, self.fig_type),
+                transparent=True,
             )
 

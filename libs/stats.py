@@ -19,8 +19,8 @@
 #   CANCELED  compute lagrangian trajectories from eulerian ones
 # ----------------------------------------------------------------------
 
+from matplotlib import pyplot as plt
 import numpy as np
-from numpy.core.arrayprint import DatetimeFormat
 import libs.selection as sel
 from libs.constants import *
 
@@ -459,12 +459,15 @@ class Scale(sel.Data):
 
         return alpha, sigma
 
-    def cumul_dens_func(self, data: np.ndarray) -> np.ndarray:
+    def cumul_dens_func(
+        self, distance: np.ndarray, pdf: np.ndarray, method: int
+    ) -> np.ndarray:
         """
         Computes the CDF of the data simply by sorting the array from the smallest value to the biggest.
 
         Args:
-            data (np.ndarray): data from which to compute the CDF
+            distance (np.ndarray): distances between the points
+            pdf (np.ndarray): data from which to compute the CDF
 
         Returns:
             np.ndarray: sorted data set
@@ -472,18 +475,29 @@ class Scale(sel.Data):
         """
 
         # y axis for the data
-        cdf_norm = np.linspace(0, 1, len(data))
+        if method == 1:
+            cdf_norm = np.cumsum(pdf * distance)
 
-        return np.sort(data), cdf_norm
+            return cdf_norm
+
+        elif method == 2:
+            x = np.sort(pdf)
+            cdf_norm = np.arange(len(pdf)) / float(len(pdf))
+
+            return x, cdf_norm
 
     def ks_distance_minimizer(
-        self, pdf_data: np.ndarray, pdf_norm: np.ndarray, end: int = -5
+        self,
+        pdf_data: np.ndarray,
+        pdf_norm: np.ndarray,
+        cdf_data: np.ndarray,
+        end: int = -5,
     ) -> float:
         """
         Function that minimizes the kolmogorov-smirnov distance. This is a measure of the distance betweeen the CDF of the data and the CDF of the fit/observations.
 
         Args:
-            pdf_data (np.ndarray): proprocessed data on which to perform the algo.
+            pdf_data (np.ndarray): proprocessed data on which to perform the algo, x axis.
             pdf_norm (np.ndarray): y axis corresponding to the data.
             end (int, optional): final data point on which to perform the algo. Just to get rid of cases where we try ti fit less than ten points in the PDF.
 
@@ -493,37 +507,106 @@ class Scale(sel.Data):
             best_fit (np.poly1D): polynomial that fits the pdf the best.
             min_index (float): index of the minimum.
         """
+        # clear nans
+        idx = np.isfinite(pdf_data) & np.isfinite(pdf_norm)
+        pdf_x = pdf_data[idx]
+        pdf_y = pdf_norm[idx]
 
         # initialize Kolmogorov-Smirnov array
-        ks_dist = np.empty_like(pdf_data[:end])
+        ks_dist = np.empty_like(pdf_x[:end])
 
         # loop over all possible dedt_min
         for i in range(len(ks_dist)):
             # fit for values over dedt_min
-            coefficients = np.polyfit(
-                np.log(pdf_data[i:]), np.log(pdf_norm[i:]), 1
+            pdf_x_cut = pdf_x[i:]
+            pdf_y_cut = pdf_y[i:]
+            coefficients = (
+                np.polynomial.Polynomial.fit(
+                    np.log10(pdf_x_cut), np.log10(pdf_y_cut), 1
+                )
+                .convert()
+                .coef
             )
-            fit = np.poly1d(coefficients)
+            fit = np.polynomial.Polynomial(coefficients)
 
-            # compute CDF
-            cdf_fit, _ = self.cumul_dens_func(
-                np.exp(fit(np.log(pdf_data[i:])))
+            # compute cdf of the fit
+            x, cdf_fit = self.cumul_dens_func(
+                None, 10 ** fit(pdf_data), method=2
             )
-            cdf_data, _ = self.cumul_dens_func(pdf_data[i:])
 
             # compute kolmogorov-smirnov distance
-            ks_dist[i] = np.max(np.abs(cdf_data - cdf_fit))
+            idx2 = np.argwhere(pdf_data == pdf_x[i])[0][0]
+            ks_dist[i] = np.max(np.abs(cdf_data[idx2:] - cdf_fit[idx2:]))
 
         # extract index of min value
-        min_index = np.where(ks_dist == np.min(ks_dist))[0][0]
+        min_index = np.argwhere(ks_dist == np.min(ks_dist))[0][0]
         dedt_min = pdf_data[min_index]
         min_ks = ks_dist[min_index]
-        coefficients = np.polyfit(
-            np.log(pdf_data[min_index:]), np.log(pdf_norm[min_index:]), 1
+        coefficients = (
+            np.polynomial.Polynomial.fit(
+                np.log10(pdf_x[min_index:]), np.log10(pdf_y[min_index:]), 1
+            )
+            .convert()
+            .coef
         )
-        best_fit = np.poly1d(coefficients)
+        best_fit = np.polynomial.Polynomial(coefficients)
 
         return dedt_min, min_ks, best_fit, min_index, coefficients
+
+    def _pdf_interior(self, data: np.ndarray, choice: int):
+        """
+        It simply computes everything for pdf plot.
+
+        Args:
+            data (np.ndarray): data to process (flat array with no nans)
+            choice (int): what type of data (shear, ndiv, pdiv)
+
+        Returns:
+            [type]: multiple things
+        """
+
+        # get correct data from box data
+        if choice == 1:
+            n = np.logspace(np.log10(5e-3), 1, num=66)
+            p, x = np.histogram(data, bins=n, density=1)
+            end = -24
+        elif choice == 2:
+            n = np.logspace(np.log10(5e-3), 0, num=46)
+            p, x = np.histogram(-data, bins=n, density=1)
+            end = -14
+        elif choice == 3:
+            n = np.logspace(np.log10(5e-3), 0, num=46)
+            p, x = np.histogram(data, bins=n, density=1)
+            end = -14
+
+        cdf = self.cumul_dens_func(np.diff(x), p, method=1)
+        p = np.where(p == 0.0, np.NaN, p)
+
+        # convert bin edges to centers
+        x_mid = (x[:-1] + x[1:]) / 2
+
+        # compute best estimator
+        (
+            dedt_min,
+            ks_dist,
+            best_fit,
+            min_index,
+            coefficient,
+        ) = self.ks_distance_minimizer(x_mid, p, cdf, end)
+        alpha, sigma = self.mle_exponent(
+            data[~np.isnan(np.where(data >= dedt_min, data, np.NaN))], dedt_min
+        )
+        return (
+            x_mid,
+            p,
+            ks_dist,
+            best_fit,
+            min_index,
+            coefficient,
+            dedt_min,
+            alpha,
+            sigma,
+        )
 
     def spatial_mean_vect(
         self, u_v: np.ndarray, scales: list, dt: str = None,
