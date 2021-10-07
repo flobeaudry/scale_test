@@ -160,9 +160,7 @@ class Data:
                     self.directory = None
 
                 else:
-                    raise SystemExit(
-                        "\nError in directory name, it does not exist."
-                    )
+                    raise SystemExit("\nError in directory name, it does not exist.")
 
     def _load_time(self, time: str):
         """
@@ -186,9 +184,9 @@ class Data:
 
             # enter date and time and split it
             if self.time is None:
-                self.time = input(
-                    "At what time? (format is yyyy-mm-dd-hh-mm) "
-                ).split("-")
+                self.time = input("At what time? (format is yyyy-mm-dd-hh-mm) ").split(
+                    "-"
+                )
                 n += 1
 
             # if arguments, split it
@@ -668,9 +666,7 @@ class Data:
                     formated_data_u = self._velocity_format(data_u, "u")
                     formated_data_v = self._velocity_format(data_v, "v")
 
-                    self.data = np.stack(
-                        (formated_data_u, formated_data_v), axis=2
-                    )
+                    self.data = np.stack((formated_data_u, formated_data_v), axis=2)
                     self.name = "Ice velocity [m/s]"
                 break
 
@@ -693,9 +689,7 @@ class Data:
         print("Done")
         return self.data
 
-    def _velocity_format(
-        self, raw_vel: np.ndarray, vel_type: str
-    ) -> np.ndarray:
+    def _velocity_format(self, raw_vel: np.ndarray, vel_type: str) -> np.ndarray:
         """
         Function that formats the velocity data. Note that only the velocities needs
         formating, since we are on an Arakawa C-grid.
@@ -788,22 +782,13 @@ class Data:
 
         if self.resolution is None:
             # resolution computation
-            if (
-                self.nx * self.ny == 520 * 440
-                or self.nx * self.ny == 518 * 438
-            ):
+            if self.nx * self.ny == 520 * 440 or self.nx * self.ny == 518 * 438:
                 self.resolution = 10
 
-            elif (
-                self.nx * self.ny == 260 * 220
-                or self.nx * self.ny == 258 * 218
-            ):
+            elif self.nx * self.ny == 260 * 220 or self.nx * self.ny == 258 * 218:
                 self.resolution = 20
 
-            elif (
-                self.nx * self.ny == 130 * 110
-                or self.nx * self.ny == 128 * 108
-            ):
+            elif self.nx * self.ny == 130 * 110 or self.nx * self.ny == 128 * 108:
                 self.resolution = 40
 
             elif self.nx * self.ny == 65 * 55 or self.nx * self.ny == 63 * 53:
@@ -881,35 +866,23 @@ class Data:
 
         if dtlist[0]:
             time_stamps = [
-                datetime.strftime(
-                    time_ini + timedelta(days=x), "%Y-%m-%d-%H-%M"
-                )
-                for x in range(
-                    0, int(abs(time_end - time_ini).days), dtlist[0]
-                )
+                datetime.strftime(time_ini + timedelta(days=x), "%Y-%m-%d-%H-%M")
+                for x in range(0, int(abs(time_end - time_ini).days), dtlist[0])
             ]
 
         elif dtlist[1]:
             time_stamps = [
-                datetime.strftime(
-                    time_ini + timedelta(hours=x), "%Y-%m-%d-%H-%M"
-                )
+                datetime.strftime(time_ini + timedelta(hours=x), "%Y-%m-%d-%H-%M")
                 for x in range(
-                    0,
-                    int(abs(time_end - time_ini).total_seconds() / 3600),
-                    dtlist[1],
+                    0, int(abs(time_end - time_ini).total_seconds() / 3600), dtlist[1],
                 )
             ]
 
         elif dtlist[2]:
             time_stamps = [
-                datetime.strftime(
-                    time_ini + timedelta(minutes=x), "%Y-%m-%d-%H-%M"
-                )
+                datetime.strftime(time_ini + timedelta(minutes=x), "%Y-%m-%d-%H-%M")
                 for x in range(
-                    0,
-                    int(abs(time_end - time_ini).total_seconds() / 60),
-                    dtlist[2],
+                    0, int(abs(time_end - time_ini).total_seconds() / 60), dtlist[2],
                 )
             ]
 
@@ -977,9 +950,7 @@ class Data:
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2),
         )
 
-    def _deformation(
-        self, du: np.ndarray, dv: np.ndarray, choice: int
-    ) -> np.ndarray:
+    def _deformation(self, du: np.ndarray, dv: np.ndarray, choice: int) -> np.ndarray:
         """
         Function that computes deformation rates from velocity derivatives.
 
@@ -1004,9 +975,7 @@ class Data:
         elif choice == 2:
             return divergence * 86400
 
-    def _derivative(
-        self, u: np.ndarray, v: np.ndarray, scale: int = 1
-    ) -> np.array:
+    def _derivative(self, u: np.ndarray, v: np.ndarray, scale: int = 1) -> np.array:
         """
         Function that computes derivatives from velocities.
 
@@ -1103,22 +1072,20 @@ class Data:
 
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
-            div = np.where(np.abs(div) < 5e-3, np.NaN, div)
+            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
             # div = np.nanmean(div, axis=-1, keepdims=1)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
             shear = shear[..., indices]
-            shear = np.where(shear < 5e-3, np.NaN, shear)
+            # shear = np.where(shear < 5e-3, np.NaN, shear)
             # shear = np.nanmean(shear, axis=-1, keepdims=1)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
-            # deps.mask = np.NaN
-            # deps = np.where(deps == 0.0, np.NaN, deps)
+            deps.mask = 0
+            deps = np.where(deps == 0.0, np.NaN, deps)
 
             print("Done loading RGPS data.")
-            print(
-                "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
-            )
+            print("Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24))
 
         else:
             # all months don't need to care about 0.005 treshold, just want to know where there is data this is for the mask.
@@ -1163,9 +1130,7 @@ class Data:
         i = 0
         # loop on file name
         for file in files_list:
-            temp_bool = ~np.isnan(
-                self.nc_load(directory + "/" + file, all=1, tt=tt)[0]
-            )
+            temp_bool = ~np.isnan(self.nc_load(directory + "/" + file, all=1, tt=tt)[0])
             temp_sum = np.sum(temp_bool, axis=-1)
             temp = np.where(temp_sum / temp_bool.shape[-1] >= 0.8, 1, 0)
             mask_array[..., i] = temp
@@ -1178,9 +1143,7 @@ class Data:
 
         return mask80
 
-    def mask80_times_RGPS(
-        self, data: np.ndarray, mask80: np.ndarray
-    ) -> np.ndarray:
+    def mask80_times_RGPS(self, data: np.ndarray, mask80: np.ndarray) -> np.ndarray:
         """
         Function that multiplies data and mask.
 
@@ -1192,9 +1155,7 @@ class Data:
             np.ndarray: masked data.
         """
         if len(data.shape) == 3:
-            data80 = np.transpose(
-                np.transpose(data, (2, 0, 1)) * mask80, (1, 2, 0)
-            )
+            data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask80, (1, 2, 0))
         else:
             data80 = data * mask80
 
