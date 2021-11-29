@@ -1,7 +1,7 @@
 # SIM-plots
 Plotting tools for the McGill Sea Ice Model.
 
-Simply run main.py with the modules you want to use.
+Simply run main.py with the modules you want to use. You will have to run file_converter.py if you want to convert binary files from Ron Kwok into numpy arrays.
 
 Modules that can be useful:<br/>
 <br/>

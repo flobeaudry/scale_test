@@ -297,7 +297,7 @@ class Arctic(sts.Scale):
                 + self.fig_name_supp
                 + "."
                 + self.fig_type,
-                transparent=True,
+                transparent=0,
             )
 
     def _encircle(
@@ -313,7 +313,7 @@ class Arctic(sts.Scale):
         """
         points = np.c_[x, y]
         # alpha = 0.95 * alphashape.optimizealpha(points)
-        hull = alphashape.alphashape(points, 0.4)
+        hull = alphashape.alphashape(points, 0.3)
         ax.add_patch(
             PolygonPatch(
                 hull, fill=False, color="black", transform=ccrs.PlateCarree()
@@ -377,6 +377,21 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
+
+        elif datatype == "mask":
+            ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
+            cf = ax.pcolormesh(
+                lon,
+                lat,
+                data,
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                cmap=cmocean.cm.oxy,
+                norm=colors.Normalize(vmin=0, vmax=1),
+                transform=ccrs.PlateCarree(),
+                zorder=1,
+            )
         else:
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
@@ -389,9 +404,9 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
 
-        cbar = fig.colorbar(cf)
-        cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
         if mask:
             x1 = np.arange(data.shape[0]) * 12.5 - 2300
             y1 = np.arange(data.shape[0]) * 12.5 - 1000
@@ -412,7 +427,7 @@ class Arctic(sts.Scale):
                 + "RGPS"
                 + "."
                 + self.fig_type,
-                transparent=True,
+                transparent=0,
             )
 
     def scale_plot(
@@ -902,7 +917,7 @@ class Arctic(sts.Scale):
                 "images/ssm{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=True,
+                transparent=0,
             )
 
     def pdf_plot(self, data: np.ndarray):
@@ -959,7 +974,7 @@ class Arctic(sts.Scale):
                 "images/pdf{}".format(self.resolution)
                 + self.fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=True,
+                transparent=0,
             )
 
     def pdf_plot_vect(
@@ -1172,7 +1187,7 @@ class Arctic(sts.Scale):
                 "images/pdf{}".format(self.resolution)
                 + self.fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=True,
+                transparent=0,
             )
 
     def cdf_plot(self, data: np.ndarray):
@@ -1224,6 +1239,6 @@ class Arctic(sts.Scale):
         if self.save:
             fig.savefig(
                 "images/cdf{}.{}".format(self.resolution, self.fig_type),
-                transparent=True,
+                transparent=0,
             )
 

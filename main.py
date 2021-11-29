@@ -1,6 +1,5 @@
 import libs.visualization as vis
 import numpy as np
-import matplotlib.pyplot as plt
 
 # ----------------------------------------------------------------------
 # User input for the location of the files
@@ -109,12 +108,12 @@ time_end = "1997-03-31-18-00"
 # ----------------------------------------------------------------------
 # compute all mean deformations in boxes
 # ----------------------------------------------------------------------
-
-# deps10, shear10, div10, scale10 = dataset10.spatial_mean_vect(
-#     dataset10.multi_load(dt, time_end), L10, dt
+# changer cela ici
+# deps10, shear10, div10, scale10 = dataset10.spatial_mean_RGPS_du(
+#     dataset10._derivative(dataset10._time_average(dataset10.multi_load(dt, time_end), dt)), L10
 # )
-# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_vect(
-#     dataset10D.multi_load(dt, time_end), L10, dt
+# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_RGPS_du(
+#     dataset10D._time_average(dataset10D.multi_load(dt, time_end), dt), L10
 # )
 
 # data_box20, data_box20_visc = dataset20.spatial_mean_box(
@@ -132,22 +131,47 @@ time_end = "1997-03-31-18-00"
 # )
 
 # mask80
-mask80 = dataset_RGPS.mask80("RGPS_data", tt=30)
+mask80 = dataset_RGPS.mask80("RGPS_data", ti=0, tf=29)
 
 # RGPS data
-# load everything
-deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tt=30)
+# load deformations
+deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
+# load derivatives and mask it
+dudx = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DUDX.npy"), mask80
+)
+dudy = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DUDY.npy"), mask80
+)
+dvdx = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DVDX.npy"), mask80
+)
+dvdy = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DVDY.npy"), mask80
+)
+
+# stack them
+du = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+
+# conditions
+# for k in range(du.shape[-1]):
+#     du[..., k] = np.where(np.isnan(deps) == 1, np.NaN, du[..., k])
+
+
 # plot initial values everything
-# dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
+dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
 # dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "shear", "_02_")
+
 # mask it using mask80
 shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
 div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
+
 # split the divergence in -/+
 ndiv80 = np.where(div80 < 0, div80, np.NaN)
 pdiv80 = np.where(div80 > 0, div80, np.NaN)
+
 # remove nans
 shear80_cut = shear80[~np.isnan(shear80)]
 ndiv80_cut = ndiv80[~np.isnan(ndiv80)]
@@ -204,6 +228,34 @@ dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
     shear_scale_RGPS,
     div_scale_RGPS,
 ) = dataset_RGPS.spatial_mean_RGPS(shear80, div80, L_RGPS)
+
+(
+    deps_RGPS_du,
+    shear_RGPS_du,
+    div_RGPS_du,
+    scale_RGPS_du,
+) = dataset_RGPS.spatial_mean_RGPS_du(du, L_RGPS)
+
+test = np.array(
+    [
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+    ]
+)
+
+test3 = np.array([test, test, test, test, test, test, test, test])
+test3 = np.flip(np.transpose(test3, (1, 2, 0)), axis=0)
+__, test2, __, __, test4, __ = dataset_RGPS.spatial_mean_RGPS(
+    test3, test3, [12.5, 25, 50]
+)
+test5, test6 = dataset_RGPS.scale_plot_vect(
+    test2, test4, [12.5, 25, 50], save=0, fig_name_supp="_test",
+)
+print(test5, test6)
 
 # ----------------------------------------------------------------------
 # save data in file
@@ -315,15 +367,23 @@ mean_deps_RGPS, mean_scale_RGPS = dataset_RGPS.scale_plot_vect(
     deps_RGPS, deps_scale_RGPS, L_RGPS, save=1, fig_name_supp="_dedt_02_RGPS",
 )
 
+mean_deps_RGPS_du, mean_scale_RGPS_du = dataset_RGPS.scale_plot_vect(
+    deps_RGPS_du,
+    scale_RGPS_du,
+    L_RGPS,
+    save=1,
+    fig_name_supp="_dedt_02_RGPS_du",
+)
+
 # ----------------------------------------------------------------------
 # multiplot
 # ----------------------------------------------------------------------
 
 mean_deps_stack = np.stack(
-    (mean_deps[0:6], mean_depsD[0:6], mean_deps_RGPS), axis=1
+    (mean_deps[0:6], mean_depsD[0:6], mean_deps_RGPS_du), axis=1,
 )
 mean_scale_stack = np.stack(
-    (mean_scale[0:6], mean_scaleD[0:6], mean_scale_RGPS), axis=1
+    (mean_scale[0:6], mean_scaleD[0:6], mean_scale_RGPS_du), axis=1,
 )
 
 dataset10.multi_plot(

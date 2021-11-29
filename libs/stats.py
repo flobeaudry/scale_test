@@ -814,8 +814,8 @@ class Scale(sel.Data):
         for scale_km_unit in scales:
             # verify validity of scale
             if scale_km_unit <= RES_RGPS:
-                shear_cut = np.where(shear < 5e-3, np.NaN, shear)
-                div_cut = np.where(np.abs(div) < 5e-3, np.NaN, div)
+                shear_cut = shear  # np.where(shear < 5e-3, np.NaN, shear)
+                div_cut = div  # np.where(np.abs(div) < 5e-3, np.NaN, div)
                 shear_list.append(shear_cut)
                 div_list.append(div_cut)
                 deps_list.append(np.sqrt(div_cut ** 2 + shear_cut ** 2))
@@ -913,8 +913,8 @@ class Scale(sel.Data):
         shape[1] = shape[1] // scale_grid_unit * 2
         shape = tuple(shape)
 
-        bool_sum = np.empty(shape)
-        data_sum = np.empty(shape)
+        bool_sum = np.zeros(shape)
+        data_sum = np.zeros(shape)
 
         return bool_sum, data_sum
 
@@ -926,6 +926,8 @@ class Scale(sel.Data):
         data: np.ndarray,
         scale_grid_unit: int,
     ) -> np.ndarray:
+        # numbers of dimensions that needs to be skipped
+        dim = 2 - len(data.shape)
         # algo
         bool_sum = np.sum(
             data_bool[
@@ -942,7 +944,7 @@ class Scale(sel.Data):
                     scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                     + scale_grid_unit,
                     :,
-                ].shape[-1:]
+                ].shape[dim:]
             ),
             axis=0,
         )
@@ -961,10 +963,101 @@ class Scale(sel.Data):
                     scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                     + scale_grid_unit,
                     :,
-                ].shape[-1:]
+                ].shape[dim:]
             ),
             axis=0,
         )
 
         return bool_sum, data_sum
 
+    def spatial_mean_RGPS_du(self, du: np.ndarray, scales: list) -> np.ndarray:
+        """
+        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+
+        Args:
+            du (np.ndarray): deformations in x and y, shape is (ny, nx, nt, 4), already time averaged
+            scales (list): list of scales to compute.
+
+        Returns:
+            np.ndarray: returns an array of size (len(scales),) where each element of the array are of different sizes (because it depends on the sizes of the boxes, therefore, for each scale the size of the data changes).
+        """
+
+        du_bool = ~np.isnan(du)
+        du_bool = du_bool.astype(int)
+
+        # initialize output
+        deps_list = []
+        shear_list = []
+        div_list = []
+        scaling_list = []
+
+        # loop over all scales
+        for scale_km_unit in scales:
+            # verify validity of scale
+            if scale_km_unit <= RES_RGPS:
+                shear = np.sqrt(
+                    (du[..., 0] - du[..., 3]) ** 2
+                    + (du[..., 1] + du[..., 2]) ** 2
+                )
+                div = du[..., 0] + du[..., 3]
+                deps = np.sqrt(div ** 2 + shear ** 2)
+                shear_list.append(shear)
+                div_list.append(div)
+                deps_list.append(deps)
+                scaling_list.append(RES_RGPS * np.ones_like(deps))
+                print("Done with scale 12.5.")
+                continue
+
+            # convert km into grid cell units
+            scale_grid_unit = int(scale_km_unit // RES_RGPS)
+
+            # implementation of the algorithm
+            # definitions
+            du_bool_sum, du_sum = self._definitions_RGPS(du, scale_grid_unit)
+
+            # big loop over all the indices
+            for i in range(du.shape[0] // scale_grid_unit * 2):
+                for j in range(du.shape[1] // scale_grid_unit * 2):
+                    # algo for all derivatives
+                    (
+                        du_bool_sum[i, j],
+                        du_sum[i, j],
+                    ) = self._loop_interior_RGPS(
+                        i, j, du_bool, du, scale_grid_unit
+                    )
+
+            # take only boxes that are at least 50% filled
+            du_bool_sum = np.where(
+                du_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, du_bool_sum,
+            )
+
+            # compute the means
+            du_mean = du_sum / du_bool_sum
+
+            # delete boxes with mean smaller than 5e-3 and compute the deformation
+            # shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
+            # div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
+            shear_mean = np.sqrt(
+                (du_mean[..., 0] - du_mean[..., 3]) ** 2
+                + (du_mean[..., 1] + du_mean[..., 2]) ** 2
+            )
+            div_mean = du_mean[..., 0] + du_mean[..., 3]
+            deps_mean = np.sqrt(shear_mean ** 2 + div_mean ** 2)
+
+            # compute the scaling associated with each box
+            scaling_array = np.sqrt(du_bool_sum[..., 0]) * RES_RGPS
+
+            deps_list.append(deps_mean)
+            shear_list.append(shear_mean)
+            div_list.append(div_mean)
+            scaling_list.append(scaling_array)
+
+            print("Done with scale {}.".format(scale_km_unit))
+
+        # creates an array of arrays but of different shapes
+        deps = np.asarray(deps_list, dtype=object)
+        shear = np.asarray(shear_list, dtype=object)
+        div = np.asarray(div_list, dtype=object)
+        scaling = np.asarray(scaling_list, dtype=object)
+
+        return deps, shear, div, scaling

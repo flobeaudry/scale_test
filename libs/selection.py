@@ -1081,14 +1081,15 @@ class Data:
 
         return zeta, zeta_max
 
-    def nc_load(self, file: str, all: bool = 0, tt: int = 90):
+    def nc_load(self, file: str, all: bool = 0, ti: int = 0, tf: int = 90):
         """
         Loads pertinent data from RGPS.
 
         Args:
             file (str): what is the name of the file we are loading from.
             all (bool, optional): whether to load all times or only the months of January February and March. Defaults to 0
-            tt (int, optional): extent in time in days from january first. Defaults to 90.
+            ti (int, optional): extent in time in days from january first. Defaults to 0.
+            tf (int, optional): extent in time in days from january first. Defaults to 90.
 
         Returns:
             [type]: wanted data
@@ -1097,40 +1098,65 @@ class Data:
 
         if not all:
             # indices for the period of interest
-            indices = (ds["time"][:] / 60 / 60 / 24 >= 0) & (
-                ds["time"][:] / 60 / 60 / 24 <= tt
+            indices = (ds["time"][:] / 60 / 60 / 24 >= ti) & (
+                ds["time"][:] / 60 / 60 / 24 <= tf
             )
 
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
-            div = np.where(np.abs(div) < 5e-3, np.NaN, div)
-            # div = np.nanmean(div, axis=-1, keepdims=1)
+            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
             shear = shear[..., indices]
-            shear = np.where(shear < 5e-3, np.NaN, shear)
-            # shear = np.nanmean(shear, axis=-1, keepdims=1)
+            # shear = np.where(shear < 5e-3, np.NaN, shear)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
-            # deps.mask = np.NaN
-            # deps = np.where(deps == 0.0, np.NaN, deps)
+            deps.mask = np.NaN
+            deps = np.where(deps == 0.0, np.NaN, deps)
 
             print("Done loading RGPS data.")
             print(
-                "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
+                "Time list is between:\n {} and {} days of the year.".format(
+                    ti, tf
+                )
             )
 
         else:
             # all months don't need to care about 0.005 treshold, just want to know where there is data this is for the mask.
             # indices for the period of interest
-            indices = (ds["time"][:] / 60 / 60 / 24 >= 0) & (
-                ds["time"][:] / 60 / 60 / 24 <= tt
+            indices = (ds["time"][:] / 60 / 60 / 24 >= ti) & (
+                ds["time"][:] / 60 / 60 / 24 <= tf
             )
+
             if not indices.any():
-                indices = (ds["time"][:] / 60 / 60 / 24 - 365 >= 0) & (
-                    ds["time"][:] / 60 / 60 / 24 - 365 <= tt
+                indices = (ds["time"][:] / 60 / 60 / 24 - 365 >= ti) & (
+                    ds["time"][:] / 60 / 60 / 24 - 365 <= tf
                 )
 
+            if len(ds["time"][indices] / 60 / 60 / 24) != len(
+                set(ds["time"][indices] / 60 / 60 / 24)
+            ):
+                same_idx = []
+                for i in range(len(ds["time"][indices])):
+                    for j in range(len(ds["time"][indices])):
+                        if (
+                            ds["time"][indices][i] / 60 / 60 / 24
+                            == ds["time"][indices][j] / 60 / 60 / 24
+                        ):
+                            if i != j:
+                                same_idx.append([i, j])
+                same_idx = np.asarray(same_idx)
+                idx_num = len(same_idx) // 2
+                position_to_kill = same_idx[:idx_num][..., 0]
+                counter = 0
+                for i in range(len(indices)):
+                    if indices[i] == 1:
+                        break
+                    counter += 1
+
+                indices[position_to_kill + counter] = 0
+
+            print(ds["time"][indices] / 60 / 60 / 24)
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
 
@@ -1143,38 +1169,59 @@ class Data:
 
         return deps, div, shear
 
-    def mask80(self, directory: str, tt: int = 90):
+    def mask80(
+        self, directory: str, year: str = "no", ti: int = 0, tf: int = 90
+    ):
         """
         Function that loads all files and computes the mask80, that is the mask that represent where there is a least 80% of data in time.
 
         Args:
             directory (str): directory where the RGPS data is.
+            year (int, optional): take only 1 year. Format is 9899 for winter 98-99.
 
         Returns:
             mask 80 (array): array of size (248, 248) of where there is at least 80% temporal data presence. 
         """
 
-        # list all .nc files in directory
-        files_list = self._list_files(directory, "nc")
+        if year != "no":
+            # create empty array to stock data
+            mask80 = np.zeros((248, 248))
 
-        # create empty array to stock data
-        mask_array = np.zeros((248, 248, len(files_list)))
-
-        i = 0
-        # loop on file name
-        for file in files_list:
+            # take only the wanted year
             temp_bool = ~np.isnan(
-                self.nc_load(directory + "/" + file, all=1, tt=tt)[0]
+                self.nc_load(
+                    directory + "/w" + year + "n_3dys.nc", all=1, ti=ti, tf=tf
+                )[0]
             )
             temp_sum = np.sum(temp_bool, axis=-1)
             temp = np.where(temp_sum / temp_bool.shape[-1] >= 0.8, 1, 0)
-            mask_array[..., i] = temp
-            i += 1
+            mask80 = temp
 
-        print("Done loading RGPS data.")
-        # sum all layers and divide by the number of layer to test which cells are covered for a least 80% of the time
-        mask_sum = np.sum(mask_array, axis=-1)
-        mask80 = np.where(mask_sum / i >= 0.8, 1, np.NaN)
+        else:
+            # list all .nc files in directory
+            files_list = self._list_files(directory, "nc")
+
+            # create empty array to stock data
+            mask_array = np.zeros((248, 248, len(files_list)))
+
+            i = 0
+            size = 0
+            # loop on file name
+            for file in files_list:
+                temp_bool = ~np.isnan(
+                    self.nc_load(directory + "/" + file, all=1, ti=ti, tf=tf)[
+                        0
+                    ]
+                )
+                temp_sum = np.sum(temp_bool, axis=-1)
+                size += temp_bool.shape[-1]
+                mask_array[..., i] = temp_sum
+                i += 1
+
+            # sum all layers and divide by the number of layer to test which cells are covered for a least 80% of the time
+            mask_sum = np.sum(mask_array, axis=-1)
+            mask80 = np.where(mask_sum / size >= 0.8, 1, np.NaN)
+            print("Done loading RGPS80 mask.")
 
         return mask80
 
