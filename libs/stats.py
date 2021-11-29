@@ -94,15 +94,11 @@ class Scale(sel.Data):
 
         elif scale + i > self.ny and scale + j <= self.nx:
             extra_i = scale + i - self.ny
-            indices = np.ix_(
-                np.arange(scale - extra_i) + i, np.arange(scale) + j
-            )
+            indices = np.ix_(np.arange(scale - extra_i) + i, np.arange(scale) + j)
 
         elif scale + i <= self.ny and scale + j > self.nx:
             extra_j = scale + j - self.nx
-            indices = np.ix_(
-                np.arange(scale) + i, np.arange(scale - extra_j) + j
-            )
+            indices = np.ix_(np.arange(scale) + i, np.arange(scale - extra_j) + j)
 
         # create box by creating a mask of ones on the grid
         box = np.full((self.ny, self.nx), 1, dtype=int)
@@ -141,13 +137,11 @@ class Scale(sel.Data):
         elif dtlist[1] != 0:
             period_per_day = 24 // dtlist[1]
             data_time_mean = [
-                formated_data[
-                    ..., period_per_day * n : period_per_day * (n + 3)
-                ].mean(axis=-1)
+                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
+                    axis=-1
+                )
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day)
-                    // period_per_day
-                    + 1
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
                 )
             ]
 
@@ -155,13 +149,11 @@ class Scale(sel.Data):
         elif dtlist[2] != 0:
             period_per_day = 24 * 60 // dtlist[2]
             data_time_mean = [
-                formated_data[
-                    ..., period_per_day * n : period_per_day * (n + 3)
-                ].mean(axis=-1)
+                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
+                    axis=-1
+                )
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day)
-                    // period_per_day
-                    + 1
+                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
                 )
             ]
 
@@ -228,9 +220,7 @@ class Scale(sel.Data):
             data = np.empty(
                 (len(scales), self.ny * self.nx * formated_data.shape[-1], 2)
             )
-            visc = np.empty(
-                (len(scales), self.ny * self.nx * formated_visc.shape[-1])
-            )
+            visc = np.empty((len(scales), self.ny * self.nx * formated_visc.shape[-1]))
 
             # loop over all scales
             scale_iter = 0
@@ -275,10 +265,7 @@ class Scale(sel.Data):
                                 masked_visc.mask = mask
 
                                 # verify that there is enough data in the box
-                                if (
-                                    masked_data.count()
-                                    >= scale_grid_unit ** 2 / 2
-                                ):
+                                if masked_data.count() >= scale_grid_unit ** 2 / 2:
                                     data_mean = np.ma.average(
                                         masked_data, weights=masked_areas
                                     )
@@ -286,13 +273,10 @@ class Scale(sel.Data):
                                         masked_visc, weights=masked_areas
                                     )
                                     spatial_scale = (
-                                        np.sqrt(masked_data.count())
-                                        * self.resolution
+                                        np.sqrt(masked_data.count()) * self.resolution
                                     )
                                     data[scale_iter, box_iter, 0] = data_mean
-                                    data[
-                                        scale_iter, box_iter, 1
-                                    ] = spatial_scale
+                                    data[scale_iter, box_iter, 1] = spatial_scale
                                     visc[scale_iter, box_iter] = visc_mean
                                     box_iter += 1
                     print(
@@ -365,8 +349,7 @@ class Scale(sel.Data):
                                     masked_visc, weights=masked_areas
                                 )
                                 spatial_scale = (
-                                    np.sqrt(masked_data.count())
-                                    * self.resolution
+                                    np.sqrt(masked_data.count()) * self.resolution
                                 )
                                 data[scale_iter, box_iter, 0] = data_mean
                                 data[scale_iter, box_iter, 1] = spatial_scale
@@ -375,11 +358,7 @@ class Scale(sel.Data):
                                 print(
                                     "Done with box {}/{}.".format(
                                         box_iter,
-                                        int(
-                                            self.ny
-                                            * self.nx
-                                            / (scale_grid_unit ** 2)
-                                        ),
+                                        int(self.ny * self.nx / (scale_grid_unit ** 2)),
                                     )
                                 )
                 data[scale_iter, box_iter:, :] = np.NaN
@@ -434,9 +413,7 @@ class Scale(sel.Data):
 
         return all_def_array
 
-    def mle_exponent(
-        self, data: np.ndarray, minimum_deformation: float
-    ) -> float:
+    def mle_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
         """
         Computes the exponent alpha of the power law.
 
@@ -530,9 +507,7 @@ class Scale(sel.Data):
             fit = np.polynomial.Polynomial(coefficients)
 
             # compute cdf of the fit
-            x, cdf_fit = self.cumul_dens_func(
-                None, 10 ** fit(pdf_data), method=2
-            )
+            x, cdf_fit = self.cumul_dens_func(None, 10 ** fit(pdf_data), method=2)
 
             # compute kolmogorov-smirnov distance
             idx2 = np.argwhere(pdf_data == pdf_x[i])[0][0]
@@ -643,15 +618,12 @@ class Scale(sel.Data):
         for scale_km_unit in scales:
             # verify validity of scale
             if scale_km_unit <= int(self.resolution):
-                du, dv = self._derivative(
-                    u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :],
-                )
+                du, dv = self._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :],)
                 deps.append(self._deformation(du, dv, 0))
                 shear.append(self._deformation(du, dv, 1))
                 div.append(self._deformation(du, dv, 2))
                 scaling.append(
-                    self.resolution
-                    * np.ones_like(self._deformation(du, dv, 0))
+                    self.resolution * np.ones_like(self._deformation(du, dv, 0))
                 )
                 print("Done with scale {}.".format(scale_km_unit))
                 continue
@@ -689,17 +661,9 @@ class Scale(sel.Data):
                         ].reshape(
                             -1,
                             *u_v_ta_bool[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
+                                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
                                 + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
+                                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                                 + scale_grid_unit,
                                 :,
                                 :,
@@ -718,17 +682,9 @@ class Scale(sel.Data):
                         ].reshape(
                             -1,
                             *u_v_ta[
-                                scale_grid_unit
-                                // 2
-                                * i : scale_grid_unit
-                                // 2
-                                * i
+                                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
                                 + scale_grid_unit,
-                                scale_grid_unit
-                                // 2
-                                * j : scale_grid_unit
-                                // 2
-                                * j
+                                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                                 + scale_grid_unit,
                                 :,
                                 :,
@@ -738,18 +694,14 @@ class Scale(sel.Data):
                     )
 
             u_v_ta_bool_sum = np.where(
-                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2,
-                np.NaN,
-                u_v_ta_bool_sum,
+                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, u_v_ta_bool_sum,
             )
 
             u_v_ta_mean = u_v_ta_sum / u_v_ta_bool_sum
 
             # compute the derivatives and the deformations
             du_mean, dv_mean = self._derivative(
-                u_v_ta_mean[:, :, 0, :],
-                u_v_ta_mean[:, :, 1, :],
-                scale_grid_unit // 2,
+                u_v_ta_mean[:, :, 0, :], u_v_ta_mean[:, :, 1, :], scale_grid_unit // 2,
             )
             # viscosity = viscosity[1:-1, 1:-1, :]
 
@@ -820,8 +772,7 @@ class Scale(sel.Data):
                 div_list.append(div_cut)
                 deps_list.append(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 deps_scaling_list.append(
-                    RES_RGPS
-                    * np.ones_like(np.sqrt(div_cut ** 2 + shear_cut ** 2))
+                    RES_RGPS * np.ones_like(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 )
                 shear_scaling_list.append(RES_RGPS * np.ones_like(shear_cut))
                 div_scaling_list.append(RES_RGPS * np.ones_like(div_cut))
@@ -833,35 +784,23 @@ class Scale(sel.Data):
 
             # implementation of the algorithm
             # definitions
-            shear_bool_sum, shear_sum = self._definitions_RGPS(
-                shear, scale_grid_unit
-            )
-            div_bool_sum, div_sum = self._definitions_RGPS(
-                div, scale_grid_unit
-            )
+            shear_bool_sum, shear_sum = self._definitions_RGPS(shear, scale_grid_unit)
+            div_bool_sum, div_sum = self._definitions_RGPS(div, scale_grid_unit)
 
             # big loop over all the indices
             for i in range(shear.shape[0] // scale_grid_unit * 2):
                 for j in range(shear.shape[1] // scale_grid_unit * 2):
                     # algo for shear and div
-                    (
-                        shear_bool_sum[i, j],
-                        shear_sum[i, j],
-                    ) = self._loop_interior_RGPS(
+                    (shear_bool_sum[i, j], shear_sum[i, j],) = self._loop_interior_RGPS(
                         i, j, shear_bool, shear, scale_grid_unit
                     )
-                    (
-                        div_bool_sum[i, j],
-                        div_sum[i, j],
-                    ) = self._loop_interior_RGPS(
+                    (div_bool_sum[i, j], div_sum[i, j],) = self._loop_interior_RGPS(
                         i, j, div_bool, div, scale_grid_unit
                     )
 
             # take only boxes that are at least 50% filled
             shear_bool_sum = np.where(
-                shear_bool_sum < scale_grid_unit ** 2 // 2,
-                np.NaN,
-                shear_bool_sum,
+                shear_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, shear_bool_sum,
             )
 
             div_bool_sum = np.where(
@@ -879,8 +818,7 @@ class Scale(sel.Data):
 
             # compute the scaling associated with each box note here that I multiply by v then divide by v so that I get both the NaNs in u and v (to match the NaNs in deps).
             deps_scale_array = (
-                np.sqrt(shear_bool_sum * div_bool_sum / div_bool_sum)
-                * RES_RGPS
+                np.sqrt(shear_bool_sum * div_bool_sum / div_bool_sum) * RES_RGPS
             )
             shear_scale_array = np.sqrt(shear_bool_sum) * RES_RGPS
             div_scale_array = np.sqrt(div_bool_sum) * RES_RGPS
@@ -904,9 +842,7 @@ class Scale(sel.Data):
 
         return deps, shear, div, deps_scaling, shear_scaling, div_scaling
 
-    def _definitions_RGPS(
-        self, data: np.ndarray, scale_grid_unit: int
-    ) -> np.ndarray:
+    def _definitions_RGPS(self, data: np.ndarray, scale_grid_unit: int) -> np.ndarray:
 
         shape = list(data.shape)
         shape[0] = shape[0] // scale_grid_unit * 2
@@ -931,10 +867,8 @@ class Scale(sel.Data):
         # algo
         bool_sum = np.sum(
             data_bool[
-                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                + scale_grid_unit,
-                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                + scale_grid_unit,
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j + scale_grid_unit,
                 :,
             ].reshape(
                 -1,
@@ -950,10 +884,8 @@ class Scale(sel.Data):
         )
         data_sum = np.nansum(
             data[
-                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
-                + scale_grid_unit,
-                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
-                + scale_grid_unit,
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j + scale_grid_unit,
                 :,
             ].reshape(
                 -1,

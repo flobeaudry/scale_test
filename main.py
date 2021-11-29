@@ -162,8 +162,7 @@ du = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
 # dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
-# dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "shear", "_02_")
-
+# dataset_RGPS.arctic_plot_RGPS(shear[..., 0], "shear", "_02_")
 # mask it using mask80
 shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
 div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
@@ -389,3 +388,4 @@ mean_scale_stack = np.stack(
 dataset10.multi_plot(
     mean_deps_stack, mean_scale_stack, fig_name_supp="_dedt_97"
 )
+

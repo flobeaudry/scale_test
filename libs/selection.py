@@ -1111,7 +1111,7 @@ class Data:
             # shear = np.where(shear < 5e-3, np.NaN, shear)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
-            deps.mask = np.NaN
+            deps.mask = 0
             deps = np.where(deps == 0.0, np.NaN, deps)
 
             print("Done loading RGPS data.")
@@ -1119,6 +1119,16 @@ class Data:
                 "Time list is between:\n {} and {} days of the year.".format(
                     ti, tf
                 )
+            )
+            # shear = np.nanmean(shear, axis=-1, keepdims=1)
+
+            deps = np.sqrt(div ** 2 + shear ** 2)
+            deps.mask = 0
+            deps = np.where(deps == 0.0, np.NaN, deps)
+
+            print("Done loading RGPS data.")
+            print(
+                "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
             )
 
         else:

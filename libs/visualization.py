@@ -127,9 +127,7 @@ class Arctic(sts.Scale):
         # figure initialization
         fig = plt.figure(dpi=300)
         ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
-        fig.subplots_adjust(
-            bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
-        )
+        fig.subplots_adjust(bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02)
 
         # Compute a circle in axes coordinates, which we can use as a boundary
         # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -300,9 +298,7 @@ class Arctic(sts.Scale):
                 transparent=0,
             )
 
-    def _encircle(
-        self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase
-    ):
+    def _encircle(self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase):
         """
         Function that computes the polygon around the relevant data in order to trace the taken values only (for plots only)
 
@@ -315,19 +311,13 @@ class Arctic(sts.Scale):
         # alpha = 0.95 * alphashape.optimizealpha(points)
         hull = alphashape.alphashape(points, 0.3)
         ax.add_patch(
-            PolygonPatch(
-                hull, fill=False, color="black", transform=ccrs.PlateCarree()
-            )
+            PolygonPatch(hull, fill=False, color="black", transform=ccrs.PlateCarree())
         )
 
         return ax
 
     def arctic_plot_RGPS(
-        self,
-        data: np.ndarray,
-        datatype: str,
-        fig_name_supp: str = "_",
-        mask: bool = 0,
+        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_", mask: bool = 0,
     ):
         """
         Function that plots data over the Arctic same as the other one but specifically for RGPS.
@@ -346,9 +336,7 @@ class Arctic(sts.Scale):
         # figure initialization
         fig = plt.figure(dpi=300)
         ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
-        fig.subplots_adjust(
-            bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
-        )
+        fig.subplots_adjust(bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02)
 
         # Compute a circle in axes coordinates, which we can use as a boundary
         # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -431,10 +419,7 @@ class Arctic(sts.Scale):
             )
 
     def scale_plot(
-        self,
-        deformation: np.ndarray,
-        scales: list,
-        viscosity: np.ndarray = None,
+        self, deformation: np.ndarray, scales: list, viscosity: np.ndarray = None,
     ):
         """
         This function plots the spatial scale and computes the exponent of the scaling <dedt> ~ L^-H by doing a linear regression.
@@ -507,18 +492,12 @@ class Arctic(sts.Scale):
         # add color bar
         cbar = fig.colorbar(cf)
         cbar.set_label(
-            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
-            rotation=-90,
-            va="bottom",
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]", rotation=-90, va="bottom",
         )
         # add red line for zeta max
         cax = cbar.ax
         cax.hlines(
-            ETA_MAX * E ** 2,
-            0,
-            ETA_MAX * E ** 2 * 10,
-            colors="r",
-            linewidth=2,
+            ETA_MAX * E ** 2, 0, ETA_MAX * E ** 2 * 10, colors="r", linewidth=2,
         )
         # find the pre existing ticks
         ticks = [0, 0.5e13, 1e13, 1.5e13, 2e13]
@@ -532,12 +511,7 @@ class Arctic(sts.Scale):
         cax.yaxis.set_ticks(minortick, minor=True)
         cax.yaxis.set_ticklabels(minortick_label, minor=True)
         cax.tick_params(
-            axis="y",
-            which="minor",
-            labelsize=8,
-            length=3.5,
-            color="r",
-            width=2,
+            axis="y", which="minor", labelsize=8, length=3.5, color="r", width=2,
         )
         # format the new ticks
         cax_format = matplotlib.ticker.ScalarFormatter()
@@ -548,9 +522,7 @@ class Arctic(sts.Scale):
         coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
         fit = np.poly1d(coefficients)
         t = np.linspace(mean_scale[0], mean_scale[-1], 10)
-        coefficients_cut = np.polyfit(
-            np.log(mean_scale_cut), np.log(mean_def_cut), 1
-        )
+        coefficients_cut = np.polyfit(np.log(mean_scale_cut), np.log(mean_def_cut), 1)
         fit_cut = np.poly1d(coefficients_cut)
         t_cut = np.linspace(mean_scale_cut[0], mean_scale_cut[-1], 10)
 
@@ -574,9 +546,7 @@ class Arctic(sts.Scale):
             mean_def_cut,
             "v",
             color="xkcd:golden rod",
-            label="H = {:.2f}, corr = {:.2f}".format(
-                coefficients_cut[0], corr_cut
-            ),
+            label="H = {:.2f}, corr = {:.2f}".format(coefficients_cut[0], corr_cut),
             markersize=5,
         )
         ax.plot(t_cut, np.exp(fit_cut(np.log(t_cut))), color="xkcd:golden rod")
@@ -641,8 +611,8 @@ class Arctic(sts.Scale):
         fig = plt.figure(dpi=300, figsize=(6, 4))
 
         # initialization of the list containing the means
-        mean_def = np.empty(len(scales))
-        mean_scale = np.empty(len(scales))
+        mean_def = np.zeros(len(scales))
+        mean_scale = np.zeros(len(scales))
         # mean_def_cut = np.empty(len(scales))
         # mean_scale_cut = np.empty(len(scales))
 
@@ -686,8 +656,9 @@ class Arctic(sts.Scale):
             indices1 = ~np.isnan(scaling[k])
             indices2 = ~np.isnan(deformation[k])
             indices = indices1 * indices2
-            mean_def[k] = np.average(deformation[k][indices])
-            mean_scale[k] = np.average(scaling[k][indices])
+            mean_def[k] = np.mean(deformation[k][indices])
+            mean_scale[k] = np.mean(scaling[k][indices])
+            print(mean_def)
 
             # colormap
             base = cm.get_cmap("cmo.haline", 256)
@@ -699,9 +670,7 @@ class Arctic(sts.Scale):
             cf = ax.scatter(
                 scaling[k][indices],
                 deformation[k][indices],
-                c=np.zeros_like(
-                    deformation[k][indices]
-                ),  # viscosity[k, indices],
+                c=np.zeros_like(deformation[k][indices]),  # viscosity[k, indices],
                 s=0.5,
                 cmap=newcmp,
                 norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E ** 2),
@@ -715,18 +684,12 @@ class Arctic(sts.Scale):
         # add color bar
         cbar = fig.colorbar(cf, ax=ax_histy)
         cbar.set_label(
-            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]",
-            rotation=-90,
-            va="bottom",
+            "Bulk viscosity [N$\cdot$s$\cdot$m$^{-1}$]", rotation=-90, va="bottom",
         )
         # add red line for zeta max
         cax = cbar.ax
         cax.hlines(
-            ETA_MAX * E ** 2,
-            0,
-            ETA_MAX * E ** 2 * 10,
-            colors="r",
-            linewidth=2,
+            ETA_MAX * E ** 2, 0, ETA_MAX * E ** 2 * 10, colors="r", linewidth=2,
         )
         # find the pre existing ticks
         ticks = [0, 0.5e13, 1e13, 1.5e13, 2e13]
@@ -740,12 +703,7 @@ class Arctic(sts.Scale):
         cax.yaxis.set_ticks(minortick, minor=True)
         cax.yaxis.set_ticklabels(minortick_label, minor=True)
         cax.tick_params(
-            axis="y",
-            which="minor",
-            labelsize=8,
-            length=3.5,
-            color="r",
-            width=2,
+            axis="y", which="minor", labelsize=8, length=3.5, color="r", width=2,
         )
         # format the new ticks
         cax_format = matplotlib.ticker.ScalarFormatter()
@@ -845,12 +803,7 @@ class Arctic(sts.Scale):
         # ticks style
         ax.grid(linestyle=":")
         ax.tick_params(
-            which="both",
-            direction="in",
-            bottom=True,
-            top=True,
-            left=True,
-            right=True,
+            which="both", direction="in", bottom=True, top=True, left=True, right=True,
         )
         ax.tick_params(
             which="minor", labelleft=False,
@@ -937,9 +890,7 @@ class Arctic(sts.Scale):
         x = (x[:-1] + x[1:]) / 2
 
         # compute best estimator
-        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(
-            x, p
-        )
+        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(x, p)
         t = np.linspace(dedt_min, x[-1], 10)
         alpha, sigma = self.mle_exponent(x[min_index:], dedt_min)
 
@@ -977,9 +928,7 @@ class Arctic(sts.Scale):
                 transparent=0,
             )
 
-    def pdf_plot_vect(
-        self, shear: np.ndarray, ndiv: np.ndarray, pdiv: np.ndarray
-    ):
+    def pdf_plot_vect(self, shear: np.ndarray, ndiv: np.ndarray, pdiv: np.ndarray):
         """
         Function that computes the PDF plot with the MLE fit. Same as above but for vectorized output.
 
@@ -1075,31 +1024,17 @@ class Arctic(sts.Scale):
         ax_ndiv.plot(x_ndiv, p_ndiv, ".", color="black", markersize=2)
         ax_ndiv.plot(x_ndiv, p_ndiv, color="black", lw=0.7)
         ax_ndiv.plot(
-            t_ndiv,
-            10 ** (best_fit_ndiv(np.log10(t_ndiv))),
-            "-.",
-            color="red",
-            lw=0.7,
+            t_ndiv, 10 ** (best_fit_ndiv(np.log10(t_ndiv))), "-.", color="red", lw=0.7,
         )
         ax_pdiv.plot(x_pdiv, p_pdiv, ".", color="black", markersize=2)
         ax_pdiv.plot(x_pdiv, p_pdiv, color="black", lw=0.7)
         ax_pdiv.plot(
-            t_pdiv,
-            10 ** (best_fit_pdiv(np.log10(t_pdiv))),
-            "-.",
-            color="red",
-            lw=0.7,
+            t_pdiv, 10 ** (best_fit_pdiv(np.log10(t_pdiv))), "-.", color="red", lw=0.7,
         )
         # ticks
-        ax_shear.grid(
-            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
-        )
-        ax_shear.grid(
-            axis="x", which="major", linestyle="-", color="xkcd:light gray"
-        )
-        ax_shear.grid(
-            axis="y", which="major", linestyle="-", color="xkcd:light gray"
-        )
+        ax_shear.grid(axis="x", which="minor", linestyle=":", color="xkcd:light gray")
+        ax_shear.grid(axis="x", which="major", linestyle="-", color="xkcd:light gray")
+        ax_shear.grid(axis="y", which="major", linestyle="-", color="xkcd:light gray")
         ax_shear.tick_params(
             which="both",
             direction="in",
@@ -1109,15 +1044,9 @@ class Arctic(sts.Scale):
             right=True,
             labelleft=True,
         )
-        ax_ndiv.grid(
-            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
-        )
-        ax_ndiv.grid(
-            axis="x", which="major", linestyle="-", color="xkcd:light gray"
-        )
-        ax_ndiv.grid(
-            axis="y", which="major", linestyle="-", color="xkcd:light gray"
-        )
+        ax_ndiv.grid(axis="x", which="minor", linestyle=":", color="xkcd:light gray")
+        ax_ndiv.grid(axis="x", which="major", linestyle="-", color="xkcd:light gray")
+        ax_ndiv.grid(axis="y", which="major", linestyle="-", color="xkcd:light gray")
         ax_ndiv.tick_params(
             which="both",
             direction="in",
@@ -1127,15 +1056,9 @@ class Arctic(sts.Scale):
             right=True,
             labelleft=True,
         )
-        ax_pdiv.grid(
-            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
-        )
-        ax_pdiv.grid(
-            axis="x", which="major", linestyle="-", color="xkcd:light gray"
-        )
-        ax_pdiv.grid(
-            axis="y", which="major", linestyle="-", color="xkcd:light gray"
-        )
+        ax_pdiv.grid(axis="x", which="minor", linestyle=":", color="xkcd:light gray")
+        ax_pdiv.grid(axis="x", which="major", linestyle="-", color="xkcd:light gray")
+        ax_pdiv.grid(axis="y", which="major", linestyle="-", color="xkcd:light gray")
         ax_pdiv.tick_params(
             which="both",
             direction="in",
@@ -1206,9 +1129,7 @@ class Arctic(sts.Scale):
 
         # convert bin edges to centers
         x = (x[:-1] + x[1:]) / 2
-        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(
-            x, p
-        )
+        dedt_min, ks_dist, best_fit, min_index = self.ks_distance_minimizer(x, p)
         fit = np.exp(best_fit(np.log(data)))
         fit = self._clean(fit, 0)
 
