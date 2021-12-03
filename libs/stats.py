@@ -94,11 +94,15 @@ class Scale(sel.Data):
 
         elif scale + i > self.ny and scale + j <= self.nx:
             extra_i = scale + i - self.ny
-            indices = np.ix_(np.arange(scale - extra_i) + i, np.arange(scale) + j)
+            indices = np.ix_(
+                np.arange(scale - extra_i) + i, np.arange(scale) + j
+            )
 
         elif scale + i <= self.ny and scale + j > self.nx:
             extra_j = scale + j - self.nx
-            indices = np.ix_(np.arange(scale) + i, np.arange(scale - extra_j) + j)
+            indices = np.ix_(
+                np.arange(scale) + i, np.arange(scale - extra_j) + j
+            )
 
         # create box by creating a mask of ones on the grid
         box = np.full((self.ny, self.nx), 1, dtype=int)
@@ -129,19 +133,19 @@ class Scale(sel.Data):
         # if dt is days
         if dtlist[0] == 1:
             data_time_mean = [
-                (formated_data[..., n : n + 3].mean(axis=-1))
-                for n in range(formated_data.shape[-1] - 2)
+                (formated_data[..., 3 * n : 3 * n + 3].mean(axis=-1))
+                for n in range(formated_data.shape[-1] // 3)
             ]
 
         # if dt is hours
         elif dtlist[1] != 0:
             period_per_day = 24 // dtlist[1]
             data_time_mean = [
-                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
-                    axis=-1
-                )
+                formated_data[
+                    ..., period_per_day * 3 * n : period_per_day * (3 * n + 3)
+                ].mean(axis=-1)
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
+                    (formated_data.shape[-1] // period_per_day) // 3
                 )
             ]
 
@@ -149,11 +153,13 @@ class Scale(sel.Data):
         elif dtlist[2] != 0:
             period_per_day = 24 * 60 // dtlist[2]
             data_time_mean = [
-                formated_data[..., period_per_day * n : period_per_day * (n + 3)].mean(
-                    axis=-1
-                )
+                formated_data[
+                    ..., period_per_day * 3 * n : period_per_day * (3 * n + 3)
+                ].mean(axis=-1)
                 for n in range(
-                    (formated_data.shape[-1] - 3 * period_per_day) // period_per_day + 1
+                    (formated_data.shape[-1] - 3 * period_per_day)
+                    // period_per_day
+                    + 1
                 )
             ]
 
@@ -220,7 +226,9 @@ class Scale(sel.Data):
             data = np.empty(
                 (len(scales), self.ny * self.nx * formated_data.shape[-1], 2)
             )
-            visc = np.empty((len(scales), self.ny * self.nx * formated_visc.shape[-1]))
+            visc = np.empty(
+                (len(scales), self.ny * self.nx * formated_visc.shape[-1])
+            )
 
             # loop over all scales
             scale_iter = 0
@@ -265,7 +273,10 @@ class Scale(sel.Data):
                                 masked_visc.mask = mask
 
                                 # verify that there is enough data in the box
-                                if masked_data.count() >= scale_grid_unit ** 2 / 2:
+                                if (
+                                    masked_data.count()
+                                    >= scale_grid_unit ** 2 / 2
+                                ):
                                     data_mean = np.ma.average(
                                         masked_data, weights=masked_areas
                                     )
@@ -273,10 +284,13 @@ class Scale(sel.Data):
                                         masked_visc, weights=masked_areas
                                     )
                                     spatial_scale = (
-                                        np.sqrt(masked_data.count()) * self.resolution
+                                        np.sqrt(masked_data.count())
+                                        * self.resolution
                                     )
                                     data[scale_iter, box_iter, 0] = data_mean
-                                    data[scale_iter, box_iter, 1] = spatial_scale
+                                    data[
+                                        scale_iter, box_iter, 1
+                                    ] = spatial_scale
                                     visc[scale_iter, box_iter] = visc_mean
                                     box_iter += 1
                     print(
@@ -349,7 +363,8 @@ class Scale(sel.Data):
                                     masked_visc, weights=masked_areas
                                 )
                                 spatial_scale = (
-                                    np.sqrt(masked_data.count()) * self.resolution
+                                    np.sqrt(masked_data.count())
+                                    * self.resolution
                                 )
                                 data[scale_iter, box_iter, 0] = data_mean
                                 data[scale_iter, box_iter, 1] = spatial_scale
@@ -358,7 +373,11 @@ class Scale(sel.Data):
                                 print(
                                     "Done with box {}/{}.".format(
                                         box_iter,
-                                        int(self.ny * self.nx / (scale_grid_unit ** 2)),
+                                        int(
+                                            self.ny
+                                            * self.nx
+                                            / (scale_grid_unit ** 2)
+                                        ),
                                     )
                                 )
                 data[scale_iter, box_iter:, :] = np.NaN
@@ -366,7 +385,7 @@ class Scale(sel.Data):
                 print("Done with {} km scale.".format(scales[scale_iter]))
                 scale_iter += 1
 
-        return data, visc
+        return (data, visc)
 
     def _clean(self, data: np.ndarray, box: bool = 1) -> np.ndarray:
         """
@@ -413,7 +432,9 @@ class Scale(sel.Data):
 
         return all_def_array
 
-    def mle_exponent(self, data: np.ndarray, minimum_deformation: float) -> float:
+    def mle_exponent(
+        self, data: np.ndarray, minimum_deformation: float
+    ) -> float:
         """
         Computes the exponent alpha of the power law.
 
@@ -507,7 +528,9 @@ class Scale(sel.Data):
             fit = np.polynomial.Polynomial(coefficients)
 
             # compute cdf of the fit
-            x, cdf_fit = self.cumul_dens_func(None, 10 ** fit(pdf_data), method=2)
+            x, cdf_fit = self.cumul_dens_func(
+                None, 10 ** fit(pdf_data), method=2
+            )
 
             # compute kolmogorov-smirnov distance
             idx2 = np.argwhere(pdf_data == pdf_x[i])[0][0]
@@ -618,12 +641,15 @@ class Scale(sel.Data):
         for scale_km_unit in scales:
             # verify validity of scale
             if scale_km_unit <= int(self.resolution):
-                du, dv = self._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :],)
+                du, dv = self._derivative(
+                    u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :],
+                )
                 deps.append(self._deformation(du, dv, 0))
                 shear.append(self._deformation(du, dv, 1))
                 div.append(self._deformation(du, dv, 2))
                 scaling.append(
-                    self.resolution * np.ones_like(self._deformation(du, dv, 0))
+                    self.resolution
+                    * np.ones_like(self._deformation(du, dv, 0))
                 )
                 print("Done with scale {}.".format(scale_km_unit))
                 continue
@@ -661,9 +687,17 @@ class Scale(sel.Data):
                         ].reshape(
                             -1,
                             *u_v_ta_bool[
-                                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                                scale_grid_unit
+                                // 2
+                                * i : scale_grid_unit
+                                // 2
+                                * i
                                 + scale_grid_unit,
-                                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                                scale_grid_unit
+                                // 2
+                                * j : scale_grid_unit
+                                // 2
+                                * j
                                 + scale_grid_unit,
                                 :,
                                 :,
@@ -682,9 +716,17 @@ class Scale(sel.Data):
                         ].reshape(
                             -1,
                             *u_v_ta[
-                                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                                scale_grid_unit
+                                // 2
+                                * i : scale_grid_unit
+                                // 2
+                                * i
                                 + scale_grid_unit,
-                                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                                scale_grid_unit
+                                // 2
+                                * j : scale_grid_unit
+                                // 2
+                                * j
                                 + scale_grid_unit,
                                 :,
                                 :,
@@ -694,21 +736,25 @@ class Scale(sel.Data):
                     )
 
             u_v_ta_bool_sum = np.where(
-                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, u_v_ta_bool_sum,
+                u_v_ta_bool_sum < scale_grid_unit ** 2 // 2,
+                np.NaN,
+                u_v_ta_bool_sum,
             )
 
             u_v_ta_mean = u_v_ta_sum / u_v_ta_bool_sum
 
             # compute the derivatives and the deformations
-            du_mean, dv_mean = self._derivative(
-                u_v_ta_mean[:, :, 0, :], u_v_ta_mean[:, :, 1, :], scale_grid_unit // 2,
+            du_mean = self._derivative(
+                u_v_ta_mean[:, :, 0, :],
+                u_v_ta_mean[:, :, 1, :],
+                scale_grid_unit // 2,
             )
             # viscosity = viscosity[1:-1, 1:-1, :]
 
             # compute the deformation
-            deps_array = self._deformation(du_mean, dv_mean, 0)
-            shear_array = self._deformation(du_mean, dv_mean, 1)
-            div_array = self._deformation(du_mean, dv_mean, 2)
+            deps_array = self._deformation(du_mean, 0)
+            shear_array = self._deformation(du_mean, 1)
+            div_array = self._deformation(du_mean, 2)
 
             # compute the scaling associated with each box note here that I multiply by v then divide by v so that I get both the NaNs in u and v (to match the NaNs in deps).
             scale_array = (
@@ -772,7 +818,8 @@ class Scale(sel.Data):
                 div_list.append(div_cut)
                 deps_list.append(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 deps_scaling_list.append(
-                    RES_RGPS * np.ones_like(np.sqrt(div_cut ** 2 + shear_cut ** 2))
+                    RES_RGPS
+                    * np.ones_like(np.sqrt(div_cut ** 2 + shear_cut ** 2))
                 )
                 shear_scaling_list.append(RES_RGPS * np.ones_like(shear_cut))
                 div_scaling_list.append(RES_RGPS * np.ones_like(div_cut))
@@ -784,23 +831,35 @@ class Scale(sel.Data):
 
             # implementation of the algorithm
             # definitions
-            shear_bool_sum, shear_sum = self._definitions_RGPS(shear, scale_grid_unit)
-            div_bool_sum, div_sum = self._definitions_RGPS(div, scale_grid_unit)
+            shear_bool_sum, shear_sum = self._definitions_RGPS(
+                shear, scale_grid_unit
+            )
+            div_bool_sum, div_sum = self._definitions_RGPS(
+                div, scale_grid_unit
+            )
 
             # big loop over all the indices
             for i in range(shear.shape[0] // scale_grid_unit * 2):
                 for j in range(shear.shape[1] // scale_grid_unit * 2):
                     # algo for shear and div
-                    (shear_bool_sum[i, j], shear_sum[i, j],) = self._loop_interior_RGPS(
+                    (
+                        shear_bool_sum[i, j],
+                        shear_sum[i, j],
+                    ) = self._loop_interior_RGPS(
                         i, j, shear_bool, shear, scale_grid_unit
                     )
-                    (div_bool_sum[i, j], div_sum[i, j],) = self._loop_interior_RGPS(
+                    (
+                        div_bool_sum[i, j],
+                        div_sum[i, j],
+                    ) = self._loop_interior_RGPS(
                         i, j, div_bool, div, scale_grid_unit
                     )
 
             # take only boxes that are at least 50% filled
             shear_bool_sum = np.where(
-                shear_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, shear_bool_sum,
+                shear_bool_sum < scale_grid_unit ** 2 // 2,
+                np.NaN,
+                shear_bool_sum,
             )
 
             div_bool_sum = np.where(
@@ -818,7 +877,8 @@ class Scale(sel.Data):
 
             # compute the scaling associated with each box note here that I multiply by v then divide by v so that I get both the NaNs in u and v (to match the NaNs in deps).
             deps_scale_array = (
-                np.sqrt(shear_bool_sum * div_bool_sum / div_bool_sum) * RES_RGPS
+                np.sqrt(shear_bool_sum * div_bool_sum / div_bool_sum)
+                * RES_RGPS
             )
             shear_scale_array = np.sqrt(shear_bool_sum) * RES_RGPS
             div_scale_array = np.sqrt(div_bool_sum) * RES_RGPS
@@ -842,7 +902,9 @@ class Scale(sel.Data):
 
         return deps, shear, div, deps_scaling, shear_scaling, div_scaling
 
-    def _definitions_RGPS(self, data: np.ndarray, scale_grid_unit: int) -> np.ndarray:
+    def _definitions_RGPS(
+        self, data: np.ndarray, scale_grid_unit: int
+    ) -> np.ndarray:
 
         shape = list(data.shape)
         shape[0] = shape[0] // scale_grid_unit * 2
@@ -867,9 +929,10 @@ class Scale(sel.Data):
         # algo
         bool_sum = np.sum(
             data_bool[
-                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i + scale_grid_unit,
-                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j + scale_grid_unit,
-                :,
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                + scale_grid_unit,
             ].reshape(
                 -1,
                 *data_bool[
@@ -877,16 +940,16 @@ class Scale(sel.Data):
                     + scale_grid_unit,
                     scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                     + scale_grid_unit,
-                    :,
                 ].shape[dim:]
             ),
             axis=0,
         )
         data_sum = np.nansum(
             data[
-                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i + scale_grid_unit,
-                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j + scale_grid_unit,
-                :,
+                scale_grid_unit // 2 * i : scale_grid_unit // 2 * i
+                + scale_grid_unit,
+                scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
+                + scale_grid_unit,
             ].reshape(
                 -1,
                 *data[
@@ -894,7 +957,6 @@ class Scale(sel.Data):
                     + scale_grid_unit,
                     scale_grid_unit // 2 * j : scale_grid_unit // 2 * j
                     + scale_grid_unit,
-                    :,
                 ].shape[dim:]
             ),
             axis=0,
@@ -907,7 +969,7 @@ class Scale(sel.Data):
         Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
 
         Args:
-            du (np.ndarray): deformations in x and y, shape is (ny, nx, nt, 4), already time averaged
+            du (np.ndarray): derivatives in x and y, shape is (ny, nx, nt, 4), already time averaged
             scales (list): list of scales to compute.
 
         Returns:
@@ -993,3 +1055,97 @@ class Scale(sel.Data):
         scaling = np.asarray(scaling_list, dtype=object)
 
         return deps, shear, div, scaling
+
+    def spatial_mean_du(self, du: np.ndarray, scales: list) -> np.ndarray:
+        """
+            Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+
+            Args:
+                du (np.ndarray): derivatives in x and y, shape is (ny, nx, nt, 4), already time averaged
+                scales (list): list of scales to compute.
+
+            Returns:
+                np.ndarray: returns an array of size (len(scales),) where each element of the array are of different sizes (because it depends on the sizes of the boxes, therefore, for each scale the size of the data changes).
+            """
+
+        du_bool = ~np.isnan(du)
+        du_bool = du_bool.astype(int)
+
+        # initialize output
+        deps_list = []
+        shear_list = []
+        div_list = []
+        scaling_list = []
+
+        # loop over all scales
+        for scale_km_unit in scales:
+            # verify validity of scale
+            if scale_km_unit <= self.resolution:
+                shear = self._deformation(du, 1)
+                div = self._deformation(du, 2)
+                deps = self._deformation(du, 0)
+                shear_list.append(shear)
+                div_list.append(div)
+                deps_list.append(deps)
+                scaling_list.append(self.resolution * np.ones_like(deps))
+                print("Done with scale {}.".format(scale_km_unit))
+                continue
+
+            # convert km into grid cell units
+            scale_grid_unit = int(scale_km_unit // self.resolution)
+
+            # implementation of the algorithm
+            # definitions
+            du_bool_sum, du_sum = self._definitions_RGPS(du, scale_grid_unit)
+
+            # big loop over all the indices
+            for i in range(du.shape[0] // scale_grid_unit * 2):
+                for j in range(du.shape[1] // scale_grid_unit * 2):
+                    # algo for all derivatives
+                    (
+                        du_bool_sum[i, j],
+                        du_sum[i, j],
+                    ) = self._loop_interior_RGPS(
+                        i, j, du_bool, du, scale_grid_unit
+                    )
+
+            # take only boxes that are at least 50% filled
+            du_bool_sum = np.where(
+                du_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, du_bool_sum,
+            )
+
+            # compute the means
+            du_mean = du_sum / du_bool_sum
+
+            # delete boxes with mean smaller than 5e-3 and compute the deformation
+            # shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
+            # div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
+            shear_mean = self._deformation(du_mean, 1)
+            div_mean = self._deformation(du_mean, 2)
+            deps_mean = self._deformation(du_mean, 0)
+
+            # compute the scaling associated with each box
+            scaling_array = (
+                np.sqrt(
+                    du_bool_sum[..., 0]
+                    * du_bool_sum[..., 2]
+                    / du_bool_sum[..., 2]
+                )
+                * self.resolution
+            )
+
+            deps_list.append(deps_mean)
+            shear_list.append(shear_mean)
+            div_list.append(div_mean)
+            scaling_list.append(scaling_array)
+
+            print("Done with scale {}.".format(scale_km_unit))
+
+        # creates an array of arrays but of different shapes
+        deps = np.asarray(deps_list, dtype=object)
+        shear = np.asarray(shear_list, dtype=object)
+        div = np.asarray(div_list, dtype=object)
+        scaling = np.asarray(scaling_list, dtype=object)
+
+        return (deps, shear, div, scaling)
+

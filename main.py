@@ -1,5 +1,6 @@
 import libs.visualization as vis
 import numpy as np
+import matplotlib.pyplot as plt
 
 # ----------------------------------------------------------------------
 # User input for the location of the files
@@ -63,7 +64,7 @@ L10 = [10, 20, 40, 80, 160, 320, 640]
 L20 = [20, 40, 80, 160, 320, 640]
 L40 = [40, 80, 160, 320, 640]
 dt = "00-06-00"
-time_end = "1997-03-31-18-00"
+time_end = "1997-01-6-18-00"
 
 # ----------------------------------------------------------------------
 
@@ -108,13 +109,23 @@ time_end = "1997-03-31-18-00"
 # ----------------------------------------------------------------------
 # compute all mean deformations in boxes
 # ----------------------------------------------------------------------
-# changer cela ici
-# deps10, shear10, div10, scale10 = dataset10.spatial_mean_RGPS_du(
-#     dataset10._derivative(dataset10._time_average(dataset10.multi_load(dt, time_end), dt)), L10
-# )
-# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_RGPS_du(
-#     dataset10D._time_average(dataset10D.multi_load(dt, time_end), dt), L10
-# )
+
+# calcul ta
+u_v = dataset10.multi_load(dt, time_end)
+u_v_D = dataset10D.multi_load(dt, time_end)
+u_v = np.where(u_v == 0, np.NaN, u_v)
+u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
+u_v_ta = dataset10._time_average(u_v, dt)
+u_v_ta_D = dataset10D._time_average(u_v_D, dt)
+
+# calcul du
+du = dataset10._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
+du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
+
+# # calcul des deformations moyennes
+# deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du, L10)
+
+# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du_D, L10)
 
 # data_box20, data_box20_visc = dataset20.spatial_mean_box(
 #     dataset20.multi_load(dt, time_end), L20, dt, time_end, from_velocity=1
@@ -131,8 +142,8 @@ time_end = "1997-03-31-18-00"
 # )
 
 # mask80
-mask80 = dataset_RGPS.mask80("RGPS_data", ti=0, tf=29)
-
+mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=29)
+dataset10.mask80_times(du[..., 0], mask80)
 # RGPS data
 # load deformations
 deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
@@ -151,12 +162,7 @@ dvdy = dataset_RGPS.mask80_times_RGPS(
 )
 
 # stack them
-du = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
-
-# conditions
-# for k in range(du.shape[-1]):
-#     du[..., k] = np.where(np.isnan(deps) == 1, np.NaN, du[..., k])
-
+du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
 # plot initial values everything
 dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
@@ -219,42 +225,68 @@ dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
 # dataset10D.pdf_plot_vect(shear10D_cut, -ndiv10D_cut, pdiv10D_cut)
 
 # compute scaling of RGPS
-(
-    deps_RGPS,
-    shear_RGPS,
-    div_RGPS,
-    deps_scale_RGPS,
-    shear_scale_RGPS,
-    div_scale_RGPS,
-) = dataset_RGPS.spatial_mean_RGPS(shear80, div80, L_RGPS)
+# (
+#     deps_RGPS,
+#     shear_RGPS,
+#     div_RGPS,
+#     deps_scale_RGPS,
+#     shear_scale_RGPS,
+#     div_scale_RGPS,
+# ) = dataset_RGPS.spatial_mean_RGPS(shear80, div80, L_RGPS)
 
 (
     deps_RGPS_du,
     shear_RGPS_du,
     div_RGPS_du,
     scale_RGPS_du,
-) = dataset_RGPS.spatial_mean_RGPS_du(du, L_RGPS)
+) = dataset_RGPS.spatial_mean_du(du_RGPS, L_RGPS)
 
-test = np.array(
-    [
-        [1, 0.5, 1, 0.5, 1, 0.5],
-        [1, 0.5, 1, 0.5, 1, 0.5],
-        [1, 0.5, 1, 0.5, 1, 0.5],
-        [1, 0.5, 1, 0.5, 1, 0.5],
-        [1, 0.5, 1, 0.5, 1, 0.5],
-        [1, 0.5, 1, 0.5, 1, 0.5],
-    ]
-)
+# test = np.array(
+#     [
+#         [1, 0.5, 1, 0.5, 1, 0.5],
+#         [0.5, 1, 0.5, 1, 0.5, 1],
+#         [1, 0.5, 1, 0.5, 1, 0.5],
+#         [0.5, 1, 0.5, 1, 0.5, 1],
+#         [1, 0.5, 1, 0.5, 1, 0.5],
+#         [0.5, 1, 0.5, 1, 0.5, 1],
+#     ]
+# )
 
-test3 = np.array([test, test, test, test, test, test, test, test])
-test3 = np.flip(np.transpose(test3, (1, 2, 0)), axis=0)
-__, test2, __, __, test4, __ = dataset_RGPS.spatial_mean_RGPS(
-    test3, test3, [12.5, 25, 50]
-)
-test5, test6 = dataset_RGPS.scale_plot_vect(
-    test2, test4, [12.5, 25, 50], save=0, fig_name_supp="_test",
-)
-print(test5, test6)
+# testa = np.array(
+#     [
+#         [1, 1, 1, 1, 1, 1],
+#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+#         [1, 1, 1, 1, 1, 1],
+#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+#         [1, 1, 1, 1, 1, 1],
+#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+#     ]
+# )
+
+# testa = np.array(
+#     [
+#         10 * np.ones((10)),
+#         1 * np.ones((10)),
+#         5 * np.ones((10)),
+#         1 * np.ones((10)),
+#         10 * np.ones((10)),
+#         1 * np.ones((10)),
+#         5 * np.ones((10)),
+#         1 * np.ones((10)),
+#         10 * np.ones((10)),
+#         1 * np.ones((10)),
+#     ]
+# )
+
+# test3 = np.array([test, test, test, test, test, test, test, test])
+# test3 = np.flip(np.transpose(test3, (1, 2, 0)), axis=0)
+# __, test2, __, __, test4, __ = dataset_RGPS.spatial_mean_RGPS(
+#     test3, test3, [12.5, 25, 50]
+# )
+# test5, test6 = dataset_RGPS.scale_plot_vect(
+#     test2, test4, [12.5, 25, 50], save=0, fig_name_supp="_test",
+# )
+# print(test5, test6)
 
 # ----------------------------------------------------------------------
 # save data in file
@@ -295,6 +327,7 @@ deps10 = np.load("processed_data/deps10.npy", allow_pickle=True)
 shear10 = np.load("processed_data/shear10.npy", allow_pickle=True)
 div10 = np.load("processed_data/div10.npy", allow_pickle=True)
 scale10 = np.load("processed_data/scale10.npy", allow_pickle=True)
+
 deps10D = np.load("processed_data/deps10D.npy", allow_pickle=True)
 shear10D = np.load("processed_data/shear10D.npy", allow_pickle=True)
 div10D = np.load("processed_data/div10D.npy", allow_pickle=True)
@@ -362,9 +395,9 @@ mean_depsD, mean_scaleD = dataset10D.scale_plot_vect(
 # plots RGPS 12.5 km
 # ----------------------------------------------------------------------
 
-mean_deps_RGPS, mean_scale_RGPS = dataset_RGPS.scale_plot_vect(
-    deps_RGPS, deps_scale_RGPS, L_RGPS, save=1, fig_name_supp="_dedt_02_RGPS",
-)
+# mean_deps_RGPS, mean_scale_RGPS = dataset_RGPS.scale_plot_vect(
+#     deps_RGPS, deps_scale_RGPS, L_RGPS, save=1, fig_name_supp="_dedt_02_RGPS",
+# )
 
 mean_deps_RGPS_du, mean_scale_RGPS_du = dataset_RGPS.scale_plot_vect(
     deps_RGPS_du,

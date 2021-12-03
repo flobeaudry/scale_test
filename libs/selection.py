@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------
 #   Its purpose is to fetch, load, and format the data from the
 #   output files that I previously downloaded. There are many
-#   options in this module.
+#   options in this module. The long side is x, for 10 km shape is (438,#   518)
 #
 #   TODO:
 #   DONE    define function that loads various output infos
@@ -977,32 +977,31 @@ class Data:
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2),
         )
 
-    def _deformation(
-        self, du: np.ndarray, dv: np.ndarray, choice: int
-    ) -> np.ndarray:
+    def _deformation(self, du: np.ndarray, choice: int) -> np.ndarray:
         """
         Function that computes deformation rates from velocity derivatives.
 
         Args:
-            du (dv) (np.ndarray): array of size (2, ny, nx, nt) of all the data in du (dv) for many dates or time averages.
+            du (np.ndarray): array of size (ny, nx, nt, 4) of all the data in du for many dates or time averages.
             choice (int): number 0, 1, 2 to choose between dedt, shear, divergence.
 
         Returns:
             np.ndarray: array of size (ny, nx, nt) of all the deformation rates in [day^-1].
         """
         # computes strain invariants (watch out for inverse derivatives 1: x-axis, 0: y-axis)
-        divergence = du[1] + dv[0]
-        shear = np.sqrt((du[1] - dv[0]) ** 2 + (du[0] + dv[1]) ** 2)
-        deformations = np.sqrt(shear ** 2 + divergence ** 2)
+        div = du[..., 0] + du[..., 3]
+        shear = np.sqrt(
+            (du[..., 0] - du[..., 3]) ** 2 + (du[..., 1] + du[..., 2]) ** 2
+        )
 
         if choice == 0:
-            return deformations * 86400
+            return np.sqrt(div ** 2 + shear ** 2)
 
         elif choice == 1:
-            return shear * 86400
+            return shear
 
         elif choice == 2:
-            return divergence * 86400
+            return div
 
     def _derivative(
         self, u: np.ndarray, v: np.ndarray, scale: int = 1
@@ -1017,10 +1016,12 @@ class Data:
             np.ndarray: array of size (2, ny, nx, nt) of all the derivatives. 0 is d/dx (y axis in the code), 1 is d/dy (x axis in the code). I just did not choose the right name in order to match the model.
         """
         # computes mean gradients
-        du = np.gradient(u, self.resolution * 1000 * scale)
-        dv = np.gradient(v, self.resolution * 1000 * scale)
+        dudx = np.gradient(u, self.resolution * 1000 * scale)[1] * 86400
+        dudy = np.gradient(u, self.resolution * 1000 * scale)[0] * 86400
+        dvdx = np.gradient(v, self.resolution * 1000 * scale)[1] * 86400
+        dvdy = np.gradient(v, self.resolution * 1000 * scale)[0] * 86400
 
-        return du, dv
+        return np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
     def _delta(self, du: np.ndarray, dv: np.ndarray) -> np.array:
         """
@@ -1119,16 +1120,6 @@ class Data:
                 "Time list is between:\n {} and {} days of the year.".format(
                     ti, tf
                 )
-            )
-            # shear = np.nanmean(shear, axis=-1, keepdims=1)
-
-            deps = np.sqrt(div ** 2 + shear ** 2)
-            deps.mask = 0
-            deps = np.where(deps == 0.0, np.NaN, deps)
-
-            print("Done loading RGPS data.")
-            print(
-                "Time list is:\n {}".format(ds["time"][indices] / 60 / 60 / 24)
             )
 
         else:
@@ -1268,29 +1259,35 @@ class Data:
         Returns:
             np.ndarray: masked data.
         """
-        mask = np.zeros((self.ny, self.nx))
+        import scipy.interpolate as sci
 
-        x = np.arange(self.nx + 1) * self.resolution - 2500
-        y = np.arange(self.ny + 1) * self.resolution - 2250
+        x = np.arange(data.shape[1] + 1) * self.resolution - 2500
+        y = np.arange(data.shape[0] + 1) * self.resolution - 2250
 
-        x_RGPS = np.arange(248 + 1) * RES_RGPS - 2300
-        y_RGPS = np.arange(248 + 1) * RES_RGPS - 1000
+        x_RGPS = np.arange(mask80.shape[0] + 1) * RES_RGPS - 2300
+        y_RGPS = np.arange(mask80.shape[1] + 1) * RES_RGPS - 1000
 
-        xmin = np.min(np.abs(x - np.min(x_RGPS)))
-        xmax = np.min(np.abs(x - np.max(x_RGPS)))
+        x_RGPS_10 = (
+            np.arange(int(mask80.shape[0] * RES_RGPS / self.resolution) + 1)
+            * self.resolution
+            - 2300
+        )
+        y_RGPS_10 = (
+            np.arange(int(mask80.shape[1] * RES_RGPS / self.resolution) + 1)
+            * self.resolution
+            - 1000
+        )
+        
+        xmin = np.min(x - np.min(x_RGPS_10))
+        xmax = np.min(np.abs(x - np.max(x_RGPS_10)))
 
-        ymin = np.min(np.abs(y - np.min(y_RGPS)))
-        ymax = np.min(np.abs(y - np.max(y_RGPS)))
+        print(xmin, xmax)
 
-        idxmin = np.argwhere(x == xmin)[0][0]
-        idxmax = np.argwhere(x == xmax)[0][0]
-        idymin = np.argwhere(y == ymin)[0][0]
-        idymax = np.argwhere(y == ymax)[0][0]
-        print(idxmin, idxmax, idymin, idymax)
-        # le probleme vient d'ici
+        ymin = np.min(np.abs(y - np.min(y_RGPS_10)))
+        ymax = np.min(np.abs(y - np.max(y_RGPS_10)))
 
-        mask[idymin : idymax + 1, idxmin : idxmax + 1] = 1
-        mask = np.where(mask == 0, np.NaN, mask)
+        interp = sci.RectBivariateSpline(x_RGPS, y_RGPS, mask80)
+        mask_RGPS_10 = interp(x_RGPS_10, y_RGPS_10)
 
         data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask, (1, 2, 0))
 
