@@ -1259,36 +1259,47 @@ class Data:
         Returns:
             np.ndarray: masked data.
         """
+        # we don't really care about the exact values of the vectors, but more about their size. For example, a proper way of doing this we be to either have a grid that is one more in each directions (they correspond to corners of boxes) or to have a grid with values that are moved by half the box size (in order to be in the center). But since we don't care about the values we will do a mix.
         import scipy.interpolate as sci
 
-        x = np.arange(data.shape[1] + 1) * self.resolution - 2500
-        y = np.arange(data.shape[0] + 1) * self.resolution - 2250
+        mask = np.zeros((data.shape[1], data.shape[0]))
 
-        x_RGPS = np.arange(mask80.shape[0] + 1) * RES_RGPS - 2300
-        y_RGPS = np.arange(mask80.shape[1] + 1) * RES_RGPS - 1000
+        x = np.arange(data.shape[1]) * self.resolution - 2500
+        y = np.arange(data.shape[0]) * self.resolution - 2250
+
+        x_RGPS = np.arange(mask80.shape[0]) * RES_RGPS - 2300
+        y_RGPS = np.arange(mask80.shape[1]) * RES_RGPS - 1000
 
         x_RGPS_10 = (
-            np.arange(int(mask80.shape[0] * RES_RGPS / self.resolution) + 1)
+            np.arange(int(mask80.shape[0] * RES_RGPS / self.resolution))
             * self.resolution
             - 2300
         )
         y_RGPS_10 = (
-            np.arange(int(mask80.shape[1] * RES_RGPS / self.resolution) + 1)
+            np.arange(int(mask80.shape[1] * RES_RGPS / self.resolution))
             * self.resolution
             - 1000
         )
-        
-        xmin = np.min(x - np.min(x_RGPS_10))
-        xmax = np.min(np.abs(x - np.max(x_RGPS_10)))
 
-        print(xmin, xmax)
+        # +1 to match shape of x_RGPS_10
+        id_xmin = np.abs(np.min(x) - np.min(x_RGPS_10)) // self.resolution
+        id_xmax = np.abs(np.min(x) - np.max(x_RGPS_10)) // self.resolution + 1
 
-        ymin = np.min(np.abs(y - np.min(y_RGPS_10)))
-        ymax = np.min(np.abs(y - np.max(y_RGPS_10)))
+        id_ymin = np.abs(np.min(y) - np.min(y_RGPS_10)) // self.resolution
+        id_ymax = np.abs(np.min(y) - np.max(y_RGPS_10)) // self.resolution + 1
 
-        interp = sci.RectBivariateSpline(x_RGPS, y_RGPS, mask80)
-        mask_RGPS_10 = interp(x_RGPS_10, y_RGPS_10)
+        mask80 = np.where(np.isnan(mask80) == 1, 0, mask80)
+        interp = sci.RectBivariateSpline(y_RGPS, x_RGPS, mask80)
+        mask_RGPS_10 = np.round(interp(y_RGPS_10, x_RGPS_10))
+        mask_RGPS_10 = np.transpose(
+            np.where(mask_RGPS_10 == 0, np.NaN, mask_RGPS_10)
+        )
 
-        data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask, (1, 2, 0))
+        for i in range(id_xmin, id_xmax):
+            for j in range(id_ymin, id_ymax):
+                mask[i, j] = mask_RGPS_10[i - id_xmin, j - id_ymin]
+        mask = np.where(mask == 0, np.NaN, mask)
+
+        data80 = np.transpose(np.transpose(data, (2, 1, 0)) * mask, (2, 1, 0))
 
         return data80

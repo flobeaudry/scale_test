@@ -41,7 +41,7 @@ for k in range(len(filenames_DUDX)):
     with open(path.join(folder, filenames_DVDY[k]), "rb") as file:
         data_DVDY = np.fromfile(file, dtype=">f", count=-1)
 
-    # first lines are useless
+    # first lines are useless (data information)
     a_DUDX = data_DUDX[24:]
     a_DUDY = data_DUDY[24:]
     a_DVDX = data_DVDX[24:]

@@ -64,7 +64,7 @@ L10 = [10, 20, 40, 80, 160, 320, 640]
 L20 = [20, 40, 80, 160, 320, 640]
 L40 = [40, 80, 160, 320, 640]
 dt = "00-06-00"
-time_end = "1997-01-6-18-00"
+time_end = "1997-01-31-18-00"
 
 # ----------------------------------------------------------------------
 
@@ -110,22 +110,41 @@ time_end = "1997-01-6-18-00"
 # compute all mean deformations in boxes
 # ----------------------------------------------------------------------
 
-# calcul ta
-u_v = dataset10.multi_load(dt, time_end)
-u_v_D = dataset10D.multi_load(dt, time_end)
-u_v = np.where(u_v == 0, np.NaN, u_v)
-u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
-u_v_ta = dataset10._time_average(u_v, dt)
-u_v_ta_D = dataset10D._time_average(u_v_D, dt)
+# mask80
+mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
 
-# calcul du
-du = dataset10._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
-du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
+# # calcul ta
+# u_v = dataset10.multi_load(dt, time_end)
+# u_v_D = dataset10D.multi_load(dt, time_end)
+# u_v = np.where(u_v == 0, np.NaN, u_v)
+# u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
+# u_v_ta = dataset10._time_average(u_v, dt)
+# u_v_ta_D = dataset10D._time_average(u_v_D, dt)
+
+# # calcul du
+# du = dataset10._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
+# du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
+# # mask the data
+# du80 = du
+# du80_D = du_D
+# du80[..., 0] = dataset10.mask80_times(du[..., 0], mask80)
+# du80[..., 1] = dataset10.mask80_times(du[..., 1], mask80)
+# du80[..., 2] = dataset10.mask80_times(du[..., 2], mask80)
+# du80[..., 3] = dataset10.mask80_times(du[..., 3], mask80)
+# du80_D[..., 0] = dataset10.mask80_times(du[..., 0], mask80)
+# du80_D[..., 1] = dataset10.mask80_times(du[..., 1], mask80)
+# du80_D[..., 2] = dataset10.mask80_times(du[..., 2], mask80)
+# du80_D[..., 3] = dataset10.mask80_times(du[..., 3], mask80)
+
+# dataset10.arctic_plot(du80[..., 0])
+
+# plt.pcolormesh(dataset10.mask80_times(du[..., 0], mask80)[..., 0])
+# plt.show()
 
 # # calcul des deformations moyennes
-# deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du, L10)
+# deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du80, L10)
 
-# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du_D, L10)
+# deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du80_D, L10)
 
 # data_box20, data_box20_visc = dataset20.spatial_mean_box(
 #     dataset20.multi_load(dt, time_end), L20, dt, time_end, from_velocity=1
@@ -141,46 +160,36 @@ du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
 #     dataset40.multi_load(dt, time_end), L40, dt
 # )
 
-# mask80
-mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=29)
-dataset10.mask80_times(du[..., 0], mask80)
 # RGPS data
 # load deformations
 deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
 # load derivatives and mask it
-dudx = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DUDX.npy"), mask80
-)
-dudy = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DUDY.npy"), mask80
-)
-dvdx = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DVDX.npy"), mask80
-)
-dvdy = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DVDY.npy"), mask80
-)
+dudx = np.load("RGPS_derivatives/DUDX.npy")
+dudy = np.load("RGPS_derivatives/DUDY.npy")
+dvdx = np.load("RGPS_derivatives/DVDX.npy")
+dvdy = np.load("RGPS_derivatives/DVDY.npy")
 
 # stack them
 du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
-# plot initial values everything
+# # plot initial values everything
 dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
 # dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(shear[..., 0], "shear", "_02_")
-# mask it using mask80
-shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
-div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
 
-# split the divergence in -/+
-ndiv80 = np.where(div80 < 0, div80, np.NaN)
-pdiv80 = np.where(div80 > 0, div80, np.NaN)
+# # mask it using mask80
+# shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
+# div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
 
-# remove nans
-shear80_cut = shear80[~np.isnan(shear80)]
-ndiv80_cut = ndiv80[~np.isnan(ndiv80)]
-pdiv80_cut = pdiv80[~np.isnan(pdiv80)]
+# # split the divergence in -/+
+# ndiv80 = np.where(div80 < 0, div80, np.NaN)
+# pdiv80 = np.where(div80 > 0, div80, np.NaN)
+
+# # remove nans
+# shear80_cut = shear80[~np.isnan(shear80)]
+# ndiv80_cut = ndiv80[~np.isnan(ndiv80)]
+# pdiv80_cut = pdiv80[~np.isnan(pdiv80)]
 
 # # my data
 # # load everything
@@ -219,8 +228,8 @@ pdiv80_cut = pdiv80[~np.isnan(pdiv80)]
 # pdiv10D_cut = pdiv10D[~np.isnan(pdiv10D)]
 # print(shear10D_cut.shape, shear80_cut.shape)
 
-# make the pdf plots for each of them
-dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
+# # make the pdf plots for each of them
+# dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
 # dataset10.pdf_plot_vect(shear10_cut, -ndiv10_cut, pdiv10_cut)
 # dataset10D.pdf_plot_vect(shear10D_cut, -ndiv10D_cut, pdiv10D_cut)
 
@@ -241,52 +250,52 @@ dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
     scale_RGPS_du,
 ) = dataset_RGPS.spatial_mean_du(du_RGPS, L_RGPS)
 
-# test = np.array(
-#     [
-#         [1, 0.5, 1, 0.5, 1, 0.5],
-#         [0.5, 1, 0.5, 1, 0.5, 1],
-#         [1, 0.5, 1, 0.5, 1, 0.5],
-#         [0.5, 1, 0.5, 1, 0.5, 1],
-#         [1, 0.5, 1, 0.5, 1, 0.5],
-#         [0.5, 1, 0.5, 1, 0.5, 1],
-#     ]
-# )
+test = np.array(
+    [
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [0.5, 1, 0.5, 1, 0.5, 1],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [0.5, 1, 0.5, 1, 0.5, 1],
+        [1, 0.5, 1, 0.5, 1, 0.5],
+        [0.5, 1, 0.5, 1, 0.5, 1],
+    ]
+)
 
-# testa = np.array(
-#     [
-#         [1, 1, 1, 1, 1, 1],
-#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-#         [1, 1, 1, 1, 1, 1],
-#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-#         [1, 1, 1, 1, 1, 1],
-#         [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-#     ]
-# )
+testa = np.array(
+    [
+        [1, 1, 1, 1, 1, 1],
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+        [1, 1, 1, 1, 1, 1],
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+        [1, 1, 1, 1, 1, 1],
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    ]
+)
 
-# testa = np.array(
-#     [
-#         10 * np.ones((10)),
-#         1 * np.ones((10)),
-#         5 * np.ones((10)),
-#         1 * np.ones((10)),
-#         10 * np.ones((10)),
-#         1 * np.ones((10)),
-#         5 * np.ones((10)),
-#         1 * np.ones((10)),
-#         10 * np.ones((10)),
-#         1 * np.ones((10)),
-#     ]
-# )
+testa = np.array(
+    [
+        10 * np.ones((10)),
+        1 * np.ones((10)),
+        5 * np.ones((10)),
+        1 * np.ones((10)),
+        10 * np.ones((10)),
+        1 * np.ones((10)),
+        5 * np.ones((10)),
+        1 * np.ones((10)),
+        10 * np.ones((10)),
+        1 * np.ones((10)),
+    ]
+)
 
-# test3 = np.array([test, test, test, test, test, test, test, test])
-# test3 = np.flip(np.transpose(test3, (1, 2, 0)), axis=0)
-# __, test2, __, __, test4, __ = dataset_RGPS.spatial_mean_RGPS(
-#     test3, test3, [12.5, 25, 50]
-# )
-# test5, test6 = dataset_RGPS.scale_plot_vect(
-#     test2, test4, [12.5, 25, 50], save=0, fig_name_supp="_test",
-# )
-# print(test5, test6)
+test3 = np.array([test, test, test, test, test, test, test, test])
+test3 = np.flip(np.transpose(test3, (1, 2, 0)), axis=0)
+__, test2, __, __, test4, __ = dataset_RGPS.spatial_mean_RGPS(
+    test3, test3, [12.5, 25, 50]
+)
+test5, test6 = dataset_RGPS.scale_plot_vect(
+    test2, test4, [12.5, 25, 50], save=0, fig_name_supp="_test",
+)
+print(test5, test6)
 
 # ----------------------------------------------------------------------
 # save data in file
