@@ -27,6 +27,8 @@ shear_bool = ~np.isnan(shear_JFM)
 shear_sum = np.nansum(shear_bool, axis=-1) / shear_JFM.shape[-1]
 mask80 = np.where(shear_sum >= 0.8, 1, np.NaN)
 
+np.save("RGPS_mask/mask80JFM.npy", mask80)
+
 dudx = dataset_RGPS.mask80_times_RGPS(
     np.load("RGPS_derivatives/DUDX.npy"), mask80
 )

@@ -1016,10 +1016,10 @@ class Data:
             np.ndarray: array of size (2, ny, nx, nt) of all the derivatives. 0 is d/dx (y axis in the code), 1 is d/dy (x axis in the code). I just did not choose the right name in order to match the model.
         """
         # computes mean gradients
-        dudx = np.gradient(u, self.resolution * 1000 * scale)[1] * 86400
-        dudy = np.gradient(u, self.resolution * 1000 * scale)[0] * 86400
-        dvdx = np.gradient(v, self.resolution * 1000 * scale)[1] * 86400
-        dvdy = np.gradient(v, self.resolution * 1000 * scale)[0] * 86400
+        dudx = np.gradient(u, self.resolution * 1000 * scale, axis=1) * 86400
+        dudy = np.gradient(u, self.resolution * 1000 * scale, axis=0) * 86400
+        dvdx = np.gradient(v, self.resolution * 1000 * scale, axis=1) * 86400
+        dvdy = np.gradient(v, self.resolution * 1000 * scale, axis=0) * 86400
 
         return np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
@@ -1264,8 +1264,8 @@ class Data:
 
         mask = np.zeros((data.shape[1], data.shape[0]))
 
-        x = np.arange(data.shape[1]) * self.resolution - 2500
-        y = np.arange(data.shape[0]) * self.resolution - 2250
+        x_SIM = np.arange(data.shape[1]) * self.resolution - 2500
+        y_SIM = np.arange(data.shape[0]) * self.resolution - 2250
 
         x_RGPS = np.arange(mask80.shape[0]) * RES_RGPS - 2300
         y_RGPS = np.arange(mask80.shape[1]) * RES_RGPS - 1000
@@ -1281,12 +1281,38 @@ class Data:
             - 1000
         )
 
-        # +1 to match shape of x_RGPS_10
-        id_xmin = np.abs(np.min(x) - np.min(x_RGPS_10)) // self.resolution
-        id_xmax = np.abs(np.min(x) - np.max(x_RGPS_10)) // self.resolution + 1
+        # polar coordinates on the plane (RGPSgrid -> latlon)
+        r_RGPS = np.sqrt((x_RGPS) ** 2 + (y_RGPS) ** 2)
+        lon_RGPS = np.degrees(np.arctan2(y_RGPS, x_RGPS)) + BETA_RGPS
+        # small radius corresponding to plane at phi = 70
+        rhat = R_EARTH * np.cos(np.pi / 2 - np.radians(PLANE_RGPS))
+        lat_RGPS = np.degrees(np.pi / 2 - np.arctan(r_RGPS / rhat))
 
-        id_ymin = np.abs(np.min(y) - np.min(y_RGPS_10)) // self.resolution
-        id_ymax = np.abs(np.min(y) - np.max(y_RGPS_10)) // self.resolution + 1
+        # polar coordinates on the plane (RGPSgrid10 -> latlon)
+        r_RGPS_10 = np.sqrt((x_RGPS_10) ** 2 + (y_RGPS_10) ** 2)
+        lon_RGPS_10 = np.degrees(np.arctan2(y_RGPS_10, x_RGPS_10)) + BETA_RGPS
+        # small radius corresponding to plane at phi = 70
+        lat_RGPS_10 = np.degrees(np.pi / 2 - np.arctan(r_RGPS_10 / rhat))
+
+        # polar coordinates on the plane (SIMgrid -> latlon)
+        r_SIM = np.sqrt((x_SIM) ** 2 + (y_SIM) ** 2)
+        lon_SIM = np.degrees(np.arctan2(y_SIM, x_SIM)) + BETA
+        # angle of the cone
+        tan_theta = r_SIM / (2 * R_EARTH)
+        # short radius on sphere
+        rs = 2 * R_EARTH * tan_theta / (1 + tan_theta ** 2)
+        lat_SIM = np.degrees(np.arccos(rs / R_EARTH))
+
+        # +1 to match shape of x_RGPS_10
+        id_xmin = np.abs(np.min(x_SIM) - np.min(x_RGPS_10)) // self.resolution
+        id_xmax = (
+            np.abs(np.min(x_SIM) - np.max(x_RGPS_10)) // self.resolution + 1
+        )
+
+        id_ymin = np.abs(np.min(y_SIM) - np.min(y_RGPS_10)) // self.resolution
+        id_ymax = (
+            np.abs(np.min(y_SIM) - np.max(y_RGPS_10)) // self.resolution + 1
+        )
 
         mask80 = np.where(np.isnan(mask80) == 1, 0, mask80)
         interp = sci.RectBivariateSpline(y_RGPS, x_RGPS, mask80)
@@ -1298,7 +1324,7 @@ class Data:
         for i in range(id_xmin, id_xmax):
             for j in range(id_ymin, id_ymax):
                 mask[i, j] = mask_RGPS_10[i - id_xmin, j - id_ymin]
-        mask = np.where(mask == 0, np.NaN, mask)
+        # mask = np.where(mask == 0, np.NaN, mask)
 
         data80 = np.transpose(np.transpose(data, (2, 1, 0)) * mask, (2, 1, 0))
 

@@ -64,7 +64,7 @@ L10 = [10, 20, 40, 80, 160, 320, 640]
 L20 = [20, 40, 80, 160, 320, 640]
 L40 = [40, 80, 160, 320, 640]
 dt = "00-06-00"
-time_end = "1997-01-31-18-00"
+time_end = "1997-01-03-18-00"
 
 # ----------------------------------------------------------------------
 
@@ -111,35 +111,34 @@ time_end = "1997-01-31-18-00"
 # ----------------------------------------------------------------------
 
 # mask80
-mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
+# mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
+mask80 = np.load("RGPS_mask/mask80JFM.npy")
 
-# # calcul ta
-# u_v = dataset10.multi_load(dt, time_end)
-# u_v_D = dataset10D.multi_load(dt, time_end)
-# u_v = np.where(u_v == 0, np.NaN, u_v)
-# u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
-# u_v_ta = dataset10._time_average(u_v, dt)
-# u_v_ta_D = dataset10D._time_average(u_v_D, dt)
+# calcul ta
+u_v = dataset10.multi_load(dt, time_end)
+u_v_D = dataset10D.multi_load(dt, time_end)
+u_v = np.where(u_v == 0, np.NaN, u_v)
+u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
+u_v_ta = dataset10._time_average(u_v, dt)
+u_v_ta_D = dataset10D._time_average(u_v_D, dt)
 
-# # calcul du
-# du = dataset10._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
-# du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
-# # mask the data
-# du80 = du
-# du80_D = du_D
-# du80[..., 0] = dataset10.mask80_times(du[..., 0], mask80)
-# du80[..., 1] = dataset10.mask80_times(du[..., 1], mask80)
-# du80[..., 2] = dataset10.mask80_times(du[..., 2], mask80)
-# du80[..., 3] = dataset10.mask80_times(du[..., 3], mask80)
-# du80_D[..., 0] = dataset10D.mask80_times(du[..., 0], mask80)
-# du80_D[..., 1] = dataset10D.mask80_times(du[..., 1], mask80)
-# du80_D[..., 2] = dataset10D.mask80_times(du[..., 2], mask80)
-# du80_D[..., 3] = dataset10D.mask80_times(du[..., 3], mask80)
+# calcul du
+du = dataset10._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
+du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
+# mask the data
+du80 = du
+du80_D = du_D
+du80[..., 0] = dataset10.mask80_times(du[..., 0], mask80)
+du80[..., 1] = dataset10.mask80_times(du[..., 1], mask80)
+du80[..., 2] = dataset10.mask80_times(du[..., 2], mask80)
+du80[..., 3] = dataset10.mask80_times(du[..., 3], mask80)
+du80_D[..., 0] = dataset10D.mask80_times(du[..., 0], mask80)
+du80_D[..., 1] = dataset10D.mask80_times(du[..., 1], mask80)
+du80_D[..., 2] = dataset10D.mask80_times(du[..., 2], mask80)
+du80_D[..., 3] = dataset10D.mask80_times(du[..., 3], mask80)
 
-# dataset10.arctic_plot(du80[..., 0])
-
-# plt.pcolormesh(dataset10.mask80_times(du[..., 0], mask80)[..., 0])
-# plt.show()
+plt.pcolormesh(du80_D[..., 0, 3])
+plt.show()
 
 # # calcul des deformations moyennes
 # deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du80, L10)
@@ -164,10 +163,18 @@ mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
 # load deformations
 deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
 # load derivatives and mask it
-dudx = np.load("RGPS_derivatives/DUDX.npy")
-dudy = np.load("RGPS_derivatives/DUDY.npy")
-dvdx = np.load("RGPS_derivatives/DVDX.npy")
-dvdy = np.load("RGPS_derivatives/DVDY.npy")
+dudx = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DUDX.npy"), mask80
+)
+dudy = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DUDY.npy"), mask80
+)
+dvdx = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DVDX.npy"), mask80
+)
+dvdy = dataset_RGPS.mask80_times_RGPS(
+    np.load("RGPS_derivatives/DVDY.npy"), mask80
+)
 
 # stack them
 du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
