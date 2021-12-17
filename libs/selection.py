@@ -1262,70 +1262,117 @@ class Data:
         # we don't really care about the exact values of the vectors, but more about their size. For example, a proper way of doing this we be to either have a grid that is one more in each directions (they correspond to corners of boxes) or to have a grid with values that are moved by half the box size (in order to be in the center). But since we don't care about the values we will do a mix.
         import scipy.interpolate as sci
 
-        mask = np.zeros((data.shape[1], data.shape[0]))
+        mask = np.zeros((data.shape[0], data.shape[1]))
 
-        x_SIM = np.arange(data.shape[1]) * self.resolution - 2500
-        y_SIM = np.arange(data.shape[0]) * self.resolution - 2250
+        x0_SIM = np.arange(data.shape[1]) * self.resolution - 2500
+        y0_SIM = np.arange(data.shape[0]) * self.resolution - 2250
 
-        x_RGPS = np.arange(mask80.shape[0]) * RES_RGPS - 2300
-        y_RGPS = np.arange(mask80.shape[1]) * RES_RGPS - 1000
+        x0_RGPS_SIM = np.arange(mask80.shape[0]) * RES_RGPS - 2300
+        y0_RGPS_SIM = np.arange(mask80.shape[1]) * RES_RGPS - 1000
 
-        x_RGPS_10 = (
+        x0_RGPS_10_SIM = (
             np.arange(int(mask80.shape[0] * RES_RGPS / self.resolution))
             * self.resolution
             - 2300
         )
-        y_RGPS_10 = (
+        y0_RGPS_10_SIM = (
             np.arange(int(mask80.shape[1] * RES_RGPS / self.resolution))
             * self.resolution
             - 1000
         )
 
-        # polar coordinates on the plane (RGPSgrid -> latlon)
-        r_RGPS = np.sqrt((x_RGPS) ** 2 + (y_RGPS) ** 2)
-        lon_RGPS = np.degrees(np.arctan2(y_RGPS, x_RGPS)) + BETA_RGPS
-        # small radius corresponding to plane at phi = 70
-        rhat = R_EARTH * np.cos(np.pi / 2 - np.radians(PLANE_RGPS))
-        lat_RGPS = np.degrees(np.pi / 2 - np.arctan(r_RGPS / rhat))
+        # # convert to matrix
+        # x_SIM = np.broadcast_to(x0_SIM, (len(y0_SIM), len(x0_SIM)))
+        # y_SIM = np.broadcast_to(y0_SIM, (len(x0_SIM), len(y0_SIM))).T
 
-        # polar coordinates on the plane (RGPSgrid10 -> latlon)
-        r_RGPS_10 = np.sqrt((x_RGPS_10) ** 2 + (y_RGPS_10) ** 2)
-        lon_RGPS_10 = np.degrees(np.arctan2(y_RGPS_10, x_RGPS_10)) + BETA_RGPS
-        # small radius corresponding to plane at phi = 70
-        lat_RGPS_10 = np.degrees(np.pi / 2 - np.arctan(r_RGPS_10 / rhat))
+        # # convert to matrix
+        # x_RGPS_SIM = np.broadcast_to(
+        #     x0_RGPS_SIM, (len(y0_RGPS_SIM), len(x0_RGPS_SIM))
+        # )
+        # y_RGPS_SIM = np.broadcast_to(
+        #     y0_RGPS_SIM, (len(x0_RGPS_SIM), len(y0_RGPS_SIM))
+        # ).T
 
-        # polar coordinates on the plane (SIMgrid -> latlon)
-        r_SIM = np.sqrt((x_SIM) ** 2 + (y_SIM) ** 2)
-        lon_SIM = np.degrees(np.arctan2(y_SIM, x_SIM)) + BETA
-        # angle of the cone
-        tan_theta = r_SIM / (2 * R_EARTH)
-        # short radius on sphere
-        rs = 2 * R_EARTH * tan_theta / (1 + tan_theta ** 2)
-        lat_SIM = np.degrees(np.arccos(rs / R_EARTH))
+        # # convert to matrix
+        # x_RGPS_10_SIM = np.broadcast_to(
+        #     x0_RGPS_10_SIM, (len(y0_RGPS_10_SIM), len(x0_RGPS_10_SIM))
+        # )
+        # y_RGPS_10_SIM = np.broadcast_to(
+        #     y0_RGPS_10_SIM, (len(x0_RGPS_10_SIM), len(y0_RGPS_10_SIM))
+        # ).T
+
+        # # polar coordinates on the plane (RGPSgrid -> latlon)
+        # r_RGPS = np.sqrt((x_RGPS) ** 2 + (y_RGPS) ** 2)
+        # lon_RGPS = np.degrees(np.arctan2(y_RGPS, x_RGPS)) + BETA_RGPS
+        # # small radius corresponding to plane at phi = 70
+        # rhat = R_EARTH * np.cos(np.pi / 2 - np.radians(PLANE_RGPS))
+        # lat_RGPS = np.degrees(np.pi / 2 - np.arctan(r_RGPS / rhat))
+
+        # # polar coordinates on the plane (RGPSgrid10 -> latlon10)
+        # r_RGPS_10 = np.sqrt((x_RGPS_10) ** 2 + (y_RGPS_10) ** 2)
+        # lon_RGPS_10 = np.degrees(np.arctan2(y_RGPS_10, x_RGPS_10)) + BETA_RGPS
+        # # small radius corresponding to plane at phi = 70
+        # lat_RGPS_10 = np.degrees(np.pi / 2 - np.arctan(r_RGPS_10 / rhat))
+
+        # # (latlon - SIMgrid)
+        # lon_SIM = lon_RGPS - BETA_RGPS + BETA
+        # theta = np.radians(lon_SIM)
+        # rho = (
+        #     2
+        #     * R_EARTH
+        #     * (1 - np.abs(np.sin(np.radians(lat_RGPS))))
+        #     / np.cos(np.radians(lat_RGPS))
+        # )
+        # x_RGPS_SIM = np.sort(rho * np.cos(theta))
+        # y_RGPS_SIM = np.sort(rho * np.sin(theta))
+
+        # # (latlon10 - SIMgrid)
+        # lon_SIM_10 = lon_RGPS_10 - BETA_RGPS + BETA
+        # theta10 = np.radians(lon_SIM_10)
+        # rho10 = (
+        #     2
+        #     * R_EARTH
+        #     * (1 - np.abs(np.sin(np.radians(lat_RGPS_10))))
+        #     / np.cos(np.radians(lat_RGPS_10))
+        # )
+        # x_RGPS_10_SIM = np.sort(rho10 * np.cos(theta10))
+        # y_RGPS_10_SIM = np.sort(rho10 * np.sin(theta10))
 
         # +1 to match shape of x_RGPS_10
-        id_xmin = np.abs(np.min(x_SIM) - np.min(x_RGPS_10)) // self.resolution
-        id_xmax = (
-            np.abs(np.min(x_SIM) - np.max(x_RGPS_10)) // self.resolution + 1
+        id_xmin = np.int(
+            (np.abs(np.min(x_SIM) - np.min(x_RGPS_10_SIM)) // self.resolution)
+        )
+        id_xmax = np.int(
+            (
+                np.abs(np.min(x_SIM) - np.max(x_RGPS_10_SIM))
+                // self.resolution
+                + 1
+            )
         )
 
-        id_ymin = np.abs(np.min(y_SIM) - np.min(y_RGPS_10)) // self.resolution
-        id_ymax = (
-            np.abs(np.min(y_SIM) - np.max(y_RGPS_10)) // self.resolution + 1
+        id_ymin = np.int(
+            (np.abs(np.min(y_SIM) - np.min(y_RGPS_10_SIM)) // self.resolution)
         )
-
+        id_ymax = np.int(
+            (
+                np.abs(np.min(y_SIM) - np.max(y_RGPS_10_SIM))
+                // self.resolution
+                + 1
+            )
+        )
+        print(id_xmax, id_xmin, id_ymax, id_ymin)
         mask80 = np.where(np.isnan(mask80) == 1, 0, mask80)
-        interp = sci.RectBivariateSpline(y_RGPS, x_RGPS, mask80)
-        mask_RGPS_10 = np.round(interp(y_RGPS_10, x_RGPS_10))
+        interp = sci.RectBivariateSpline(y_RGPS_SIM, x_RGPS_SIM, mask80)
+        mask_RGPS_10 = np.round(interp(y_RGPS_10_SIM, x_RGPS_10_SIM))
         mask_RGPS_10 = np.transpose(
             np.where(mask_RGPS_10 == 0, np.NaN, mask_RGPS_10)
         )
 
         for i in range(id_xmin, id_xmax):
             for j in range(id_ymin, id_ymax):
-                mask[i, j] = mask_RGPS_10[i - id_xmin, j - id_ymin]
+                mask[j, i] = mask_RGPS_10[i - id_xmin, j - id_ymin]
         # mask = np.where(mask == 0, np.NaN, mask)
 
-        data80 = np.transpose(np.transpose(data, (2, 1, 0)) * mask, (2, 1, 0))
+        data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask, (1, 2, 0))
 
-        return data80
+        return data80, np.transpose(mask_RGPS_10)

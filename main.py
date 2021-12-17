@@ -1,6 +1,7 @@
 import libs.visualization as vis
 import numpy as np
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
 # ----------------------------------------------------------------------
 # User input for the location of the files
@@ -128,15 +129,28 @@ du_D = dataset10D._derivative(u_v_ta_D[:, :, 0, :], u_v_ta_D[:, :, 1, :])
 # mask the data
 du80 = du
 du80_D = du_D
-du80[..., 0] = dataset10.mask80_times(du[..., 0], mask80)
-du80[..., 1] = dataset10.mask80_times(du[..., 1], mask80)
-du80[..., 2] = dataset10.mask80_times(du[..., 2], mask80)
-du80[..., 3] = dataset10.mask80_times(du[..., 3], mask80)
-du80_D[..., 0] = dataset10D.mask80_times(du[..., 0], mask80)
-du80_D[..., 1] = dataset10D.mask80_times(du[..., 1], mask80)
-du80_D[..., 2] = dataset10D.mask80_times(du[..., 2], mask80)
-du80_D[..., 3] = dataset10D.mask80_times(du[..., 3], mask80)
+du80[..., 0], mask10 = dataset10.mask80_times(du[..., 0], mask80)
+du80[..., 1] = dataset10.mask80_times(du[..., 1], mask80)[0]
+du80[..., 2] = dataset10.mask80_times(du[..., 2], mask80)[0]
+du80[..., 3] = dataset10.mask80_times(du[..., 3], mask80)[0]
+du80_D[..., 0] = dataset10D.mask80_times(du[..., 0], mask80)[0]
+du80_D[..., 1] = dataset10D.mask80_times(du[..., 1], mask80)[0]
+du80_D[..., 2] = dataset10D.mask80_times(du[..., 2], mask80)[0]
+du80_D[..., 3] = dataset10D.mask80_times(du[..., 3], mask80)[0]
 
+x0 = np.arange(mask10.shape[1] + 1) * 10 - 2300
+y0 = np.arange(mask10.shape[0] + 1) * 10 - 1000
+lon, lat = dataset10._coordinates(x0, y0)
+fig = plt.figure(dpi=300)
+ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
+fig.subplots_adjust(bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02)
+# Limit the map to 65 degrees latitude and above.
+ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+ax.pcolormesh(lon, lat, mask10, transform=ccrs.PlateCarree())
+ax.gridlines(zorder=2)
+# ax.add_feature(cfeature.LAND, zorder=3)
+ax.coastlines(resolution="50m", zorder=4)
+plt.show()
 plt.pcolormesh(du80_D[..., 0, 3])
 plt.show()
 
@@ -180,7 +194,7 @@ dvdy = dataset_RGPS.mask80_times_RGPS(
 du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
 # # plot initial values everything
-dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
+# dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
 # dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
 # dataset_RGPS.arctic_plot_RGPS(shear[..., 0], "shear", "_02_")

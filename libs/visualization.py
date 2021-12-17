@@ -408,8 +408,8 @@ class Arctic(sts.Scale):
             cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
 
         if mask:
-            x1 = np.arange(data.shape[0]) * 12.5 - 2300
-            y1 = np.arange(data.shape[0]) * 12.5 - 1000
+            x1 = np.arange(data.shape[0]) * RES_RGPS - 2300
+            y1 = np.arange(data.shape[0]) * RES_RGPS - 1000
             lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
             indices = np.where(data == 1)
             self._encircle(lon1[indices], lat1[indices], ax=ax)
@@ -686,8 +686,8 @@ class Arctic(sts.Scale):
             indices1 = ~np.isnan(scaling[k])
             indices2 = ~np.isnan(deformation[k])
             indices = indices1 * indices2
-            mean_def[k] = np.mean(deformation[k][indices])
-            mean_scale[k] = np.mean(scaling[k][indices])
+            mean_def[k] = np.nanmean(deformation[k])
+            mean_scale[k] = np.nanmean(scaling[k])
 
             # colormap
             base = cm.get_cmap("cmo.haline", 256)
