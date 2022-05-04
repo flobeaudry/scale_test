@@ -25,9 +25,17 @@ shear_JFM = np.transpose(shear_JFM[:248, :, :], (1, 0, 2))
 
 shear_bool = ~np.isnan(shear_JFM)
 shear_sum = np.nansum(shear_bool, axis=-1) / shear_JFM.shape[-1]
-mask80 = np.where(shear_sum >= 0.8, 1, np.NaN)
+mask = np.where(shear_sum < 0, -1, shear_sum)
+mask80 = np.where(mask >= 0.8, 1, np.NaN)
 
 np.save("RGPS_mask/mask80JFM.npy", mask80)
+
+fig = plt.figure(dpi=300, figsize=(4, 4))
+ax = plt.subplot(1, 1, 1)
+cf = ax.pcolormesh(shear_sum)
+ax.contour(shear_sum, levels=np.array([0.8]))
+fig.colorbar(cf)
+plt.show()
 
 dudx = dataset_RGPS.mask80_times_RGPS(
     np.load("RGPS_derivatives/DUDX.npy"), mask80
