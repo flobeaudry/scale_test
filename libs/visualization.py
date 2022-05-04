@@ -167,7 +167,7 @@ class Arctic(sts.Scale):
                 lat,
                 formated_data,
                 cmap=cmocean.cm.dense,
-                norm=colors.Normalize(vmin=0, vmax=10),
+                norm=colors.Normalize(vmin=0, vmax=5),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
@@ -211,7 +211,7 @@ class Arctic(sts.Scale):
                 formated_data,
                 # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.curl,
-                norm=colors.Normalize(vmin=-0.4, vmax=0.4),
+                norm=colors.Normalize(vmin=-0.3, vmax=0.3),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
