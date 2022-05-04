@@ -33,28 +33,6 @@ dataset_RGPS = vis.Arctic(
     fig_shape="round", save=1, resolution=12.5, fig_name_supp="_02_RGPS",
 )
 
-# dataset20 = vis.Arctic(
-#     directory="output20",
-#     time="1997-01-01-00-00",
-#     expno="01",
-#     datatype="u",
-#     fig_shape="round",
-#     save=1,
-#     resolution=20,
-#     fig_name_supp="_1997",
-# )
-
-# dataset40 = vis.Arctic(
-#     directory="output40_1997",
-#     time="1997-01-01-00-00",
-#     expno="01",
-#     datatype="u",
-#     fig_shape="round",
-#     save=1,
-#     resolution=40,
-#     fig_name_supp="_1997",
-# )
-
 # ----------------------------------------------------------------------
 
 # dataset10.arctic_plot(dataset10.load())
@@ -62,50 +40,11 @@ dataset_RGPS = vis.Arctic(
 
 L_RGPS = [12.5, 25, 50, 100, 200, 400]
 L10 = [10, 20, 40, 80, 160, 320, 640]
-L20 = [20, 40, 80, 160, 320, 640]
-L40 = [40, 80, 160, 320, 640]
 dt = "00-06-00"
 time_end = "1997-01-03-18-00"
 
 # ----------------------------------------------------------------------
 
-# h = dataset10.load(datatype="h")
-# A = dataset10.load(datatype="A")
-# zeta_load = dataset10.load(datatype="viscosity")
-# zeta_load = zeta_load[1:-1, 1:-1]
-
-# uv = dataset10.load(datatype="u")
-# du, dv = dataset10._derivative(uv[..., 0], uv[..., 1])
-
-# delta = dataset10._delta(du, dv)
-# p = dataset10._pressure(h, A)
-
-# zeta, zeta_max = dataset10._viscosity(p, delta)
-
-# import matplotlib.colors
-
-# fig = plt.figure(dpi=300)
-# ax = plt.gca()
-# fig.subplots_adjust(bottom=0.15, top=0.9, left=0.15, right=0.95, wspace=0.02)
-# cf = ax.scatter(
-#     p.flatten() / (2 * zeta_max.flatten() * delta.flatten()),
-#     zeta_load.flatten() / zeta_max.flatten(),
-#     c=p.flatten(),
-#     s=0.5,
-#     norm=matplotlib.colors.LogNorm(),
-# )
-# ax.set_yscale("log")
-# ax.set_xscale("log")
-# ax.set_xlabel(r"$\frac{P}{2\Delta\zeta}$")
-# ax.set_ylabel(r"$1-\frac{\zeta}{\zeta_{max}}$", rotation=0)
-# ax.set_ylim(0.2, 1.1)
-# cbar = fig.colorbar(cf)
-# cbar.set_label(
-#     "$P$ [N$\cdot$m$^{-1}$]",
-#     rotation=-90,
-#     va="bottom",
-# )
-# fig.savefig("images/zeta_vs_delta10.png")
 
 # ----------------------------------------------------------------------
 # compute all mean deformations in boxes
@@ -115,7 +54,7 @@ time_end = "1997-01-03-18-00"
 # mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
 mask80 = np.load("RGPS_mask/mask80JFM.npy")
 
-# calcul ta
+# calcul time averaged
 u_v = dataset10.multi_load(dt, time_end)
 u_v_D = dataset10D.multi_load(dt, time_end)
 u_v = np.where(u_v == 0, np.NaN, u_v)
@@ -138,40 +77,11 @@ du80_D[..., 1] = dataset10D.mask80_times(du[..., 1], mask80)[0]
 du80_D[..., 2] = dataset10D.mask80_times(du[..., 2], mask80)[0]
 du80_D[..., 3] = dataset10D.mask80_times(du[..., 3], mask80)[0]
 
-x0 = np.arange(mask10.shape[1] + 1) * 10 - 2300
-y0 = np.arange(mask10.shape[0] + 1) * 10 - 1000
-lon, lat = dataset10._coordinates(x0, y0)
-fig = plt.figure(dpi=300)
-ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
-fig.subplots_adjust(bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02)
-# Limit the map to 65 degrees latitude and above.
-ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
-ax.pcolormesh(lon, lat, mask10, transform=ccrs.PlateCarree())
-ax.gridlines(zorder=2)
-# ax.add_feature(cfeature.LAND, zorder=3)
-ax.coastlines(resolution="50m", zorder=4)
-plt.show()
-plt.pcolormesh(du80_D[..., 0, 3])
-plt.show()
-
 # # calcul des deformations moyennes
 # deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du80, L10)
 
 # deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du80_D, L10)
 
-# data_box20, data_box20_visc = dataset20.spatial_mean_box(
-#     dataset20.multi_load(dt, time_end), L20, dt, time_end, from_velocity=1
-# )
-# def20, scale20 = dataset20.spatial_mean_vect(
-#     dataset20.multi_load(dt, time_end), L20, dt
-# )
-
-# data_box40, data_box40_visc = dataset40.spatial_mean_box(
-#     dataset40.multi_load(dt, time_end), L40, dt, time_end, from_velocity=1
-# )
-# def40, scale40 = dataset40.spatial_mean_vect(
-#     dataset40.multi_load(dt, time_end), L40, dt
-# )
 
 # RGPS data
 # load deformations
@@ -326,21 +236,11 @@ print(test5, test6)
 # np.save("processed_data/shear10D.npy", shear10D)
 # np.save("processed_data/div10D.npy", div10D)
 # np.save("processed_data/scale10D.npy", scale10D)
+
 # np.save("processed_data/deps10.npy", deps10)
 # np.save("processed_data/shear10.npy", shear10)
 # np.save("processed_data/div10.npy", div10)
 # np.save("processed_data/scale10.npy", scale10)
-# np.save("data10_visc.npy", data_box10_visc)
-
-# np.save("data20.npy", data_box20)
-# np.save("data20_visc.npy", data_box20_visc)
-# np.save("processed_data/def20.npy", def20)
-# np.save("processed_data/scale20.npy", scale20)
-
-# np.save("data40.npy", data_box40)
-# np.save("data40_visc.npy", data_box40_visc)
-# np.save("processed_data/def40.npy", def40)
-# np.save("processed_data/scale40.npy", scale40)
 
 # np.save("processed_data/deps_RGPS.npy", deps_RGPS)
 # np.save("processed_data/shear_RGPS.npy", shear_RGPS)
@@ -362,17 +262,6 @@ deps10D = np.load("processed_data/deps10D.npy", allow_pickle=True)
 shear10D = np.load("processed_data/shear10D.npy", allow_pickle=True)
 div10D = np.load("processed_data/div10D.npy", allow_pickle=True)
 scale10D = np.load("processed_data/scale10D.npy", allow_pickle=True)
-# data_box10_visc = np.load("data10_visc.npy")
-
-# data_box20 = np.load("data20.npy")
-# data_box20_visc = np.load("data20_visc.npy")
-# def20 = np.load("processed_data/def20.npy", allow_pickle=True)
-# scale20 = np.load("processed_data/scale20.npy", allow_pickle=True)
-
-# data_box40 = np.load("data40.npy")
-# data_box40_visc = np.load("data40_visc.npy")
-# def40 = np.load("processed_data/def40.npy", allow_pickle=True)
-# scale40 = np.load("processed_data/scale40.npy", allow_pickle=True)
 
 # deps_RGPS = np.load("processed_data/deps_RGPS.npy", allow_pickle=True)
 # shear_RGPS = np.load("processed_data/shear_RGPS.npy", allow_pickle=True)
@@ -403,23 +292,6 @@ mean_depsD, mean_scaleD = dataset10D.scale_plot_vect(
 # dataset10.arctic_plot(dataset10.load())
 # dataset10D.arctic_plot(dataset10D.load())
 
-# ----------------------------------------------------------------------
-# plots at 20 km
-# ----------------------------------------------------------------------
-
-# dataset20.pdf_plot(data_box20)
-# dataset20.cdf_plot(data_box20)
-# dataset20.scale_plot(data_box20, L20, data_box20_visc)
-# dataset20.scale_plot_vect(def20, scale20, L20)
-
-# ----------------------------------------------------------------------
-# plots at 40 km
-# ----------------------------------------------------------------------
-
-# dataset40.pdf_plot(data_box40)
-# dataset40.cdf_plot(data_box40)
-# dataset40.scale_plot(data_box40, L40, data_box40_visc)
-# mean_def, mean_scale = dataset40.scale_plot_vect(def40, scale40, L40)
 
 # ----------------------------------------------------------------------
 # plots RGPS 12.5 km
