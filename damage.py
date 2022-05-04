@@ -25,6 +25,7 @@ plt.show()
 dam_flat = dam.flatten()
 n = plt.hist(dam_flat, bins="auto")
 l = n[0][-1]
+plt.savefig("images/damage.png")
 plt.show()
 # plt.plot((l ** n[0]) / factorial(n[0]) * np.exp(-l))
 # print((l ** n[0]) / factorial(n[0]) * np.exp(-l))
