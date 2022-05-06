@@ -883,9 +883,18 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond()
-        colors = np.array(["xkcd:dark blue grey", "xkcd:tomato", "xkcd:blush"])
+        colors = np.array(
+            [
+                "xkcd:dark blue grey",
+                "xkcd:tomato",
+                "xkcd:blush",
+                "xkcd:gross green",
+            ]
+        )
         shape = np.array(["^", "v"])
-        dam = np.array(["No damage: ", "Damage: ", "RGPS: "])
+        dam = np.array(
+            ["No damage: ", "Damage: ", "Advection + healing: ", "RGPS: "]
+        )
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
