@@ -966,7 +966,7 @@ class Scale(sel.Data):
 
     def spatial_mean_RGPS_du(self, du: np.ndarray, scales: list) -> np.ndarray:
         """
-        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster. DEPRECATED USE spatial_mean_du FOR ALL
 
         Args:
             du (np.ndarray): derivatives in x and y, shape is (ny, nx, nt, 4), already time averaged
@@ -1148,4 +1148,19 @@ class Scale(sel.Data):
         scaling = np.asarray(scaling_list, dtype=object)
 
         return (deps, shear, div, scaling)
+
+    def multifractal(self, q: int, v: int, H: int, C1: int) -> tuple:
+        """
+        This function will compute the multifractality of 
+
+        Args:
+            q (int): _description_
+
+        Returns:
+            tuple: _description_
+        """
+
+        beta = C1 / (v - 1) * q ** v + (1 - H - C1 / (v - 1)) * q
+
+        return
 

@@ -887,13 +887,18 @@ class Arctic(sts.Scale):
             [
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                "xkcd:blush",
+                # "xkcd:blush",
                 "xkcd:gross green",
             ]
         )
         shape = np.array(["^", "v"])
         dam = np.array(
-            ["No damage: ", "Damage: ", "Advection + healing: ", "RGPS: "]
+            [
+                "No damage: ",
+                "Damage: ",
+                # "Advection + healing: ",
+                "RGPS: ",
+            ]
         )
         # loop over
         for k in range(mean_def.shape[1]):
