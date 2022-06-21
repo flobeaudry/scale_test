@@ -14,11 +14,13 @@
 #   DONE    compute power law from data
 #   DONE    compute CDF with histogram
 #   DONE    compute alpha (exponent)
-#   -verify that every things works.
+#   DONE    verify that every things works.
+#   -compute multifractal parameters
 #
 #   CANCELED  compute lagrangian trajectories from eulerian ones
 # ----------------------------------------------------------------------
 
+from pickletools import optimize
 from matplotlib import pyplot as plt
 import numpy as np
 import libs.selection as sel
@@ -180,7 +182,7 @@ class Scale(sel.Data):
         choice: int = 0,
     ) -> np.ndarray:
         """
-        Function that computes the lenght and deformation rate means over all boxes and all scales for all period of 3 days.
+        Function that computes the lenght and deformation rate means over all boxes and all scales for all period of 3 days. DEPRECATED USE spatial_mean_du FOR ALL
 
         Args:
             formated_data (np.ndarray): array of size (ny, nx, nt) or (ny, nx, 2, nt) where each nt is a snapshot at a given time = time_ini + nt * dt
@@ -610,7 +612,7 @@ class Scale(sel.Data):
         self, u_v: np.ndarray, scales: list, dt: str = None,
     ) -> np.ndarray:
         """
-        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+        Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster. DEPRECATED USE spatial_mean_du FOR ALL
 
         Args:
             u_v (np.ndarray): Velocities in x and y, shape is (ny, nx, 2, nt)
@@ -1058,7 +1060,7 @@ class Scale(sel.Data):
 
     def spatial_mean_du(self, du: np.ndarray, scales: list) -> np.ndarray:
         """
-            Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster.
+            Same function as spatial_mean_box above, but this is the vectorized form of it. It is WAY faster. USE FOR ALL.
 
             Args:
                 du (np.ndarray): derivatives in x and y, shape is (ny, nx, nt, 4), already time averaged
@@ -1139,7 +1141,7 @@ class Scale(sel.Data):
             div_list.append(div_mean)
             scaling_list.append(scaling_array)
 
-            print("Done with scale {}.".format(scale_km_unit))
+            print("Done with spatial scale {}.".format(scale_km_unit))
 
         # creates an array of arrays but of different shapes
         deps = np.asarray(deps_list, dtype=object)
@@ -1149,18 +1151,84 @@ class Scale(sel.Data):
 
         return (deps, shear, div, scaling)
 
-    def multifractal(self, q: int, v: int, H: int, C1: int) -> tuple:
+    def structure_function(
+        self, q: np.ndarray, v: int, C1: int, H: int
+    ) -> np.ndarray:
         """
-        This function will compute the multifractality of 
+        This function will compute the multifractality of the data
 
         Args:
-            q (int): _description_
+            q (np.ndarray): moment q (x axis)
+            v (int): multifractality (0 < v < 2)
+            C1 (int): heterogeneity (0 < C1 < 2)
+            H (int): Hurst exponent (0 < H < 1) beta(1) = 1 - H -> H is determined by slope of q = 1.
 
         Returns:
-            tuple: _description_
+            np.ndarray: value of the slope beta(q).
         """
 
         beta = C1 / (v - 1) * q ** v + (1 - H - C1 / (v - 1)) * q
 
-        return
+        return beta
+
+    def temporal_mean_du(
+        self, du: np.ndarray, temp_scales: list, RGPS: bool = False
+    ) -> tuple:
+        """
+        Function that computes the mean deformations for each temporal scale. How it works: start by averaging du on proper time scale; compute spatial mean and stock value; do that for all slice of time; then compute mean of all slice of time; stock value and start angain with next time scale.
+
+        Args:
+            du (np.ndarray): Velocity derivatives. (ny,nx,nt,4)
+            temp_scales (list): Temporal scales under inspection
+
+        Returns:
+            tuple: This is a tuple of size 4 with deps, shear, div and temp scale as 1D array of size shape(temp_scales).
+        """
+        # initialize output
+        mean_deps = []
+        mean_div = []
+        mean_shear = []
+
+        temp_scales = np.asarray(temp_scales)
+
+        if RGPS == True:
+            # this works, but it doesn't because of the NaNs (mask) in the meantime keep it at 12.5 km for RGPS and don't use this until I find a solution.
+            du_interp = np.zeros((310, 310, du.shape[2], du.shape[3]))
+            for i in range(du.shape[2]):
+                for j in range(du.shape[3]):
+                    du_interp[:, :, i, j] = self.interp_RGPS(du[:, :, i, j])
+            du = du_interp
+
+        for i in temp_scales // 3:
+            # initialize output
+            deps_list = []
+            shear_list = []
+            div_list = []
+
+            for n in range(du.shape[2] - i + 1):
+                du_mean = np.nanmean(du[:, :, n : n + i, :], axis=2)
+                shear = self._deformation(du_mean, 1)
+                div = self._deformation(du_mean, 2)
+                deps = self._deformation(du_mean, 0)
+                shear_mean = np.nanmean(shear)
+                div_mean = np.nanmean(div)
+                deps_mean = np.nanmean(deps)
+
+                shear_list.append(shear_mean)
+                div_list.append(div_mean)
+                deps_list.append(deps_mean)
+
+            depsA = np.mean(np.asarray(deps_list))
+            shearA = np.mean(np.asarray(shear_list))
+            divA = np.mean(np.asarray(div_list))
+            mean_deps.append(depsA)
+            mean_div.append(divA)
+            mean_shear.append(shearA)
+            print("Done with temporal scale {}.".format(int(i * 3)))
+
+        deps = np.asarray(mean_deps)
+        shear = np.asarray(mean_shear)
+        div = np.asarray(mean_div)
+
+        return (deps, shear, div, temp_scales)
 

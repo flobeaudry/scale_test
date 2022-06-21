@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 
+import string
 import numpy as np
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
@@ -823,9 +824,9 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type)
             )
 
-        return mean_def, mean_scale
+        return mean_def, mean_scale, coefficients[0]
 
-    def _multiplot_precond(self):
+    def _multiplot_precond(self, type: bool):
         """
         Function that contains all the preconditions for the multiplot figure.
 
@@ -856,17 +857,30 @@ class Arctic(sts.Scale):
             which="minor", labelleft=False,
         )
         # axe labels
-        ax.set_xlabel("Spatial scale [km]")
-        ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.set_ylim(ymin=4e-3, ymax=2e-1)
-        ax.set_xlim(xmin=6, xmax=8e2)
-        # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
+        if type == 0:  # space
+            ax.set_xlabel("Spatial scale [km]")
+            ax.set_ylabel(
+                r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]"
+            )
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_ylim(ymin=4e-3, ymax=2e-1)
+            ax.set_xlim(xmin=6, xmax=8e2)
+            # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
+        if type == 1:  # time
+            ax.set_xlabel("Temporal scale [km]")
+            ax.set_ylabel(
+                r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]"
+            )
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_ylim(ymin=4e-3, ymax=2e-1)
+            ax.set_xlim(xmin=2, xmax=4e1)
+            # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
 
         return fig, ax
 
-    def multi_plot(
+    def multi_plot_spatial(
         self,
         mean_def: np.ndarray,
         mean_scale: np.ndarray,
@@ -882,7 +896,7 @@ class Arctic(sts.Scale):
             fig_name_supp (str): name to put in figure name
             save (bool, optional): Should you want to save it. Defaults to True.
         """
-        fig, ax = self._multiplot_precond()
+        fig, ax = self._multiplot_precond(0)
         colors = np.array(
             [
                 "xkcd:dark blue grey",
@@ -920,7 +934,9 @@ class Arctic(sts.Scale):
                 "^",
                 color=colors[k],
                 label=dam[k]
-                + "H = {:.2f}, corr = {:.2f}".format(coefficients[0], corr),
+                + r"$\beta$ = {:.2f}, corr = {:.2f}".format(
+                    np.abs(coefficients[0]), corr
+                ),
                 markersize=5,
             )
             ax.plot(t, np.exp(fit(np.log(t))), color=colors[k])
@@ -933,6 +949,78 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type),
                 transparent=0,
             )
+
+    def multi_plot_temporal(
+        self,
+        mean_def: np.ndarray,
+        mean_scale: np.ndarray,
+        fig_name_supp: str,
+        save: bool = True,
+    ):
+        """
+        Function that computes and plots the multiplot figure for the deformation vs temporal scale.
+
+        Args:
+            mean_def (np.ndarray): simple array of the mean values of the wanted deformation along dim 0 and each experiment is on axis 1.
+            mean_scale (np.ndarray): simple array of the values of the temporal scale.
+            fig_name_supp (str): name to put in figure name
+            save (bool, optional): Should you want to save it. Defaults to True.
+        """
+        fig, ax = self._multiplot_precond(1)
+        colors = np.array(
+            [
+                "xkcd:dark blue grey",
+                "xkcd:tomato",
+                # "xkcd:blush",
+                "xkcd:gross green",
+            ]
+        )
+        shape = np.array(["^", "v"])
+        dam = np.array(
+            [
+                "No damage: ",
+                "Damage: ",
+                # "Advection + healing: ",
+                "RGPS: ",
+            ]
+        )
+        # loop over
+        for k in range(mean_def.shape[1]):
+            # linear regression over the means
+            coefficients = np.polyfit(
+                np.log(mean_scale[:, k]), np.log(mean_def[:, k]), 1
+            )
+            fit = np.poly1d(coefficients)
+            t = np.linspace(mean_scale[0, k], mean_scale[-1, k], 10)
+
+            # correlation
+            corr, _ = pearsonr(mean_scale[:, k], mean_def[:, k])
+            # corr_cut, _ = pearsonr(mean_scale_cut, mean_def_cut)
+
+            # plots for the means on all data
+            ax.plot(
+                mean_scale[:, k],
+                mean_def[:, k],
+                "^",
+                color=colors[k],
+                label=dam[k]
+                + r"$\alpha$ = {:.2f}, corr = {:.2f}".format(
+                    np.abs(coefficients[0]), corr
+                ),
+                markersize=5,
+            )
+            ax.plot(t, np.exp(fit(np.log(t))), color=colors[k])
+
+        ax.legend(loc=1, fontsize="x-small")
+        if save:
+            fig.savefig(
+                "images/ssmT{}".format(self.resolution)
+                + fig_name_supp
+                + ".{}".format(self.fig_type),
+                transparent=0,
+            )
+
+        return coefficients[0]
 
     def pdf_plot(self, data: np.ndarray):
         """
@@ -1256,3 +1344,175 @@ class Arctic(sts.Scale):
                 transparent=0,
             )
 
+    def multifractal_spatial(
+        self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
+    ):
+
+        from scipy.optimize import differential_evolution
+
+        q_array = np.arange(0.1, q + 0.1, 0.1)
+        coeff_list = []
+
+        if RGPS == True:
+            for n in q_array:
+                mean_depsq, mean_scale, coeff = self.scale_plot_vect(
+                    deps ** n,
+                    scale,
+                    L_RGPS,
+                    save=0,
+                    fig_name_supp="_dedtQ_02_RGPS_du",
+                )
+                coeff_list.append(coeff)
+        else:
+            for n in q_array:
+                mean_depsq, mean_scale, coeff = self.scale_plot_vect(
+                    deps ** n, scale, L10, save=0, fig_name_supp="_dedtQ_97",
+                )
+                coeff_list.append(coeff)
+
+        coeff = np.abs(np.asarray(coeff_list))
+
+        def sum_leastsqr(paramtuple):
+
+            beta = self.structure_function(q_array, *paramtuple)
+
+            return np.sum((coeff - beta) ** 2)
+
+        results = differential_evolution(
+            sum_leastsqr, bounds=[[0, 2], [0, 2], [0, 1]]
+        )
+
+        return results.x, coeff
+
+    def multifractal_temporal(
+        self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
+    ):
+
+        from scipy.optimize import differential_evolution
+
+        q_array = np.arange(0.1, q + 0.1, 0.1)
+        coeff_list = []
+
+        if RGPS == True:
+            for n in q_array:
+                coeff = 
+                coeff_list.append(coeff)
+        else:
+            for n in q_array:
+                coeff =
+                coeff_list.append(coeff)
+
+        coeff = np.abs(np.asarray(coeff_list))
+
+        def sum_leastsqr(paramtuple):
+
+            beta = self.structure_function(q_array, *paramtuple)
+
+            return np.sum((coeff - beta) ** 2)
+
+        results = differential_evolution(
+            sum_leastsqr, bounds=[[0, 2], [0, 2], [0, 1]]
+        )
+
+        return results.x, coeff
+
+    def multifractal_plot(
+        self,
+        param: np.ndarray,
+        coeff: np.ndarray,
+        q: int,
+        save: bool,
+        fig_name_supp: string,
+        temp:bool=0,
+    ):
+
+        fig = plt.figure(dpi=300, figsize=(4, 4))
+
+        # definitions for the axes
+        left, width = 0.14, 0.73
+        bottom, height = 0.12, 0.8
+
+        rect_scatter = [left, bottom, width, height]
+        ax = fig.add_axes(rect_scatter)
+
+        # ticks style
+        ax.grid(linestyle=":")
+        ax.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+        )
+        ax.tick_params(
+            which="minor", labelleft=False,
+        )
+        # axe labels
+        ax.set_xlabel(r"Moment $q$")
+        if temp == 1:
+            ax.set_ylabel(r"$\alpha(q)$")
+        else if temp == 0:
+            ax.set_ylabel(r"$\beta(q)$")
+        ax.set_ylim(ymin=-0.1, ymax=2)
+        ax.set_xlim(xmin=0, xmax=3.5)
+
+        # find the pre existing ticks
+        yticks = [0, 0.5, 1, 1.5, 2]
+        ytick_labels = ["{:.1f}".format(ytick) for ytick in yticks]
+        # set major ticks
+        ax.yaxis.set_ticks(yticks)
+        ax.yaxis.set_ticklabels(ytick_labels)
+
+        # find the pre existing ticks
+        xticks = [1, 2, 3]
+        xtick_labels = ["{:d}".format(xtick) for xtick in xticks]
+        # set major ticks
+        ax.xaxis.set_ticks(xticks)
+        ax.xaxis.set_ticklabels(xtick_labels)
+
+        colors = np.array(
+            [
+                "xkcd:dark blue grey",
+                "xkcd:tomato",
+                # "xkcd:blush",
+                "xkcd:gross green",
+            ]
+        )
+        dam = np.array(
+            [
+                "No damage: ",
+                "Damage: ",
+                # "Advection + healing: ",
+                "RGPS: ",
+            ]
+        )
+
+        q_array1 = np.arange(0.1, q + 0.6, 0.1)
+        q_array2 = np.arange(0.1, q + 0.1, 0.1)
+        # loop over
+        for k in range(param.shape[1]):
+            # plots for the means on all data
+            ax.plot(
+                q_array1,
+                self.structure_function(
+                    q_array1, param[0, k], param[1, k], param[2, k]
+                ),
+                ":",
+                color=colors[k],
+                label=dam[k]
+                + "({:.2f}, {:.2f}, {:.2f})".format(
+                    param[0, k], param[1, k], param[2, k]
+                ),
+                markersize=5,
+            )
+            ax.plot(q_array2, coeff[:, k], ".", color=colors[k], markersize=5)
+
+        ax.legend(loc=1, fontsize="x-small")
+        if save:
+            fig.savefig(
+                "images/multifractal{}".format(self.resolution)
+                + fig_name_supp
+                + ".{}".format(self.fig_type),
+                transparent=0,
+            )

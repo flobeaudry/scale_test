@@ -1337,3 +1337,26 @@ class Data:
 
         return data80, np.transpose(mask_RGPS_10)
 
+    def interp_RGPS(self, du: np.ndarray) -> np.ndarray:
+        """
+        Function that interpolate RGPS from 12.5 km to 10 km. Only works for 2D slice...
+
+        Args:
+            du (np.ndarray): 2D slice of du
+            interpx (int, optional): y axis size for 10km. Defaults to 438.
+            interpy (int, optional): x axis size for 10km. Defaults to 518.
+
+        Returns:
+            np.ndarray: interpolation
+        """
+
+        import scipy.interpolate as sci
+
+        interpN = np.arange(int(du.shape[0] * RES_RGPS / 10))
+
+        interp = sci.RectBivariateSpline(
+            np.arange(du.shape[1]), np.arange(du.shape[0]), du
+        )
+        du_interp = interp(interpN, interpN)
+
+        return du_interp
