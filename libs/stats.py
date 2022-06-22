@@ -1090,7 +1090,7 @@ class Scale(sel.Data):
                 div_list.append(div)
                 deps_list.append(deps)
                 scaling_list.append(self.resolution * np.ones_like(deps))
-                print("Done with scale {}.".format(scale_km_unit))
+                print("Done with spatial scale {}.".format(scale_km_unit))
                 continue
 
             # convert km into grid cell units
@@ -1172,7 +1172,11 @@ class Scale(sel.Data):
         return beta
 
     def temporal_mean_du(
-        self, du: np.ndarray, temp_scales: list, RGPS: bool = False
+        self,
+        du: np.ndarray,
+        temp_scales: list,
+        q: float = 1.0,
+        RGPS: bool = False,
     ) -> tuple:
         """
         Function that computes the mean deformations for each temporal scale. How it works: start by averaging du on proper time scale; compute spatial mean and stock value; do that for all slice of time; then compute mean of all slice of time; stock value and start angain with next time scale.
@@ -1180,6 +1184,7 @@ class Scale(sel.Data):
         Args:
             du (np.ndarray): Velocity derivatives. (ny,nx,nt,4)
             temp_scales (list): Temporal scales under inspection
+            q (float): moment for the multifractality.
 
         Returns:
             tuple: This is a tuple of size 4 with deps, shear, div and temp scale as 1D array of size shape(temp_scales).
@@ -1192,7 +1197,7 @@ class Scale(sel.Data):
         temp_scales = np.asarray(temp_scales)
 
         if RGPS == True:
-            # this works, but it doesn't because of the NaNs (mask) in the meantime keep it at 12.5 km for RGPS and don't use this until I find a solution.
+            # this works, but it doesn't because of the NaNs and this prevents the interpolation from working (mask). In the meantime keep it at 12.5 km for RGPS and don't use this until I find a solution.
             du_interp = np.zeros((310, 310, du.shape[2], du.shape[3]))
             for i in range(du.shape[2]):
                 for j in range(du.shape[3]):
@@ -1210,9 +1215,9 @@ class Scale(sel.Data):
                 shear = self._deformation(du_mean, 1)
                 div = self._deformation(du_mean, 2)
                 deps = self._deformation(du_mean, 0)
-                shear_mean = np.nanmean(shear)
-                div_mean = np.nanmean(div)
-                deps_mean = np.nanmean(deps)
+                shear_mean = np.nanmean(shear ** q)
+                div_mean = np.nanmean(div ** q)
+                deps_mean = np.nanmean(deps ** q)
 
                 shear_list.append(shear_mean)
                 div_list.append(div_mean)
@@ -1232,3 +1237,20 @@ class Scale(sel.Data):
 
         return (deps, shear, div, temp_scales)
 
+    def temporal_scaling_slope(
+        self, mean_def: np.ndarray, mean_scale: list,
+    ) -> float:
+        """
+        Simple function that computes the slope of the temporal scaling.
+
+        Args:
+            mean_def (np.ndarray): deformations
+            mean_scale (list): temporal scale
+        Returns:
+            float: coefficient of the linear fit (the slope)
+        """
+
+        # linear regression over the means
+        coefficients = np.polyfit(np.log(mean_scale), np.log(mean_def), 1)
+
+        return coefficients[0]

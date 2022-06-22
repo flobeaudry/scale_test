@@ -1020,8 +1020,6 @@ class Arctic(sts.Scale):
                 transparent=0,
             )
 
-        return coefficients[0]
-
     def pdf_plot(self, data: np.ndarray):
         """
         Function that computes the PDF plot with the MLE fit.
@@ -1346,7 +1344,19 @@ class Arctic(sts.Scale):
 
     def multifractal_spatial(
         self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
-    ):
+    ) -> tuple:
+        """
+        Function that computes the multifractal fit with good parameters.
+
+        Args:
+            q (int): max moment to be computed
+            deps (np.ndarray): deformations from spatial_mean_du
+            scale (np.ndarray): scale to use from spatial_mean_du
+            RGPS (bool, optional): RGPS pr not. Defaults to False.
+
+        Returns:
+            tuple: parameters, coefficients
+        """
 
         from scipy.optimize import differential_evolution
 
@@ -1384,31 +1394,36 @@ class Arctic(sts.Scale):
 
         return results.x, coeff
 
-    def multifractal_temporal(
-        self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
-    ):
+    def multifractal_temporal(self, q: int, du: np.ndarray) -> tuple:
+        """
+        Function that computes the multifractal fit with good parameters.
+
+        Args:
+            q (int): _description_
+            du (np.ndarray): _description_
+
+        Returns:
+            tuple: _description_
+        """
 
         from scipy.optimize import differential_evolution
 
         q_array = np.arange(0.1, q + 0.1, 0.1)
         coeff_list = []
 
-        if RGPS == True:
-            for n in q_array:
-                coeff = 
-                coeff_list.append(coeff)
-        else:
-            for n in q_array:
-                coeff =
-                coeff_list.append(coeff)
+        for n in q_array:
+            deps, __, __, __ = self.temporal_mean_du(du, T10, q=n)
+            coeff = self.temporal_scaling_slope(deps, T10)
+            coeff_list.append(coeff)
+            print("Done with moment {:.1f}.".format(n))
 
         coeff = np.abs(np.asarray(coeff_list))
 
         def sum_leastsqr(paramtuple):
 
-            beta = self.structure_function(q_array, *paramtuple)
+            alpha = self.structure_function(q_array, *paramtuple)
 
-            return np.sum((coeff - beta) ** 2)
+            return np.sum((coeff - alpha) ** 2)
 
         results = differential_evolution(
             sum_leastsqr, bounds=[[0, 2], [0, 2], [0, 1]]
@@ -1423,8 +1438,19 @@ class Arctic(sts.Scale):
         q: int,
         save: bool,
         fig_name_supp: string,
-        temp:bool=0,
+        temp: bool = 0,
     ):
+        """
+        Fonction that plots the multifractal fit.
+
+        Args:
+            param (np.ndarray): parameters of the fit
+            coeff (np.ndarray): coefficients of the data
+            q (int): max moment
+            save (bool): save or not fig
+            fig_name_supp (string): fig supplemental info
+            temp (bool, optional): temporal or spatial. Defaults to 0.
+        """
 
         fig = plt.figure(dpi=300, figsize=(4, 4))
 
@@ -1452,7 +1478,7 @@ class Arctic(sts.Scale):
         ax.set_xlabel(r"Moment $q$")
         if temp == 1:
             ax.set_ylabel(r"$\alpha(q)$")
-        else if temp == 0:
+        elif temp == 0:
             ax.set_ylabel(r"$\beta(q)$")
         ax.set_ylim(ymin=-0.1, ymax=2)
         ax.set_xlim(xmin=0, xmax=3.5)
@@ -1504,7 +1530,6 @@ class Arctic(sts.Scale):
                 + "({:.2f}, {:.2f}, {:.2f})".format(
                     param[0, k], param[1, k], param[2, k]
                 ),
-                markersize=5,
             )
             ax.plot(q_array2, coeff[:, k], ".", color=colors[k], markersize=5)
 
