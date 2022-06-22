@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 
+from cProfile import label
 import string
 import numpy as np
 from scipy.stats import pearsonr
@@ -1073,6 +1074,222 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/pdf{}".format(self.resolution)
                 + self.fig_name_supp
+                + ".{}".format(self.fig_type),
+                transparent=0,
+            )
+
+    def pdf_du(
+        self, du_stack: list, save: bool, fig_name_supp: string,
+    ):
+        """
+        It simply computes everything for pdf plot.
+
+        Args:
+            du_stack (list): velocity derivatives of each model on last axis. we need list because RGPS is not same shape...
+            save (bool): save or not the fig
+            fig_name_supp (string): supplmentary info for fig name.
+
+        Returns:
+            [type]: figure of pdf
+        """
+        # init plot
+        fig = plt.figure(dpi=300, figsize=(8, 4))
+
+        # definitions for the axis
+        left_shear, width_shear = (1 - 2 * 0.4) / 3 + 0.02, 0.4
+        bottom_shear, height_shear = 0.12, 0.8
+        rect_scatter_shear = [
+            left_shear,
+            bottom_shear,
+            width_shear,
+            height_shear,
+        ]
+
+        left_div, width_div = 2 * (1 - 2 * 0.4) / 3 + 0.42, 0.4
+        bottom_div, height_div = 0.12, 0.8
+        rect_scatter_div = [
+            left_div,
+            bottom_div,
+            width_div,
+            height_div,
+        ]
+
+        ax_shear = fig.add_axes(rect_scatter_shear)
+        ax_div = fig.add_axes(rect_scatter_div)
+
+        # ticks
+        ax_shear.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        ax_div.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_div.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_div.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_div.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+
+        colors = np.array(
+            [
+                "xkcd:dark blue grey",
+                "xkcd:tomato",
+                # "xkcd:blush",
+                "xkcd:gross green",
+            ]
+        )
+        dam = np.array(
+            [
+                "No damage: ",
+                "Damage: ",
+                # "Advection + healing: ",
+                "RGPS: ",
+            ]
+        )
+
+        for k in range(len(du_stack)):
+            shear = self._deformation(du_stack[k], 1)
+            div = np.abs(self._deformation(du_stack[k], 2))
+
+            shear_cut = shear[~np.isnan(shear)]
+            div_cut = div[~np.isnan(div)]
+
+            # get correct data from box data
+            n = np.logspace(np.log10(5e-3), 0, num=20)
+            p_shear, x_shear = np.histogram(shear_cut, bins=n, density=1)
+            p_div, x_div = np.histogram(div_cut, bins=n, density=1)
+            p_shear = np.where(p_shear == 0.0, np.NaN, p_shear)
+            p_div = np.where(p_div == 0.0, np.NaN, p_div)
+
+            # convert bin edges to centers
+            x_shear_mid = (x_shear[:-1] + x_shear[1:]) / 2
+            x_div_mid = (x_div[:-1] + x_div[1:]) / 2
+
+            # variables for fit definitions
+            indices_shear = []
+            indices_div = []
+            for i in range(p_shear.shape[0]):
+                if np.isnan(p_shear[i]):
+                    indices_shear.append(i)
+            for i in range(p_div.shape[0]):
+                if np.isnan(p_div[i]):
+                    indices_div.append(i)
+
+            if len(indices_shear) == 0 and len(indices_div) == 0:
+                t_shear = x_shear_mid
+                t_div = x_div_mid
+                pt_shear = p_shear
+                pt_div = p_div
+            elif len(indices_shear) == 0 and len(indices_div) != 0:
+                t_shear = x_shear_mid
+                t_div = np.delete(x_div_mid, np.asarray(indices_div))
+                pt_shear = p_shear
+                pt_div = np.delete(p_div, np.asarray(indices_div))
+            elif len(indices_shear) != 0 and len(indices_div) == 0:
+                t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
+                t_div = x_div_mid
+                pt_shear = np.delete(p_shear, np.asarray(indices_shear))
+                pt_div = p_div
+            elif len(indices_shear) != 0 and len(indices_div) != 0:
+                t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
+                t_div = np.delete(x_div_mid, np.asarray(indices_div))
+                pt_shear = np.delete(p_shear, np.asarray(indices_shear))
+                pt_div = np.delete(p_div, np.asarray(indices_div))
+
+            # fit
+            coeff_shear = (
+                np.polynomial.Polynomial.fit(
+                    np.log10(t_shear[-9:]), np.log10(pt_shear[-9:]), 1
+                )
+                .convert()
+                .coef
+            )
+            coeff_div = (
+                np.polynomial.Polynomial.fit(
+                    np.log10(t_div[-9:]), np.log10(pt_div[-9:]), 1
+                )
+                .convert()
+                .coef
+            )
+            best_fit_shear = np.polynomial.Polynomial(coeff_shear)
+            best_fit_div = np.polynomial.Polynomial(coeff_div)
+
+            # plots
+            ax_shear.plot(
+                x_shear_mid,
+                p_shear,
+                color=colors[k],
+                label=dam[k] + "({:.1f})".format(-coeff_shear[-1]),
+            )
+            # ax_shear.plot(
+            #     t_shear[-9:],
+            #     10 ** (best_fit_shear(np.log10(t_shear[-9:]))),
+            #     "-.",
+            #     color="red",
+            #     lw=0.7,
+            # )
+            ax_div.plot(
+                x_div_mid,
+                p_div,
+                color=colors[k],
+                label=dam[k] + "({:.1f})".format(-coeff_div[-1]),
+            )
+            # ax_div.plot(
+            #     t_div[-9:],
+            #     10 ** (best_fit_div(np.log10(t_div[-9:]))),
+            #     "-.",
+            #     color="red",
+            #     lw=0.7,
+            # )
+
+        # axis labels
+        ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
+        ax_shear.set_ylabel("PDF")
+        ax_shear.set_xscale("log")
+        ax_shear.set_yscale("log")
+        ax_shear.set_ylim(ymin=1e-4, ymax=1e3)
+        ax_shear.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_shear.locator_params(axis="y", numticks=5)
+
+        ax_div.set_xlabel("Absolute divergence rate [day$^{-1}$]")
+        ax_div.set_xscale("log")
+        ax_div.set_yscale("log")
+        ax_div.set_ylim(ymin=1e-4, ymax=1e3)
+        ax_div.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_div.locator_params(axis="y", numticks=5)
+
+        ax_shear.legend(loc=1, fontsize="x-small")
+        ax_div.legend(loc=1, fontsize="x-small")
+        # save fig
+        if save:
+            fig.savefig(
+                "images/pdfm{}".format(self.resolution)
+                + fig_name_supp
                 + ".{}".format(self.fig_type),
                 transparent=0,
             )

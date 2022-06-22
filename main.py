@@ -38,7 +38,7 @@ dataset10Dadv = vis.Arctic(
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="D_97",
+    fig_name_supp="Dadv_97",
 )
 
 
@@ -56,7 +56,7 @@ time_end = "1997-01-31-18-00"
 
 
 # ----------------------------------------------------------------------
-# compute all mean deformations in boxes
+# load everthing, compute du, mask du with RGPS80
 # ----------------------------------------------------------------------
 
 # mask80
@@ -97,34 +97,7 @@ du80_Dadv[..., 1] = dataset10Dadv.mask80_times(du_Dadv[..., 1], mask80)[0]
 du80_Dadv[..., 2] = dataset10Dadv.mask80_times(du_Dadv[..., 2], mask80)[0]
 du80_Dadv[..., 3] = dataset10Dadv.mask80_times(du_Dadv[..., 3], mask80)[0]
 
-# calcul des deformations moyennes
-deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du80, L10)
-
-deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du80_D, L10)
-
-(
-    deps10Dadv,
-    shear10Dadv,
-    div10Dadv,
-    scale10Dadv,
-) = dataset10Dadv.spatial_mean_du(du80_Dadv, L10)
-
-# meme chose mais pour le scaling temporel
-deps10_T, shear10_T, div10_T, scale10_T = dataset10.temporal_mean_du(du80, T10)
-
-deps10D_T, shear10D_T, div10D_T, scale10D_T = dataset10D.temporal_mean_du(
-    du80_D, T10
-)
-
-(
-    deps10Dadv_T,
-    shear10Dadv_T,
-    div10Dadv_T,
-    scale10Dadv_T,
-) = dataset10Dadv.temporal_mean_du(du80_Dadv, T10)
-
 # RGPS data
-# load deformations
 # deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
 # load derivatives and mask it
 dudx = dataset_RGPS.mask80_times_RGPS(
@@ -141,84 +114,59 @@ dvdy = dataset_RGPS.mask80_times_RGPS(
 )
 
 # stack them
-du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
-# # plot initial values everything
-# dataset_RGPS.arctic_plot_RGPS(mask80, "mask", mask=1)
-# dataset_RGPS.arctic_plot_RGPS(div[..., 0], "div", "_02_")
-# dataset_RGPS.arctic_plot_RGPS(deps[..., 0], "dedt", "_02_")
-# dataset_RGPS.arctic_plot_RGPS(shear[..., 0], "shear", "_02_")
+# ----------------------------------------------------------------------
+# plot PDF
+# ----------------------------------------------------------------------
 
-# # mask it using mask80
-# shear80 = dataset_RGPS.mask80_times_RGPS(shear, mask80)
-# div80 = dataset_RGPS.mask80_times_RGPS(div, mask80)
+du80_stack = [du80, du80_Dadv, du80_RGPS]
 
-# # split the divergence in -/+
-# ndiv80 = np.where(div80 < 0, div80, np.NaN)
-# pdiv80 = np.where(div80 > 0, div80, np.NaN)
+dataset10.pdf_du(du80_stack, save=1, fig_name_supp="_97")
 
-# # remove nans
-# shear80_cut = shear80[~np.isnan(shear80)]
-# ndiv80_cut = ndiv80[~np.isnan(ndiv80)]
-# pdiv80_cut = pdiv80[~np.isnan(pdiv80)]
+# ----------------------------------------------------------------------
+# SCALING
+# ----------------------------------------------------------------------
 
-# # my data
-# # load everything
-# shear10 = dataset10.multi_load(dt, "1997-01-31-18-00", datatype="shear")
-# div10 = dataset10.multi_load(dt, "1997-01-31-18-00", datatype="divergence")
-# # time average it
-# shear10 = dataset10._time_average(shear10, dt)
-# div10 = dataset10._time_average(div10, dt)
-# # mask it using mask 80
-# shear10 = dataset10.mask80_times(shear10, mask80)
-# div10 = dataset10.mask80_times(div10, mask80)
-# # split the divergence in -/+
-# ndiv10 = np.where(div10 < 0, div10, np.NaN)
-# pdiv10 = np.where(div10 > 0, div10, np.NaN)
-# # get rid of nans
-# shear10_cut = shear10[~np.isnan(shear10)]
-# ndiv10_cut = ndiv10[~np.isnan(ndiv10)]
-# pdiv10_cut = pdiv10[~np.isnan(pdiv10)]
+# calcul du sclaing spatial
+deps10, shear10, div10, scale10 = dataset10.spatial_mean_du(du80, L10)
 
-# # damage data
-# # load everything
-# shear10D = dataset10D.multi_load(dt, "1997-01-31-18-00", datatype="shear")
-# div10D = dataset10D.multi_load(dt, "1997-01-31-18-00", datatype="divergence")
-# # time average it
-# shear10D = dataset10D._time_average(shear10D, dt)
-# div10D = dataset10D._time_average(div10D, dt)
-# # mask it using mask 80
-# shear10D = dataset10D.mask80_times(shear10D, mask80)
-# div10D = dataset10D.mask80_times(div10D, mask80)
-# # split the divergence in -/+
-# ndiv10D = np.where(div10D < 0, div10D, np.NaN)
-# pdiv10D = np.where(div10D > 0, div10D, np.NaN)
-# # get rid of nans
-# shear10D_cut = shear10D[~np.isnan(shear10D)]
-# ndiv10D_cut = ndiv10D[~np.isnan(ndiv10D)]
-# pdiv10D_cut = pdiv10D[~np.isnan(pdiv10D)]
-# print(shear10D_cut.shape, shear80_cut.shape)
+deps10D, shear10D, div10D, scale10D = dataset10D.spatial_mean_du(du80_D, L10)
 
-# # make the pdf plots for each of them
-# dataset_RGPS.pdf_plot_vect(shear80_cut, -ndiv80_cut, pdiv80_cut)
-# dataset10.pdf_plot_vect(shear10_cut, -ndiv10_cut, pdiv10_cut)
-# dataset10D.pdf_plot_vect(shear10D_cut, -ndiv10D_cut, pdiv10D_cut)
-
-# compute scaling of RGPS
+(
+    deps10Dadv,
+    shear10Dadv,
+    div10Dadv,
+    scale10Dadv,
+) = dataset10Dadv.spatial_mean_du(du80_Dadv, L10)
 
 (
     deps_RGPS_du,
     shear_RGPS_du,
     div_RGPS_du,
     scale_RGPS_du,
-) = dataset_RGPS.spatial_mean_du(du_RGPS, L_RGPS)
+) = dataset_RGPS.spatial_mean_du(du80_RGPS, L_RGPS)
+
+# meme chose mais pour le scaling temporel
+deps10_T, shear10_T, div10_T, scale10_T = dataset10.temporal_mean_du(du80, T10)
+
+deps10D_T, shear10D_T, div10D_T, scale10D_T = dataset10D.temporal_mean_du(
+    du80_D, T10
+)
+
+(
+    deps10Dadv_T,
+    shear10Dadv_T,
+    div10Dadv_T,
+    scale10Dadv_T,
+) = dataset10Dadv.temporal_mean_du(du80_Dadv, T10)
 
 (
     deps_RGPS_du_T,
     shear_RGPS_du_T,
     div_RGPS_du_T,
     scale_RGPS_du_T,
-) = dataset_RGPS.temporal_mean_du(du_RGPS, T10)
+) = dataset_RGPS.temporal_mean_du(du80_RGPS, T10)
 
 
 # ----------------------------------------------------------------------
@@ -308,7 +256,7 @@ mean_depsDadv, mean_scaleDadv, __ = dataset10Dadv.scale_plot_vect(
 )
 
 # ----------------------------------------------------------------------
-# multiplot
+# multiplot scaling
 # ----------------------------------------------------------------------
 
 mean_deps_stack = np.stack(
@@ -367,7 +315,9 @@ parameters10Dadv_T, coeff10Dadv_T = dataset10Dadv.multifractal_temporal(
     3, du80_Dadv
 )
 
-parametersRGPS_T, coeffRGPS_T = dataset_RGPS.multifractal_temporal(3, du_RGPS)
+parametersRGPS_T, coeffRGPS_T = dataset_RGPS.multifractal_temporal(
+    3, du80_RGPS
+)
 
 param_stack_T = np.stack(
     (parameters10_T, parameters10Dadv_T, parametersRGPS_T), axis=1,
