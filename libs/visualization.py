@@ -1294,6 +1294,218 @@ class Arctic(sts.Scale):
                 transparent=0,
             )
 
+    def cdf_du(
+        self, du_stack: list, save: bool, fig_name_supp: string,
+    ):
+        """
+        It simply computes everything for pdf plot.
+
+        Args:
+            du_stack (list): velocity derivatives of each model on last axis. we need list because RGPS is not same shape... RGPS NEEDS TO BE THE LAST ITEM OF THIS LIST.
+            save (bool): save or not the fig
+            fig_name_supp (string): supplmentary info for fig name.
+
+        Returns:
+            [type]: figure of pdf
+        """
+        # init plot
+        fig = plt.figure(dpi=300, figsize=(8, 4))
+
+        # definitions for the axis
+        left_shear, width_shear = (1 - 2 * 0.4) / 3 + 0.02, 0.4
+        bottom_shear, height_shear = 0.12, 0.8
+        rect_scatter_shear = [
+            left_shear,
+            bottom_shear,
+            width_shear,
+            height_shear,
+        ]
+
+        left_div, width_div = 2 * (1 - 2 * 0.4) / 3 + 0.42, 0.4
+        bottom_div, height_div = 0.12, 0.8
+        rect_scatter_div = [
+            left_div,
+            bottom_div,
+            width_div,
+            height_div,
+        ]
+
+        ax_shear = fig.add_axes(rect_scatter_shear)
+        ax_div = fig.add_axes(rect_scatter_div)
+
+        # ticks
+        ax_shear.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_shear.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        ax_div.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_div.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_div.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_div.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+
+        colors = np.array(
+            [
+                "xkcd:dark blue grey",
+                "xkcd:tomato",
+                # "xkcd:blush",
+                "xkcd:gross green",
+            ]
+        )
+        dam = np.array(
+            [
+                "No damage: ",
+                "Damage: ",
+                # "Advection + healing: ",
+                "RGPS: ",
+            ]
+        )
+
+        shear_RGPS = self._deformation(du_stack[-1], 1)
+        div_RGPS = np.abs(self._deformation(du_stack[-1], 2))
+
+        shear_RGPS_cut = shear_RGPS[~np.isnan(shear_RGPS)]
+        div_RGPS_cut = div_RGPS[~np.isnan(div_RGPS)]
+
+        # CDF, we have to cut under 0.005 for nice CDF
+        shear_RGPS_cut1 = np.where(
+            shear_RGPS_cut < 0.005, np.NaN, shear_RGPS_cut
+        )
+        div_RGPS_cut1 = np.where(div_RGPS_cut < 0.005, np.NaN, div_RGPS_cut)
+        shear_RGPS_cut2 = shear_RGPS_cut1[~np.isnan(shear_RGPS_cut1)]
+        div_RGPS_cut2 = div_RGPS_cut1[~np.isnan(div_RGPS_cut1)]
+
+        n = np.logspace(np.log10(5e-3), 0, num=1000)
+
+        p_RGPS_shear, x_RGPS_shear = np.histogram(
+            shear_RGPS_cut2, bins=n, density=1
+        )
+        p_RGPS_div, x_RGPS_div = np.histogram(div_RGPS_cut2, bins=n, density=1)
+
+        dx_RGPS_shear = x_RGPS_shear[1:] - x_RGPS_shear[:-1]
+        X1_RGPS_shear = (x_RGPS_shear[1:] + x_RGPS_shear[:-1]) / 2
+        F1_RGPS_shear = np.cumsum(p_RGPS_shear * dx_RGPS_shear)
+
+        dx_RGPS_div = x_RGPS_div[1:] - x_RGPS_div[:-1]
+        X1_RGPS_div = (x_RGPS_div[1:] + x_RGPS_div[:-1]) / 2
+        F1_RGPS_div = np.cumsum(p_RGPS_div * dx_RGPS_div)
+
+        # N_RGPS_shear = shear_RGPS_cut2.flatten().shape[0]
+        # X_RGPS_shear = np.sort(shear_RGPS_cut2.flatten())
+        # F_RGPS_shear = np.array(range(N_RGPS_shear)) / float(N_RGPS_shear - 1)
+
+        # N_RGPS_div = div_RGPS_cut2.flatten().shape[0]
+        # X_RGPS_div = np.sort(div_RGPS_cut2.flatten())
+        # F_RGPS_div = np.array(range(N_RGPS_div)) / float(N_RGPS_div - 1)
+
+        for k in range(len(du_stack) - 1):
+            shear = self._deformation(du_stack[k], 1)
+            div = np.abs(self._deformation(du_stack[k], 2))
+
+            shear_cut = shear[~np.isnan(shear)]
+            div_cut = div[~np.isnan(div)]
+
+            # CDF, we have to cut under 0.005 for nice CDF
+            shear_cut1 = np.where(shear_cut < 0.005, np.NaN, shear_cut)
+            div_cut1 = np.where(div_cut < 0.005, np.NaN, div_cut)
+            shear_cut2 = shear_cut1[~np.isnan(shear_cut1)]
+            div_cut2 = div_cut1[~np.isnan(div_cut1)]
+
+            # N_shear = shear_cut2.flatten().shape[0]
+            # X_shear = np.sort(shear_cut2.flatten())
+            # F_shear = np.array(range(N_shear)) / float(N_shear - 1)
+
+            # N_div = div_cut2.flatten().shape[0]
+            # X_div = np.sort(div_cut2.flatten())
+            # F_div = np.array(range(N_div)) / float(N_div - 1)
+
+            p_shear, x_shear = np.histogram(shear_cut2, bins=n, density=1)
+            p_div, x_div = np.histogram(div_cut2, bins=n, density=1)
+
+            dx_shear = x_shear[1:] - x_shear[:-1]
+            X1_shear = (x_shear[1:] + x_shear[:-1]) / 2
+            F1_shear = np.cumsum(p_shear * dx_shear)
+
+            dx_div = x_div[1:] - x_div[:-1]
+            X1_div = (x_div[1:] + x_div[:-1]) / 2
+            F1_div = np.cumsum(p_div * dx_div)
+
+            ks_distance_shear = np.amax(np.abs(F1_shear - F1_RGPS_shear))
+            ks_distance_div = np.amax(np.abs(F1_div - F1_RGPS_div))
+
+            # plots
+            ax_shear.plot(
+                X1_shear,
+                F1_shear,
+                color=colors[k],
+                label=dam[k] + "({:.2f})".format(ks_distance_shear),
+            )
+
+            ax_div.plot(
+                X1_div,
+                F1_div,
+                color=colors[k],
+                label=dam[k] + "({:.2f})".format(ks_distance_div),
+            )
+
+        # RGPS plots
+        ax_shear.plot(
+            X1_RGPS_shear, F1_RGPS_shear, color=colors[-1], label=dam[-1],
+        )
+        ax_div.plot(
+            X1_RGPS_div, F1_RGPS_div, color=colors[-1], label=dam[-1],
+        )
+
+        # axis labels
+        ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
+        ax_shear.set_ylabel("CDF")
+        ax_shear.set_xscale("log")
+        ax_shear.set_ylim(ymin=0, ymax=1.05)
+        ax_shear.set_xlim(xmin=5e-3, xmax=1.5)
+
+        ax_div.set_xlabel("Absolute divergence rate [day$^{-1}$]")
+        ax_div.set_xscale("log")
+        ax_div.set_ylim(ymin=0, ymax=1.05)
+        ax_div.set_xlim(xmin=5e-3, xmax=1.5)
+
+        ax_shear.legend(loc=4, fontsize="x-small")
+        ax_div.legend(loc=4, fontsize="x-small")
+        # save fig
+        if save:
+            fig.savefig(
+                "images/cdfm{}".format(self.resolution)
+                + fig_name_supp
+                + ".{}".format(self.fig_type),
+                transparent=0,
+            )
+
     def pdf_plot_vect(
         self, shear: np.ndarray, ndiv: np.ndarray, pdiv: np.ndarray
     ):

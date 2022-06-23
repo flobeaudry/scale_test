@@ -117,12 +117,13 @@ dvdy = dataset_RGPS.mask80_times_RGPS(
 du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
 # ----------------------------------------------------------------------
-# plot PDF
+# plot PDF and CDF
 # ----------------------------------------------------------------------
 
 du80_stack = [du80, du80_Dadv, du80_RGPS]
 
 dataset10.pdf_du(du80_stack, save=1, fig_name_supp="_97")
+dataset10.cdf_du(du80_stack, save=1, fig_name_supp="_97")
 
 # ----------------------------------------------------------------------
 # SCALING
