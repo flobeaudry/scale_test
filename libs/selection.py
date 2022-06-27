@@ -32,7 +32,6 @@
 #   load anytype of data.
 # ----------------------------------------------------------------------
 
-from cmath import sin
 import numpy as np
 import netCDF4 as nc
 from os import path, listdir

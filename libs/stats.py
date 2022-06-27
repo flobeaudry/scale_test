@@ -71,7 +71,12 @@ class Scale(sel.Data):
             ny=ny,
         )
 
-    def _signal_to_noise(self):
+    def _signal_to_noise(
+        self, du: np.ndarray, L: float, T: float, sigmaX: float = 0.1
+    ):
+        a = L ** 2
+        eps11 = du[1]
+        sig2 = eps11 ** 2 * (2 * sigmaX ** 2 / a) + 4 * sigmaX / a / T ** 2
         pass
 
     def _time_average(self, formated_data: np.ndarray, dt: str) -> np.ndarray:
