@@ -131,61 +131,6 @@ class Scale(sel.Data):
 
         return np.stack(data_time_mean, axis=-1)
 
-    def _pdf_interior(self, data: np.ndarray, choice: int):
-        """
-        It simply computes everything for pdf plot.
-
-        Args:
-            data (np.ndarray): data to process (flat array with no nans)
-            choice (int): what type of data (shear, ndiv, pdiv)
-
-        Returns:
-            [type]: multiple things
-        """
-
-        # get correct data from box data
-        if choice == 1:
-            n = np.logspace(np.log10(5e-3), 1, num=66)
-            p, x = np.histogram(data, bins=n, density=1)
-            end = -24
-        elif choice == 2:
-            n = np.logspace(np.log10(5e-3), 0, num=46)
-            p, x = np.histogram(-data, bins=n, density=1)
-            end = -14
-        elif choice == 3:
-            n = np.logspace(np.log10(5e-3), 0, num=46)
-            p, x = np.histogram(data, bins=n, density=1)
-            end = -14
-
-        cdf = self.cumul_dens_func(np.diff(x), p, method=1)
-        p = np.where(p == 0.0, np.NaN, p)
-
-        # convert bin edges to centers
-        x_mid = (x[:-1] + x[1:]) / 2
-
-        # compute best estimator
-        (
-            dedt_min,
-            ks_dist,
-            best_fit,
-            min_index,
-            coefficient,
-        ) = self.ks_distance_minimizer(x_mid, p, cdf, end)
-        alpha, sigma = self.mle_exponent(
-            data[~np.isnan(np.where(data >= dedt_min, data, np.NaN))], dedt_min
-        )
-        return (
-            x_mid,
-            p,
-            ks_dist,
-            best_fit,
-            min_index,
-            coefficient,
-            dedt_min,
-            alpha,
-            sigma,
-        )
-
     def _definitions_RGPS(
         self, data: np.ndarray, scale_grid_unit: int
     ) -> np.ndarray:
