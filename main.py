@@ -9,14 +9,14 @@ from libs.constants import *
 # ----------------------------------------------------------------------
 
 dataset10 = vis.Arctic(
-    directory="output10_1997",
-    time="1997-01-01-00-00",
-    expno="12",
+    directory="output10_2002",
+    time="2002-01-01-00-00",
+    expno="05",
     datatype="u",
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="_97",
+    fig_name_supp="_02",
 )
 
 dataset10D = vis.Arctic(
@@ -31,14 +31,14 @@ dataset10D = vis.Arctic(
 )
 
 dataset10Dadv = vis.Arctic(
-    directory="output10Dadvection_1997",
-    time="1997-01-01-00-00",
-    expno="03",
+    directory="output10Dadv_2002",
+    time="2002-01-01-00-00",
+    expno="06",
     datatype="u",
     fig_shape="round",
     save=1,
     resolution=10,
-    fig_name_supp="Dadv_97",
+    fig_name_supp="Dadv_02",
 )
 
 
@@ -48,12 +48,28 @@ dataset_RGPS = vis.Arctic(
 
 # ----------------------------------------------------------------------
 
-# dataset10.arctic_plot(dataset10.load())
-# dataset.multi_load("01-00-00", "1997-03-31-00-00")
-
 dt = "00-06-00"
 time_end = "1997-01-31-18-00"
+time_end_02 = "2002-01-31-18-00"
+arctic_plots = 0
 
+# ----------------------------------------------------------------------
+# dedt plots
+# ----------------------------------------------------------------------
+
+if arctic_plots == 1:
+    dedt_plot = dataset10.multi_load(
+        datatype="dedt", time_end="2002-01-03-18-00", dt=dt
+    )
+    dedt_plot_Dadv = dataset10Dadv.multi_load(
+        datatype="dedt", time_end="2002-01-03-18-00", dt=dt
+    )
+
+    dedt_plot_ta = dataset10D._time_average(dedt_plot, dt)
+    dedt_plot_ta_Dadv = dataset10Dadv._time_average(dedt_plot_Dadv, dt)
+
+    dataset10.arctic_plot(dedt_plot_ta[..., 0])
+    dataset10Dadv.arctic_plot(dedt_plot_ta_Dadv[..., 0])
 
 # ----------------------------------------------------------------------
 # load everthing, compute du, mask du with RGPS80
@@ -64,9 +80,9 @@ time_end = "1997-01-31-18-00"
 mask80 = np.load("RGPS_mask/mask80JFM.npy")
 
 # calcul time averaged
-u_v = dataset10.multi_load(dt, time_end)
+u_v = dataset10.multi_load(dt, time_end_02)
 u_v_D = dataset10D.multi_load(dt, time_end)
-u_v_Dadv = dataset10Dadv.multi_load(dt, time_end)
+u_v_Dadv = dataset10Dadv.multi_load(dt, time_end_02)
 u_v = np.where(u_v == 0, np.NaN, u_v)
 u_v_D = np.where(u_v_D == 0, np.NaN, u_v_D)
 u_v_Dadv = np.where(u_v_Dadv == 0, np.NaN, u_v_Dadv)
@@ -120,10 +136,10 @@ du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 # plot PDF and CDF
 # ----------------------------------------------------------------------
 
-du80_stack = [du80, du80_Dadv, du80_RGPS]
+du80_stack = [du80_RGPS, du80, du80_Dadv]
 
-dataset10.pdf_du(du80_stack, save=1, fig_name_supp="_97")
-dataset10.cdf_du(du80_stack, save=1, fig_name_supp="_97")
+dataset10.pdf_du(du80_stack, save=1, fig_name_supp="_02")
+dataset10.cdf_du(du80_stack, save=1, fig_name_supp="_02")
 
 # ----------------------------------------------------------------------
 # SCALING
@@ -169,79 +185,18 @@ deps10D_T, shear10D_T, div10D_T, scale10D_T = dataset10D.temporal_mean_du(
     scale_RGPS_du_T,
 ) = dataset_RGPS.temporal_mean_du(du80_RGPS, T10)
 
-
-# ----------------------------------------------------------------------
-# save data in file
-# ----------------------------------------------------------------------
-
-np.save("processed_data/deps10D.npy", deps10D)
-np.save("processed_data/shear10D.npy", shear10D)
-np.save("processed_data/div10D.npy", div10D)
-np.save("processed_data/scale10D.npy", scale10D)
-
-np.save("processed_data/deps10Dadv.npy", deps10Dadv)
-np.save("processed_data/shear10Dadv.npy", shear10Dadv)
-np.save("processed_data/div10Dadv.npy", div10Dadv)
-np.save("processed_data/scale10Dadv.npy", scale10Dadv)
-
-np.save("processed_data/deps10.npy", deps10)
-np.save("processed_data/shear10.npy", shear10)
-np.save("processed_data/div10.npy", div10)
-np.save("processed_data/scale10.npy", scale10)
-
-# np.save("processed_data/deps_RGPS.npy", deps_RGPS)
-# np.save("processed_data/shear_RGPS.npy", shear_RGPS)
-# np.save("processed_data/div_RGPS.npy", div_RGPS)
-# np.save("processed_data/deps_scale_RGPS.npy", deps_scale_RGPS)
-# np.save("processed_data/shear_scale_RGPS.npy", shear_scale_RGPS)
-# np.save("processed_data/div_scale_RGPS.npy", div_scale_RGPS)
-
-# ----------------------------------------------------------------------
-# load data if previously saved
-# ----------------------------------------------------------------------
-
-# deps10 = np.load("processed_data/deps10.npy", allow_pickle=True)
-# shear10 = np.load("processed_data/shear10.npy", allow_pickle=True)
-# div10 = np.load("processed_data/div10.npy", allow_pickle=True)
-# scale10 = np.load("processed_data/scale10.npy", allow_pickle=True)
-
-# deps10D = np.load("processed_data/deps10D.npy", allow_pickle=True)
-# shear10D = np.load("processed_data/shear10D.npy", allow_pickle=True)
-# div10D = np.load("processed_data/div10D.npy", allow_pickle=True)
-# scale10D = np.load("processed_data/scale10D.npy", allow_pickle=True)
-
-# deps10Dadv = np.load("processed_data/deps10Dadv.npy", allow_pickle=True)
-# shear10Dadv = np.load("processed_data/shear10Dadv.npy", allow_pickle=True)
-# div10Dadv = np.load("processed_data/div10Dadv.npy", allow_pickle=True)
-# scale10Dadv = np.load("processed_data/scale10Dadv.npy", allow_pickle=True)
-
-# deps_RGPS = np.load("processed_data/deps_RGPS.npy", allow_pickle=True)
-# shear_RGPS = np.load("processed_data/shear_RGPS.npy", allow_pickle=True)
-# div_RGPS = np.load("processed_data/div_RGPS.npy", allow_pickle=True)
-# deps_scale_RGPS = np.load(
-#     "processed_data/deps_scale_RGPS.npy", allow_pickle=True
-# )
-# shear_scale_RGPS = np.load(
-#     "processed_data/shear_scale_RGPS.npy", allow_pickle=True
-# )
-# div_scale_RGPS = np.load(
-#     "processed_data/div_scale_RGPS.npy", allow_pickle=True
-# )
-
 # ----------------------------------------------------------------------
 # plots at 10 km
 # ----------------------------------------------------------------------
 
-# dataset10.pdf_plot_vect(def10, L10)
-# dataset10.cdf_plot(data_box10)
 mean_deps, mean_scale, __ = dataset10.scale_plot_vect(
-    deps10, scale10, L10, save=0, fig_name_supp="_dedt_97"
+    deps10, scale10, L10, save=0, fig_name_supp="_dedt_02"
 )
 mean_depsD, mean_scaleD, __ = dataset10D.scale_plot_vect(
     deps10D, scale10D, L10, save=0, fig_name_supp="D_dedt_97"
 )
 mean_depsDadv, mean_scaleDadv, __ = dataset10Dadv.scale_plot_vect(
-    deps10Dadv, scale10Dadv, L10, save=0, fig_name_supp="Dadv_dedt_97"
+    deps10Dadv, scale10Dadv, L10, save=0, fig_name_supp="Dadv_dedt_02"
 )
 
 # ----------------------------------------------------------------------
@@ -273,11 +228,11 @@ mean_scale_stack_T = np.stack(
 )
 
 dataset10.multi_plot_spatial(
-    mean_deps_stack, mean_scale_stack, fig_name_supp="_dedt_97"
+    mean_deps_stack, mean_scale_stack, fig_name_supp="_dedt_02"
 )
 
 dataset10.multi_plot_temporal(
-    mean_deps_stack_T, mean_scale_stack_T, fig_name_supp="_dedt_97"
+    mean_deps_stack_T, mean_scale_stack_T, fig_name_supp="_dedt_02"
 )
 
 # ----------------------------------------------------------------------
@@ -305,7 +260,7 @@ param_stack = np.stack(
 
 coeff_stack = np.stack((coeff10, coeff10Dadv, coeffRGPS), axis=1,)
 
-dataset10.multifractal_plot(param_stack, coeff_stack, 3, 1, "_param_97")
+dataset10.multifractal_plot(param_stack, coeff_stack, 3, 1, "_param_02")
 
 # temporal
 parameters10_T, coeff10_T = dataset10.multifractal_temporal(3, du80)
@@ -327,6 +282,6 @@ param_stack_T = np.stack(
 coeff_stack_T = np.stack((coeff10_T, coeff10Dadv_T, coeffRGPS_T), axis=1,)
 
 dataset10.multifractal_plot(
-    param_stack_T, coeff_stack_T, 3, 1, "T_param_97", temp=1
+    param_stack_T, coeff_stack_T, 3, 1, "T_param_02", temp=1
 )
 

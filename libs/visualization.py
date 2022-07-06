@@ -838,7 +838,7 @@ class Arctic(sts.Scale):
         self, du_stack: list, save: bool, fig_name_supp: string,
     ):
         """
-        It simply computes everything for pdf plot.
+        It simply computes everything for pdf plot. RGPS must be the FIRST in the stack!
 
         Args:
             du_stack (list): velocity derivatives of each model on last axis. we need list because RGPS is not same shape...
@@ -852,8 +852,8 @@ class Arctic(sts.Scale):
         fig = plt.figure(dpi=300, figsize=(8, 4))
 
         # definitions for the axis
-        left_shear, width_shear = (1 - 2 * 0.4) / 3 + 0.02, 0.4
-        bottom_shear, height_shear = 0.12, 0.8
+        left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
+        bottom_shear, height_shear = 0.5, 0.42
         rect_scatter_shear = [
             left_shear,
             bottom_shear,
@@ -861,17 +861,64 @@ class Arctic(sts.Scale):
             height_shear,
         ]
 
-        left_div, width_div = 2 * (1 - 2 * 0.4) / 3 + 0.42, 0.4
-        bottom_div, height_div = 0.12, 0.8
-        rect_scatter_div = [
-            left_div,
-            bottom_div,
-            width_div,
-            height_div,
+        left_ndiv, width_ndiv = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
+        bottom_ndiv, height_ndiv = 0.5, 0.42
+        rect_scatter_ndiv = [
+            left_ndiv,
+            bottom_ndiv,
+            width_ndiv,
+            height_ndiv,
+        ]
+
+        left_pdiv, width_pdiv = (
+            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
+            0.267,
+        )
+        bottom_pdiv, height_pdiv = 0.5, 0.42
+        rect_scatter_pdiv = [
+            left_pdiv,
+            bottom_pdiv,
+            width_pdiv,
+            height_pdiv,
+        ]
+
+        left_shearB, width_shearB = (1 - 3 * 0.267) / 4 + 0.033, 0.267
+        bottom_shearB, height_shearB = 0.12, 0.26
+        rect_scatter_shearB = [
+            left_shearB,
+            bottom_shearB,
+            width_shearB,
+            height_shearB,
+        ]
+
+        left_ndivB, width_ndivB = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
+        bottom_ndivB, height_ndivB = 0.12, 0.26
+        rect_scatter_ndivB = [
+            left_ndivB,
+            bottom_ndivB,
+            width_ndivB,
+            height_ndivB,
+        ]
+
+        left_pdivB, width_pdivB = (
+            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
+            0.267,
+        )
+        bottom_pdivB, height_pdivB = 0.12, 0.26
+        rect_scatter_pdivB = [
+            left_pdivB,
+            bottom_pdivB,
+            width_pdivB,
+            height_pdivB,
         ]
 
         ax_shear = fig.add_axes(rect_scatter_shear)
-        ax_div = fig.add_axes(rect_scatter_div)
+        ax_ndiv = fig.add_axes(rect_scatter_ndiv)
+        ax_pdiv = fig.add_axes(rect_scatter_pdiv)
+
+        ax_shearB = fig.add_axes(rect_scatter_shearB)
+        ax_ndivB = fig.add_axes(rect_scatter_ndivB)
+        ax_pdivB = fig.add_axes(rect_scatter_pdivB)
 
         # ticks
         ax_shear.grid(
@@ -892,16 +939,36 @@ class Arctic(sts.Scale):
             right=True,
             labelleft=True,
         )
-        ax_div.grid(
+
+        ax_ndiv.grid(
             axis="x", which="minor", linestyle=":", color="xkcd:light gray"
         )
-        ax_div.grid(
+        ax_ndiv.grid(
             axis="x", which="major", linestyle="-", color="xkcd:light gray"
         )
-        ax_div.grid(
+        ax_ndiv.grid(
             axis="y", which="major", linestyle="-", color="xkcd:light gray"
         )
-        ax_div.tick_params(
+        ax_ndiv.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+
+        ax_pdiv.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.tick_params(
             which="both",
             direction="in",
             bottom=True,
@@ -930,52 +997,137 @@ class Arctic(sts.Scale):
 
         for k in range(len(du_stack)):
             shear = self._deformation(du_stack[k], 1)
-            div = np.abs(self._deformation(du_stack[k], 2))
+            ndiv = np.where(
+                self._deformation(du_stack[k], 2) < 0,
+                -self._deformation(du_stack[k], 2),
+                np.NaN,
+            )
+            pdiv = np.where(
+                self._deformation(du_stack[k], 2) > 0,
+                self._deformation(du_stack[k], 2),
+                np.NaN,
+            )
 
             shear_cut = shear[~np.isnan(shear)]
-            div_cut = div[~np.isnan(div)]
+            ndiv_cut = ndiv[~np.isnan(ndiv)]
+            pdiv_cut = pdiv[~np.isnan(pdiv)]
 
             # get correct data from box data
             n = np.logspace(np.log10(5e-3), 0, num=20)
             p_shear, x_shear = np.histogram(shear_cut, bins=n, density=1)
-            p_div, x_div = np.histogram(div_cut, bins=n, density=1)
+            p_ndiv, x_ndiv = np.histogram(ndiv_cut, bins=n, density=1)
+            p_pdiv, x_pdiv = np.histogram(pdiv_cut, bins=n, density=1)
             p_shear = np.where(p_shear == 0.0, np.NaN, p_shear)
-            p_div = np.where(p_div == 0.0, np.NaN, p_div)
+            p_ndiv = np.where(p_ndiv == 0.0, np.NaN, p_ndiv)
+            p_pdiv = np.where(p_pdiv == 0.0, np.NaN, p_pdiv)
 
             # convert bin edges to centers
             x_shear_mid = (x_shear[:-1] + x_shear[1:]) / 2
-            x_div_mid = (x_div[:-1] + x_div[1:]) / 2
+            x_ndiv_mid = (x_ndiv[:-1] + x_ndiv[1:]) / 2
+            x_pdiv_mid = (x_pdiv[:-1] + x_pdiv[1:]) / 2
 
             # variables for fit definitions
             indices_shear = []
-            indices_div = []
+            indices_ndiv = []
+            indices_pdiv = []
             for i in range(p_shear.shape[0]):
                 if np.isnan(p_shear[i]):
                     indices_shear.append(i)
-            for i in range(p_div.shape[0]):
-                if np.isnan(p_div[i]):
-                    indices_div.append(i)
+            for i in range(p_ndiv.shape[0]):
+                if np.isnan(p_ndiv[i]):
+                    indices_ndiv.append(i)
+            for i in range(p_pdiv.shape[0]):
+                if np.isnan(p_pdiv[i]):
+                    indices_pdiv.append(i)
 
-            if len(indices_shear) == 0 and len(indices_div) == 0:
+            if (
+                len(indices_shear) == 0
+                and len(indices_ndiv) == 0
+                and len(indices_pdiv) == 0
+            ):
                 t_shear = x_shear_mid
-                t_div = x_div_mid
+                t_ndiv = x_ndiv_mid
+                t_pdiv = x_pdiv_mid
                 pt_shear = p_shear
-                pt_div = p_div
-            elif len(indices_shear) == 0 and len(indices_div) != 0:
+                pt_ndiv = p_ndiv
+                pt_pdiv = p_pdiv
+            elif (
+                len(indices_shear) == 0
+                and len(indices_ndiv) == 0
+                and len(indices_pdiv) != 0
+            ):
                 t_shear = x_shear_mid
-                t_div = np.delete(x_div_mid, np.asarray(indices_div))
+                t_ndiv = x_ndiv_mid
+                t_pdiv = np.delete(x_pdiv_mid, np.asarray(indices_pdiv))
                 pt_shear = p_shear
-                pt_div = np.delete(p_div, np.asarray(indices_div))
-            elif len(indices_shear) != 0 and len(indices_div) == 0:
+                pt_ndiv = p_ndiv
+                pt_pdiv = np.delete(p_pdiv, np.asarray(indices_pdiv))
+            elif (
+                len(indices_shear) != 0
+                and len(indices_ndiv) == 0
+                and len(indices_pdiv) == 0
+            ):
                 t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
-                t_div = x_div_mid
+                t_ndiv = x_ndiv_mid
+                t_pdiv = x_pdiv_mid
                 pt_shear = np.delete(p_shear, np.asarray(indices_shear))
-                pt_div = p_div
-            elif len(indices_shear) != 0 and len(indices_div) != 0:
+                pt_ndiv = p_ndiv
+                pt_pdiv = p_pdiv
+            elif (
+                len(indices_shear) != 0
+                and len(indices_ndiv) == 0
+                and len(indices_pdiv) != 0
+            ):
                 t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
-                t_div = np.delete(x_div_mid, np.asarray(indices_div))
+                t_ndiv = x_ndiv_mid
+                t_pdiv = np.delete(x_pdiv_mid, np.asarray(indices_pdiv))
                 pt_shear = np.delete(p_shear, np.asarray(indices_shear))
-                pt_div = np.delete(p_div, np.asarray(indices_div))
+                pt_ndiv = p_ndiv
+                pt_pdiv = np.delete(p_pdiv, np.asarray(indices_pdiv))
+            elif (
+                len(indices_shear) == 0
+                and len(indices_ndiv) != 0
+                and len(indices_pdiv) == 0
+            ):
+                t_shear = x_shear_mid
+                t_ndiv = np.delete(x_ndiv_mid, np.asarray(indices_ndiv))
+                t_pdiv = x_pdiv_mid
+                pt_shear = p_shear
+                pt_ndiv = np.delete(p_ndiv, np.asarray(indices_ndiv))
+                pt_pdiv = p_pdiv
+            elif (
+                len(indices_shear) == 0
+                and len(indices_ndiv) != 0
+                and len(indices_pdiv) != 0
+            ):
+                t_shear = x_shear_mid
+                t_ndiv = np.delete(x_ndiv_mid, np.asarray(indices_ndiv))
+                t_pdiv = np.delete(x_pdiv_mid, np.asarray(indices_pdiv))
+                pt_shear = p_shear
+                pt_ndiv = np.delete(p_ndiv, np.asarray(indices_ndiv))
+                pt_pdiv = np.delete(p_pdiv, np.asarray(indices_pdiv))
+            elif (
+                len(indices_shear) != 0
+                and len(indices_ndiv) != 0
+                and len(indices_pdiv) == 0
+            ):
+                t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
+                t_ndiv = np.delete(x_ndiv_mid, np.asarray(indices_ndiv))
+                t_pdiv = x_pdiv_mid
+                pt_shear = np.delete(p_shear, np.asarray(indices_shear))
+                pt_ndiv = np.delete(p_ndiv, np.asarray(indices_ndiv))
+                pt_pdiv = p_pdiv
+            elif (
+                len(indices_shear) != 0
+                and len(indices_ndiv) != 0
+                and len(indices_pdiv) != 0
+            ):
+                t_shear = np.delete(x_shear_mid, np.asarray(indices_shear))
+                t_ndiv = np.delete(x_ndiv_mid, np.asarray(indices_ndiv))
+                t_pdiv = np.delete(x_pdiv_mid, np.asarray(indices_pdiv))
+                pt_shear = np.delete(p_shear, np.asarray(indices_shear))
+                pt_ndiv = np.delete(p_ndiv, np.asarray(indices_ndiv))
+                pt_pdiv = np.delete(p_pdiv, np.asarray(indices_pdiv))
 
             # fit
             coeff_shear = (
@@ -985,15 +1137,23 @@ class Arctic(sts.Scale):
                 .convert()
                 .coef
             )
-            coeff_div = (
+            coeff_ndiv = (
                 np.polynomial.Polynomial.fit(
-                    np.log10(t_div[-9:]), np.log10(pt_div[-9:]), 1
+                    np.log10(t_ndiv[-9:]), np.log10(pt_ndiv[-9:]), 1
+                )
+                .convert()
+                .coef
+            )
+            coeff_pdiv = (
+                np.polynomial.Polynomial.fit(
+                    np.log10(t_pdiv[-9:]), np.log10(pt_pdiv[-9:]), 1
                 )
                 .convert()
                 .coef
             )
             best_fit_shear = np.polynomial.Polynomial(coeff_shear)
-            best_fit_div = np.polynomial.Polynomial(coeff_div)
+            best_fit_ndiv = np.polynomial.Polynomial(coeff_ndiv)
+            best_fit_pdiv = np.polynomial.Polynomial(coeff_pdiv)
 
             # plots
             ax_shear.plot(
@@ -1002,45 +1162,59 @@ class Arctic(sts.Scale):
                 color=colors[k],
                 label=dam[k] + "({:.1f})".format(-coeff_shear[-1]),
             )
-            # ax_shear.plot(
-            #     t_shear[-9:],
-            #     10 ** (best_fit_shear(np.log10(t_shear[-9:]))),
-            #     "-.",
-            #     color="red",
-            #     lw=0.7,
-            # )
-            ax_div.plot(
-                x_div_mid,
-                p_div,
+
+            ax_ndiv.plot(
+                x_ndiv_mid,
+                p_ndiv,
                 color=colors[k],
-                label=dam[k] + "({:.1f})".format(-coeff_div[-1]),
+                label=dam[k] + "({:.1f})".format(-coeff_ndiv[-1]),
             )
-            # ax_div.plot(
-            #     t_div[-9:],
-            #     10 ** (best_fit_div(np.log10(t_div[-9:]))),
-            #     "-.",
-            #     color="red",
-            #     lw=0.7,
-            # )
+
+            ax_pdiv.plot(
+                x_pdiv_mid,
+                p_pdiv,
+                color=colors[k],
+                label=dam[k] + "({:.1f})".format(-coeff_pdiv[-1]),
+            )
+
+            # not RGPS which is the first one.
+            if k != 0:
+                ax_shearB.hist2d()
 
         # axis labels
         ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
         ax_shear.set_ylabel("PDF")
         ax_shear.set_xscale("log")
         ax_shear.set_yscale("log")
-        ax_shear.set_ylim(ymin=1e-4, ymax=1e3)
-        ax_shear.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_shear.set_ylim(ymin=1e-5, ymax=1e3)
+        ax_shear.set_xlim(xmin=5e-3, xmax=2)
         ax_shear.locator_params(axis="y", numticks=5)
 
-        ax_div.set_xlabel("Absolute divergence rate [day$^{-1}$]")
-        ax_div.set_xscale("log")
-        ax_div.set_yscale("log")
-        ax_div.set_ylim(ymin=1e-4, ymax=1e3)
-        ax_div.set_xlim(xmin=5e-3, xmax=1.5)
-        ax_div.locator_params(axis="y", numticks=5)
+        ax_ndiv.set_xlabel("Neg. Divergence rate [day$^{-1}$]")
+        ax_ndiv.set_yscale("log")
+        ax_ndiv.set_xscale("log")
+        ax_ndiv.set_ylim(ymin=1e-5, ymax=1e3)
+        ax_ndiv.set_xlim(xmin=5e-3, xmax=2)
+        ax_ndiv.locator_params(axis="y", numticks=5)
+        ax_ndiv.set_yticklabels([])
+        ticks = [1e0, 1e-1, 1e-2]
+        tick_labels = [r"$-10^{0}$", r"$-10^{-1}$", r"$-10^{-2}$"]
+        ax_ndiv.xaxis.set_ticks(ticks)
+        ax_ndiv.xaxis.set_ticklabels(tick_labels)
+        ax_ndiv.invert_xaxis()
+
+        ax_pdiv.set_xlabel("Pos. Divergence rate [day$^{-1}$]")
+        ax_pdiv.set_xscale("log")
+        ax_pdiv.set_yscale("log")
+        ax_pdiv.set_ylim(ymin=1e-5, ymax=1e3)
+        ax_pdiv.set_xlim(xmin=5e-3, xmax=2)
+        ax_pdiv.locator_params(axis="y", numticks=5)
+        ax_pdiv.set_yticklabels([])
 
         ax_shear.legend(loc=1, fontsize="x-small")
-        ax_div.legend(loc=1, fontsize="x-small")
+        ax_ndiv.legend(loc=2, fontsize="x-small")
+        ax_pdiv.legend(loc=1, fontsize="x-small")
+
         # save fig
         if save:
             fig.savefig(
@@ -1173,14 +1347,6 @@ class Arctic(sts.Scale):
         X1_RGPS_div = (x_RGPS_div[1:] + x_RGPS_div[:-1]) / 2
         F1_RGPS_div = np.cumsum(p_RGPS_div * dx_RGPS_div)
 
-        # N_RGPS_shear = shear_RGPS_cut2.flatten().shape[0]
-        # X_RGPS_shear = np.sort(shear_RGPS_cut2.flatten())
-        # F_RGPS_shear = np.array(range(N_RGPS_shear)) / float(N_RGPS_shear - 1)
-
-        # N_RGPS_div = div_RGPS_cut2.flatten().shape[0]
-        # X_RGPS_div = np.sort(div_RGPS_cut2.flatten())
-        # F_RGPS_div = np.array(range(N_RGPS_div)) / float(N_RGPS_div - 1)
-
         for k in range(len(du_stack) - 1):
             shear = self._deformation(du_stack[k], 1)
             div = np.abs(self._deformation(du_stack[k], 2))
@@ -1193,14 +1359,6 @@ class Arctic(sts.Scale):
             div_cut1 = np.where(div_cut < 0.005, np.NaN, div_cut)
             shear_cut2 = shear_cut1[~np.isnan(shear_cut1)]
             div_cut2 = div_cut1[~np.isnan(div_cut1)]
-
-            # N_shear = shear_cut2.flatten().shape[0]
-            # X_shear = np.sort(shear_cut2.flatten())
-            # F_shear = np.array(range(N_shear)) / float(N_shear - 1)
-
-            # N_div = div_cut2.flatten().shape[0]
-            # X_div = np.sort(div_cut2.flatten())
-            # F_div = np.array(range(N_div)) / float(N_div - 1)
 
             p_shear, x_shear = np.histogram(shear_cut2, bins=n, density=1)
             p_div, x_div = np.histogram(div_cut2, bins=n, density=1)
