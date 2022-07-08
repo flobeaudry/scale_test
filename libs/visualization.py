@@ -884,7 +884,7 @@ class Arctic(sts.Scale):
         ]
 
         left_shearB, width_shearB = (1 - 3 * 0.267) / 4 + 0.033, 0.267
-        bottom_shearB, height_shearB = 0.2, 0.15
+        bottom_shearB, height_shearB = 0.18, 0.15
         rect_scatter_shearB = [
             left_shearB,
             bottom_shearB,
@@ -893,7 +893,7 @@ class Arctic(sts.Scale):
         ]
 
         left_ndivB, width_ndivB = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
-        bottom_ndivB, height_ndivB = 0.2, 0.15
+        bottom_ndivB, height_ndivB = 0.18, 0.15
         rect_scatter_ndivB = [
             left_ndivB,
             bottom_ndivB,
@@ -905,7 +905,7 @@ class Arctic(sts.Scale):
             3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
             0.267,
         )
-        bottom_pdivB, height_pdivB = 0.2, 0.15
+        bottom_pdivB, height_pdivB = 0.18, 0.15
         rect_scatter_pdivB = [
             left_pdivB,
             bottom_pdivB,
@@ -976,6 +976,36 @@ class Arctic(sts.Scale):
             top=True,
             left=True,
             right=True,
+            labelleft=True,
+        )
+
+        ax_shearB.tick_params(
+            which="both",
+            direction="out",
+            bottom=False,
+            top=True,
+            left=True,
+            right=False,
+            labelleft=True,
+        )
+
+        ax_ndivB.tick_params(
+            which="both",
+            direction="out",
+            bottom=False,
+            top=True,
+            left=True,
+            right=False,
+            labelleft=True,
+        )
+
+        ax_pdivB.tick_params(
+            which="both",
+            direction="out",
+            bottom=False,
+            top=True,
+            left=True,
+            right=False,
             labelleft=True,
         )
 
@@ -1207,6 +1237,8 @@ class Arctic(sts.Scale):
             model_diff_shear,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
+            edgecolor="w",
+            linewidth=0.005,
         )
         ndplot = ax_ndivB.pcolormesh(
             n,
@@ -1214,6 +1246,8 @@ class Arctic(sts.Scale):
             model_diff_ndiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
+            edgecolor="w",
+            linewidth=0.005,
         )
         pdplot = ax_pdivB.pcolormesh(
             n,
@@ -1221,6 +1255,8 @@ class Arctic(sts.Scale):
             model_diff_pdiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
+            edgecolor="w",
+            linewidth=0.005,
         )
 
         # axis labels

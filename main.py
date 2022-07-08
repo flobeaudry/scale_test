@@ -17,6 +17,7 @@ dataset10 = vis.Arctic(
     save=1,
     resolution=10,
     fig_name_supp="_02",
+    fig_type="pdf",
 )
 
 dataset10D = vis.Arctic(
@@ -28,6 +29,7 @@ dataset10D = vis.Arctic(
     save=1,
     resolution=10,
     fig_name_supp="D_97",
+    fig_type="pdf",
 )
 
 dataset10Dadv = vis.Arctic(
@@ -39,11 +41,16 @@ dataset10Dadv = vis.Arctic(
     save=1,
     resolution=10,
     fig_name_supp="Dadv_02",
+    fig_type="pdf",
 )
 
 
 dataset_RGPS = vis.Arctic(
-    fig_shape="round", save=1, resolution=12.5, fig_name_supp="_02_RGPS",
+    fig_shape="round",
+    save=1,
+    resolution=12.5,
+    fig_name_supp="_02_RGPS",
+    fig_type="pdf",
 )
 
 # ----------------------------------------------------------------------
