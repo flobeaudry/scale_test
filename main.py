@@ -216,15 +216,15 @@ mean_depsDadv, mean_scaleDadv, __ = dataset10Dadv.scale_plot_vect(
 # ----------------------------------------------------------------------
 
 mean_deps_stack = np.stack(
-    (mean_deps, mean_depsDadv, mean_deps_RGPS_du), axis=1,
+    (mean_deps_RGPS_du, mean_deps, mean_depsDadv), axis=1,
 )
 mean_scale_stack = np.stack(
-    (mean_scale, mean_scaleDadv, mean_scale_RGPS_du), axis=1,
+    (mean_scale_RGPS_du, mean_scale, mean_scaleDadv), axis=1,
 )
 
-mean_deps_stack_T = np.stack((deps10_T, deps10Dadv_T, deps_RGPS_du_T), axis=1,)
+mean_deps_stack_T = np.stack((deps_RGPS_du_T, deps10_T, deps10Dadv_T), axis=1,)
 mean_scale_stack_T = np.stack(
-    (scale10_T, scale10Dadv_T, scale_RGPS_du_T), axis=1,
+    (scale_RGPS_du_T, scale10_T, scale10Dadv_T), axis=1,
 )
 
 dataset10.multi_plot_spatial(
@@ -255,10 +255,10 @@ parametersRGPS, coeffRGPS = dataset_RGPS.multifractal_spatial(
 )
 
 param_stack = np.stack(
-    (parameters10, parameters10Dadv, parametersRGPS), axis=1,
+    (parametersRGPS, parameters10, parameters10Dadv), axis=1,
 )
 
-coeff_stack = np.stack((coeff10, coeff10Dadv, coeffRGPS), axis=1,)
+coeff_stack = np.stack((coeffRGPS, coeff10, coeff10Dadv), axis=1,)
 
 dataset10.multifractal_plot(param_stack, coeff_stack, 3, 1, "_param_02")
 
@@ -276,10 +276,10 @@ parametersRGPS_T, coeffRGPS_T = dataset_RGPS.multifractal_temporal(
 )
 
 param_stack_T = np.stack(
-    (parameters10_T, parameters10Dadv_T, parametersRGPS_T), axis=1,
+    (parametersRGPS_T, parameters10_T, parameters10Dadv_T), axis=1,
 )
 
-coeff_stack_T = np.stack((coeff10_T, coeff10Dadv_T, coeffRGPS_T), axis=1,)
+coeff_stack_T = np.stack((coeffRGPS_T, coeff10_T, coeff10Dadv_T), axis=1,)
 
 dataset10.multifractal_plot(
     param_stack_T, coeff_stack_T, 3, 1, "T_param_02", temp=1

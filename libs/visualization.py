@@ -37,6 +37,7 @@ from libs.constants import *
 from scipy.spatial import ConvexHull
 from descartes import PolygonPatch
 import alphashape
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 class Arctic(sts.Scale):
@@ -711,21 +712,21 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond(0)
-        colors = np.array(
+        colors_plot = np.array(
             [
+                "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
                 # "xkcd:blush",
-                "xkcd:gross green",
             ]
         )
-        shape = np.array(["^", "v"])
-        dam = np.array(
+        shape_plot = np.array(["^", "v"])
+        dam_plot = np.array(
             [
+                "RGPS: ",
                 "No damage: ",
                 "Damage: ",
                 # "Advection + healing: ",
-                "RGPS: ",
             ]
         )
         # loop over
@@ -746,14 +747,14 @@ class Arctic(sts.Scale):
                 mean_scale[:, k],
                 mean_def[:, k],
                 "^",
-                color=colors[k],
-                label=dam[k]
+                color=colors_plot[k],
+                label=dam_plot[k]
                 + r"$\beta$ = {:.2f}, corr = {:.2f}".format(
                     np.abs(coefficients[0]), corr
                 ),
                 markersize=5,
             )
-            ax.plot(t, np.exp(fit(np.log(t))), color=colors[k])
+            ax.plot(t, np.exp(fit(np.log(t))), color=colors_plot[k])
 
         ax.legend(loc=1, fontsize="x-small")
         if save:
@@ -781,21 +782,21 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond(1)
-        colors = np.array(
+        colors_plot = np.array(
             [
+                "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
                 # "xkcd:blush",
-                "xkcd:gross green",
             ]
         )
-        shape = np.array(["^", "v"])
-        dam = np.array(
+        shape_plot = np.array(["^", "v"])
+        dam_plot = np.array(
             [
+                "RGPS: ",
                 "No damage: ",
                 "Damage: ",
                 # "Advection + healing: ",
-                "RGPS: ",
             ]
         )
         # loop over
@@ -816,14 +817,14 @@ class Arctic(sts.Scale):
                 mean_scale[:, k],
                 mean_def[:, k],
                 "^",
-                color=colors[k],
-                label=dam[k]
+                color=colors_plot[k],
+                label=dam_plot[k]
                 + r"$\alpha$ = {:.2f}, corr = {:.2f}".format(
                     np.abs(coefficients[0]), corr
                 ),
                 markersize=5,
             )
-            ax.plot(t, np.exp(fit(np.log(t))), color=colors[k])
+            ax.plot(t, np.exp(fit(np.log(t))), color=colors_plot[k])
 
         ax.legend(loc=1, fontsize="x-small")
         if save:
@@ -849,7 +850,7 @@ class Arctic(sts.Scale):
             [type]: figure of pdf
         """
         # init plot
-        fig = plt.figure(dpi=300, figsize=(8, 4))
+        fig = plt.figure(dpi=300, figsize=(8, 3.5))
 
         # definitions for the axis
         left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
@@ -883,7 +884,7 @@ class Arctic(sts.Scale):
         ]
 
         left_shearB, width_shearB = (1 - 3 * 0.267) / 4 + 0.033, 0.267
-        bottom_shearB, height_shearB = 0.12, 0.26
+        bottom_shearB, height_shearB = 0.2, 0.15
         rect_scatter_shearB = [
             left_shearB,
             bottom_shearB,
@@ -892,7 +893,7 @@ class Arctic(sts.Scale):
         ]
 
         left_ndivB, width_ndivB = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
-        bottom_ndivB, height_ndivB = 0.12, 0.26
+        bottom_ndivB, height_ndivB = 0.2, 0.15
         rect_scatter_ndivB = [
             left_ndivB,
             bottom_ndivB,
@@ -904,7 +905,7 @@ class Arctic(sts.Scale):
             3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
             0.267,
         )
-        bottom_pdivB, height_pdivB = 0.12, 0.26
+        bottom_pdivB, height_pdivB = 0.2, 0.15
         rect_scatter_pdivB = [
             left_pdivB,
             bottom_pdivB,
@@ -978,23 +979,26 @@ class Arctic(sts.Scale):
             labelleft=True,
         )
 
-        colors = np.array(
+        colors_plot = np.array(
             [
+                "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
                 # "xkcd:blush",
-                "xkcd:gross green",
             ]
         )
-        dam = np.array(
+        dam_plot = np.array(
             [
+                "RGPS: ",
                 "No damage: ",
                 "Damage: ",
                 # "Advection + healing: ",
-                "RGPS: ",
             ]
         )
 
+        model_diff_shear = []
+        model_diff_ndiv = []
+        model_diff_pdiv = []
         for k in range(len(du_stack)):
             shear = self._deformation(du_stack[k], 1)
             ndiv = np.where(
@@ -1013,7 +1017,7 @@ class Arctic(sts.Scale):
             pdiv_cut = pdiv[~np.isnan(pdiv)]
 
             # get correct data from box data
-            n = np.logspace(np.log10(5e-3), 0, num=20)
+            n = np.logspace(np.log10(5e-3), 0, num=25)
             p_shear, x_shear = np.histogram(shear_cut, bins=n, density=1)
             p_ndiv, x_ndiv = np.histogram(ndiv_cut, bins=n, density=1)
             p_pdiv, x_pdiv = np.histogram(pdiv_cut, bins=n, density=1)
@@ -1025,6 +1029,21 @@ class Arctic(sts.Scale):
             x_shear_mid = (x_shear[:-1] + x_shear[1:]) / 2
             x_ndiv_mid = (x_ndiv[:-1] + x_ndiv[1:]) / 2
             x_pdiv_mid = (x_pdiv[:-1] + x_pdiv[1:]) / 2
+
+            # save RGPS
+            if k == 0:
+                RGPS_p_shear = p_shear
+                RGPS_p_ndiv = p_ndiv
+                RGPS_p_pdiv = p_pdiv
+
+            # not RGPS which is the first one.
+            if k != 0:
+                logdiff_shear = np.log(p_shear) - np.log(RGPS_p_shear)
+                logdiff_ndiv = np.log(p_ndiv) - np.log(RGPS_p_ndiv)
+                logdiff_pdiv = np.log(p_pdiv) - np.log(RGPS_p_pdiv)
+                model_diff_shear.append(logdiff_shear)
+                model_diff_ndiv.append(logdiff_ndiv)
+                model_diff_pdiv.append(logdiff_pdiv)
 
             # variables for fit definitions
             indices_shear = []
@@ -1159,27 +1178,50 @@ class Arctic(sts.Scale):
             ax_shear.plot(
                 x_shear_mid,
                 p_shear,
-                color=colors[k],
-                label=dam[k] + "({:.1f})".format(-coeff_shear[-1]),
+                color=colors_plot[k],
+                label=dam_plot[k] + "({:.1f})".format(-coeff_shear[-1]),
             )
 
             ax_ndiv.plot(
                 x_ndiv_mid,
                 p_ndiv,
-                color=colors[k],
-                label=dam[k] + "({:.1f})".format(-coeff_ndiv[-1]),
+                color=colors_plot[k],
+                label=dam_plot[k] + "({:.1f})".format(-coeff_ndiv[-1]),
             )
 
             ax_pdiv.plot(
                 x_pdiv_mid,
                 p_pdiv,
-                color=colors[k],
-                label=dam[k] + "({:.1f})".format(-coeff_pdiv[-1]),
+                color=colors_plot[k],
+                label=dam_plot[k] + "({:.1f})".format(-coeff_pdiv[-1]),
             )
 
-            # not RGPS which is the first one.
-            if k != 0:
-                ax_shearB.hist2d()
+        # model diff plots
+        model_diff_shear = np.asarray(model_diff_shear)
+        model_diff_ndiv = np.asarray(model_diff_ndiv)
+        model_diff_pdiv = np.asarray(model_diff_pdiv)
+
+        splot = ax_shearB.pcolormesh(
+            n,
+            [0, 1, 2],
+            model_diff_shear,
+            cmap="coolwarm",
+            norm=colors.Normalize(vmin=-1, vmax=1),
+        )
+        ndplot = ax_ndivB.pcolormesh(
+            n,
+            [0, 1, 2],
+            model_diff_ndiv,
+            cmap="coolwarm",
+            norm=colors.Normalize(vmin=-1, vmax=1),
+        )
+        pdplot = ax_pdivB.pcolormesh(
+            n,
+            [0, 1, 2],
+            model_diff_pdiv,
+            cmap="coolwarm",
+            norm=colors.Normalize(vmin=-1, vmax=1),
+        )
 
         # axis labels
         ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
@@ -1211,6 +1253,39 @@ class Arctic(sts.Scale):
         ax_pdiv.locator_params(axis="y", numticks=5)
         ax_pdiv.set_yticklabels([])
 
+        ax_shearB.set_xscale("log")
+        ax_shearB.set_xlim(xmin=5e-3, xmax=2)
+        ticksB = [0.5, 1.5]
+        tick_labelsB = ["VP", "VPd"]
+        ax_shearB.yaxis.set_ticks(ticksB)
+        ax_shearB.yaxis.set_ticklabels(tick_labelsB)
+        ax_shearB.set_xticklabels([])
+        sdivider = make_axes_locatable(ax_shearB)
+        scax = sdivider.append_axes("bottom", size=0.1, pad=0.1)
+        scbar = fig.colorbar(splot, cax=scax, orientation="horizontal")
+        scbar.ax.set_xlabel("Log difference to RGPS PDF")
+
+        ax_ndivB.set_xscale("log")
+        ax_ndivB.set_xlim(xmin=5e-3, xmax=2)
+        ax_ndivB.set_yticklabels([])
+        ax_ndivB.set_xticklabels([])
+        ax_ndivB.yaxis.set_ticks(ticksB)
+        ax_ndivB.invert_xaxis()
+        nddivider = make_axes_locatable(ax_ndivB)
+        ndcax = nddivider.append_axes("bottom", size=0.1, pad=0.1)
+        ndcbar = fig.colorbar(ndplot, cax=ndcax, orientation="horizontal")
+        ndcbar.ax.set_xlabel("Log difference to RGPS PDF")
+
+        ax_pdivB.set_xscale("log")
+        ax_pdivB.set_xlim(xmin=5e-3, xmax=2)
+        ax_pdivB.set_yticklabels([])
+        ax_pdivB.set_xticklabels([])
+        ax_pdivB.yaxis.set_ticks(ticksB)
+        pddivider = make_axes_locatable(ax_pdivB)
+        pdcax = pddivider.append_axes("bottom", size=0.1, pad=0.1)
+        pdcbar = fig.colorbar(pdplot, cax=pdcax, orientation="horizontal")
+        pdcbar.ax.set_xlabel("Log difference to RGPS PDF")
+
         ax_shear.legend(loc=1, fontsize="x-small")
         ax_ndiv.legend(loc=2, fontsize="x-small")
         ax_pdiv.legend(loc=1, fontsize="x-small")
@@ -1228,10 +1303,10 @@ class Arctic(sts.Scale):
         self, du_stack: list, save: bool, fig_name_supp: string,
     ):
         """
-        It simply computes everything for pdf plot.
+        It simply computes everything for cdf plot.
 
         Args:
-            du_stack (list): velocity derivatives of each model on last axis. we need list because RGPS is not same shape... RGPS NEEDS TO BE THE LAST ITEM OF THIS LIST.
+            du_stack (list): velocity derivatives of each model on last axis. we need list because RGPS is not same shape... RGPS NEEDS TO BE THE FIRST ITEM OF THIS LIST.
             save (bool): save or not the fig
             fig_name_supp (string): supplmentary info for fig name.
 
@@ -1301,25 +1376,25 @@ class Arctic(sts.Scale):
             labelleft=True,
         )
 
-        colors = np.array(
+        colors_plot = np.array(
             [
+                "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
                 # "xkcd:blush",
-                "xkcd:gross green",
             ]
         )
-        dam = np.array(
+        dam_plot = np.array(
             [
+                "RGPS: N/A",
                 "No damage: ",
                 "Damage: ",
                 # "Advection + healing: ",
-                "RGPS: N/A",
             ]
         )
 
-        shear_RGPS = self._deformation(du_stack[-1], 1)
-        div_RGPS = np.abs(self._deformation(du_stack[-1], 2))
+        shear_RGPS = self._deformation(du_stack[0], 1)
+        div_RGPS = np.abs(self._deformation(du_stack[0], 2))
 
         shear_RGPS_cut = shear_RGPS[~np.isnan(shear_RGPS)]
         div_RGPS_cut = div_RGPS[~np.isnan(div_RGPS)]
@@ -1348,8 +1423,8 @@ class Arctic(sts.Scale):
         F1_RGPS_div = np.cumsum(p_RGPS_div * dx_RGPS_div)
 
         for k in range(len(du_stack) - 1):
-            shear = self._deformation(du_stack[k], 1)
-            div = np.abs(self._deformation(du_stack[k], 2))
+            shear = self._deformation(du_stack[k + 1], 1)
+            div = np.abs(self._deformation(du_stack[k + 1], 2))
 
             shear_cut = shear[~np.isnan(shear)]
             div_cut = div[~np.isnan(div)]
@@ -1378,23 +1453,26 @@ class Arctic(sts.Scale):
             ax_shear.plot(
                 X1_shear,
                 F1_shear,
-                color=colors[k],
-                label=dam[k] + "({:.2f})".format(ks_distance_shear),
+                color=colors_plot[k + 1],
+                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_shear),
             )
 
             ax_div.plot(
                 X1_div,
                 F1_div,
-                color=colors[k],
-                label=dam[k] + "({:.2f})".format(ks_distance_div),
+                color=colors_plot[k + 1],
+                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_div),
             )
 
         # RGPS plots
         ax_shear.plot(
-            X1_RGPS_shear, F1_RGPS_shear, color=colors[-1], label=dam[-1],
+            X1_RGPS_shear,
+            F1_RGPS_shear,
+            color=colors_plot[0],
+            label=dam_plot[0],
         )
         ax_div.plot(
-            X1_RGPS_div, F1_RGPS_div, color=colors[-1], label=dam[-1],
+            X1_RGPS_div, F1_RGPS_div, color=colors_plot[0], label=dam_plot[0],
         )
 
         # axis labels
@@ -1575,20 +1653,20 @@ class Arctic(sts.Scale):
         ax.xaxis.set_ticks(xticks)
         ax.xaxis.set_ticklabels(xtick_labels)
 
-        colors = np.array(
+        colors_plot = np.array(
             [
+                "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
                 # "xkcd:blush",
-                "xkcd:gross green",
             ]
         )
-        dam = np.array(
+        dam_plot = np.array(
             [
+                "RGPS: ",
                 "No damage: ",
                 "Damage: ",
                 # "Advection + healing: ",
-                "RGPS: ",
             ]
         )
 
@@ -1603,13 +1681,15 @@ class Arctic(sts.Scale):
                     q_array1, param[0, k], param[1, k], param[2, k]
                 ),
                 ":",
-                color=colors[k],
-                label=dam[k]
+                color=colors_plot[k],
+                label=dam_plot[k]
                 + "({:.2f}, {:.2f}, {:.2f})".format(
                     param[0, k], param[1, k], param[2, k]
                 ),
             )
-            ax.plot(q_array2, coeff[:, k], ".", color=colors[k], markersize=5)
+            ax.plot(
+                q_array2, coeff[:, k], ".", color=colors_plot[k], markersize=5
+            )
 
         ax.legend(loc=1, fontsize="x-small")
         if save:
