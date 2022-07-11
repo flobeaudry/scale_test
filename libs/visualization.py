@@ -301,6 +301,15 @@ class Arctic(sts.Scale):
                 + self.fig_type,
                 transparent=0,
             )
+            fig.savefig(
+                "images/"
+                + self.datatype
+                + str(self.resolution)
+                + self.fig_name_supp
+                + ".eps",
+                transparent=0,
+                format="eps",
+            )
 
     def _encircle(
         self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase
@@ -325,11 +334,7 @@ class Arctic(sts.Scale):
         return ax
 
     def arctic_plot_RGPS(
-        self,
-        data: np.ndarray,
-        datatype: str,
-        fig_name_supp: str = "_",
-        mask: bool = 0,
+        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_",
     ):
         """
         Function that plots data over the Arctic same as the other one but specifically for RGPS.
@@ -338,7 +343,6 @@ class Arctic(sts.Scale):
             data (np.ndarray): data to plot in 2D
             datatype (str): type of the data
             fig_name_supp (str, optional): supplementary figure description in the name when saving the figure. Defaults to "_".
-            mask (bool, optional): whether to plot the mask polygon or not on top of the data. Defaults to 0.
         """
         x0 = np.arange(data.shape[0] + 1) * RES_RGPS - 2300
         y0 = np.arange(data.shape[1] + 1) * RES_RGPS - 1000
@@ -385,15 +389,25 @@ class Arctic(sts.Scale):
         elif datatype == "mask":
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
-                lon,
-                lat,
-                data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
-                cmap=cmocean.cm.oxy,
-                norm=colors.Normalize(vmin=0, vmax=1),
-                transform=ccrs.PlateCarree(),
-                zorder=1,
+                lon, lat, data * 100, transform=ccrs.PlateCarree(), zorder=1,
             )
+            x1 = np.arange(data.shape[0]) * RES_RGPS - 2300
+            y1 = np.arange(data.shape[1]) * RES_RGPS - 1000
+
+            lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
+
+            ax.contour(
+                lon1,
+                lat1,
+                data * 100,
+                levels=np.array([80]),
+                transform=ccrs.PlateCarree(),
+            )
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel(
+                "Temporal presence [%]", rotation=-90, va="bottom"
+            )
+
         else:
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
@@ -409,13 +423,6 @@ class Arctic(sts.Scale):
             cbar = fig.colorbar(cf)
             cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
 
-        if mask:
-            x1 = np.arange(data.shape[0]) * RES_RGPS - 2300
-            y1 = np.arange(data.shape[0]) * RES_RGPS - 1000
-            lon1, lat1 = self._coordinates(x1, y1, RGPS=True)
-            indices = np.where(data == 1)
-            self._encircle(lon1[indices], lat1[indices], ax=ax)
-
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
         ax.coastlines(resolution="50m", zorder=4)
@@ -430,6 +437,16 @@ class Arctic(sts.Scale):
                 + "."
                 + self.fig_type,
                 transparent=0,
+            )
+            fig.savefig(
+                "images/"
+                + datatype
+                + str(self.resolution)
+                + fig_name_supp
+                + "RGPS"
+                + ".eps",
+                transparent=0,
+                format="eps",
             )
 
     def scale_plot_vect(
@@ -638,6 +655,10 @@ class Arctic(sts.Scale):
                 + fig_name_supp
                 + ".{}".format(self.fig_type)
             )
+            fig.savefig(
+                "images/ss{}".format(self.resolution) + fig_name_supp + ".eps",
+                format="eps",
+            )
 
         return mean_def, mean_scale, coefficients[0]
 
@@ -764,6 +785,13 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type),
                 transparent=0,
             )
+            fig.savefig(
+                "images/ssm{}".format(self.resolution)
+                + fig_name_supp
+                + ".eps",
+                format="eps",
+                transparent=0,
+            )
 
     def multi_plot_temporal(
         self,
@@ -832,6 +860,13 @@ class Arctic(sts.Scale):
                 "images/ssmT{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
+                transparent=0,
+            )
+            fig.savefig(
+                "images/ssmT{}".format(self.resolution)
+                + fig_name_supp
+                + ".eps",
+                format="eps",
                 transparent=0,
             )
 
@@ -1362,6 +1397,13 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type),
                 transparent=0,
             )
+            fig.savefig(
+                "images/pdfm{}".format(self.resolution)
+                + fig_name_supp
+                + ".eps",
+                format="eps",
+                transparent=0,
+            )
 
     def cdf_du(
         self, du_stack: list, save: bool, fig_name_supp: string,
@@ -1665,6 +1707,13 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type),
                 transparent=0,
             )
+            fig.savefig(
+                "images/cdfm{}".format(self.resolution)
+                + fig_name_supp
+                + ".eps",
+                format="eps",
+                transparent=0,
+            )
 
     def multifractal_spatial(
         self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
@@ -1865,5 +1914,12 @@ class Arctic(sts.Scale):
                 "images/multifractal{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
+                transparent=0,
+            )
+            fig.savefig(
+                "images/multifractal{}".format(self.resolution)
+                + fig_name_supp
+                + ".eps",
+                format="eps",
                 transparent=0,
             )

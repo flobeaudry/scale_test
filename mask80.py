@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import libs.visualization as vis
 from scipy.io import loadmat
+import cartopy.feature as cfeature
+import cartopy.crs as ccrs
+import matplotlib.path as mpath
 
 L_RGPS = [12.5, 25, 50, 100, 200, 400]
 
-dataset_RGPS = vis.Arctic(
-    fig_shape="round", save=0, resolution=12.5, fig_name_supp="_TEST_RGPS",
-)
+dataset_RGPS = vis.Arctic(fig_shape="round", save=1, resolution=12.5,)
 
 shear = np.load("RGPS_deformations/SHR.npy")
 div = np.load("RGPS_deformations/DIV.npy")
@@ -30,41 +31,22 @@ mask80 = np.where(mask >= 0.8, 1, np.NaN)
 
 np.save("RGPS_mask/mask80JFM.npy", mask80)
 
-fig = plt.figure(dpi=300, figsize=(4, 4))
-ax = plt.subplot(1, 1, 1)
-cf = ax.pcolormesh(shear_sum)
-ax.contour(shear_sum, levels=np.array([0.8]))
-fig.colorbar(cf)
-plt.show()
+# figure
 
-dudx = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DUDX.npy"), mask80
-)
-dudy = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DUDY.npy"), mask80
-)
-dvdx = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DVDX.npy"), mask80
-)
-dvdy = dataset_RGPS.mask80_times_RGPS(
-    np.load("RGPS_derivatives/DVDY.npy"), mask80
-)
-plt.pcolormesh(dudx[..., 0])
-plt.show()
-du_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+dataset_RGPS.arctic_plot_RGPS(shear_sum, "mask", "80")
 
-(
-    deps_RGPS_du,
-    shear_RGPS_du,
-    div_RGPS_du,
-    scale_RGPS_du,
-) = dataset_RGPS.spatial_mean_du(du_RGPS, L_RGPS)
-
-mean_deps_RGPS_du, mean_scale_RGPS_du = dataset_RGPS.scale_plot_vect(
-    deps_RGPS_du,
-    scale_RGPS_du,
-    L_RGPS,
-    save=0,
-    fig_name_supp="_dedt_02_RGPS_du",
-)
-plt.show()
+# fig = plt.figure(dpi=300)
+# ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
+# fig.subplots_adjust(bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02)
+# # theta = np.linspace(0, 2 * np.pi, 100)
+# # center, radius = [0.5, 0.5], 0.5
+# # verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+# # circle = mpath.Path(verts * radius + center)
+# # ax.set_extent([-180, 180, 65, 90], crs=ccrs.PlateCarree())
+# # ax.set_boundary(circle, transform=ax.transAxes)
+# cf = ax.pcolormesh(shear_sum)
+# ax.contour(shear_sum, levels=np.array([0.8]))
+# fig.colorbar(cf)
+# ax.add_feature(cfeature.LAND, zorder=3)
+# ax.coastlines(resolution="50m", zorder=4)
+# plt.show()
