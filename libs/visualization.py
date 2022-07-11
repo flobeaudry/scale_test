@@ -1068,9 +1068,9 @@ class Arctic(sts.Scale):
 
             # not RGPS which is the first one.
             if k != 0:
-                logdiff_shear = np.log(p_shear) - np.log(RGPS_p_shear)
-                logdiff_ndiv = np.log(p_ndiv) - np.log(RGPS_p_ndiv)
-                logdiff_pdiv = np.log(p_pdiv) - np.log(RGPS_p_pdiv)
+                logdiff_shear = np.log10(p_shear) - np.log10(RGPS_p_shear)
+                logdiff_ndiv = np.log10(p_ndiv) - np.log10(RGPS_p_ndiv)
+                logdiff_pdiv = np.log10(p_pdiv) - np.log10(RGPS_p_pdiv)
                 model_diff_shear.append(logdiff_shear)
                 model_diff_ndiv.append(logdiff_ndiv)
                 model_diff_pdiv.append(logdiff_pdiv)
@@ -1237,7 +1237,6 @@ class Arctic(sts.Scale):
             model_diff_shear,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
-            edgecolor="w",
             linewidth=0.005,
         )
         ndplot = ax_ndivB.pcolormesh(
@@ -1246,7 +1245,6 @@ class Arctic(sts.Scale):
             model_diff_ndiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
-            edgecolor="w",
             linewidth=0.005,
         )
         pdplot = ax_pdivB.pcolormesh(
@@ -1255,9 +1253,39 @@ class Arctic(sts.Scale):
             model_diff_pdiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
-            edgecolor="w",
             linewidth=0.005,
         )
+
+        # compute numbers for best fit
+        num_shear = np.nanmean(np.abs(model_diff_shear), axis=1)
+        num_ndiv = np.nanmean(np.abs(model_diff_ndiv), axis=1)
+        num_pdiv = np.nanmean(np.abs(model_diff_pdiv), axis=1)
+
+        # plot numbers for best fit
+        for y in range(model_diff_shear.shape[0]):
+            ax_shearB.text(
+                1.9,
+                y + 0.4,
+                "{:.2f}".format(num_shear[y]),
+                ha="right",
+                va="center",
+            )
+        for y in range(model_diff_ndiv.shape[0]):
+            ax_ndivB.text(
+                1.9,
+                y + 0.4,
+                "{:.2f}".format(num_ndiv[y]),
+                ha="left",
+                va="center",
+            )
+        for y in range(model_diff_pdiv.shape[0]):
+            ax_pdivB.text(
+                1.9,
+                y + 0.4,
+                "{:.2f}".format(num_pdiv[y]),
+                ha="right",
+                va="center",
+            )
 
         # axis labels
         ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
@@ -1350,11 +1378,11 @@ class Arctic(sts.Scale):
             [type]: figure of pdf
         """
         # init plot
-        fig = plt.figure(dpi=300, figsize=(8, 4))
+        fig = plt.figure(dpi=300, figsize=(8, 2.17))
 
         # definitions for the axis
-        left_shear, width_shear = (1 - 2 * 0.4) / 3 + 0.02, 0.4
-        bottom_shear, height_shear = 0.12, 0.8
+        left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
+        bottom_shear, height_shear = 0.2, 0.68
         rect_scatter_shear = [
             left_shear,
             bottom_shear,
@@ -1362,17 +1390,30 @@ class Arctic(sts.Scale):
             height_shear,
         ]
 
-        left_div, width_div = 2 * (1 - 2 * 0.4) / 3 + 0.42, 0.4
-        bottom_div, height_div = 0.12, 0.8
-        rect_scatter_div = [
-            left_div,
-            bottom_div,
-            width_div,
-            height_div,
+        left_ndiv, width_ndiv = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
+        bottom_ndiv, height_ndiv = 0.2, 0.68
+        rect_scatter_ndiv = [
+            left_ndiv,
+            bottom_ndiv,
+            width_ndiv,
+            height_ndiv,
+        ]
+
+        left_pdiv, width_pdiv = (
+            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
+            0.267,
+        )
+        bottom_pdiv, height_pdiv = 0.2, 0.68
+        rect_scatter_pdiv = [
+            left_pdiv,
+            bottom_pdiv,
+            width_pdiv,
+            height_pdiv,
         ]
 
         ax_shear = fig.add_axes(rect_scatter_shear)
-        ax_div = fig.add_axes(rect_scatter_div)
+        ax_ndiv = fig.add_axes(rect_scatter_ndiv)
+        ax_pdiv = fig.add_axes(rect_scatter_pdiv)
 
         # ticks
         ax_shear.grid(
@@ -1393,16 +1434,34 @@ class Arctic(sts.Scale):
             right=True,
             labelleft=True,
         )
-        ax_div.grid(
+        ax_ndiv.grid(
             axis="x", which="minor", linestyle=":", color="xkcd:light gray"
         )
-        ax_div.grid(
+        ax_ndiv.grid(
             axis="x", which="major", linestyle="-", color="xkcd:light gray"
         )
-        ax_div.grid(
+        ax_ndiv.grid(
             axis="y", which="major", linestyle="-", color="xkcd:light gray"
         )
-        ax_div.tick_params(
+        ax_ndiv.tick_params(
+            which="both",
+            direction="in",
+            bottom=True,
+            top=True,
+            left=True,
+            right=True,
+            labelleft=True,
+        )
+        ax_pdiv.grid(
+            axis="x", which="minor", linestyle=":", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="x", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.grid(
+            axis="y", which="major", linestyle="-", color="xkcd:light gray"
+        )
+        ax_pdiv.tick_params(
             which="both",
             direction="in",
             bottom=True,
@@ -1430,60 +1489,103 @@ class Arctic(sts.Scale):
         )
 
         shear_RGPS = self._deformation(du_stack[0], 1)
-        div_RGPS = np.abs(self._deformation(du_stack[0], 2))
+        ndiv_RGPS = np.where(
+            self._deformation(du_stack[0], 2) > 0,
+            np.NaN,
+            -self._deformation(du_stack[0], 2),
+        )
+        pdiv_RGPS = np.where(
+            self._deformation(du_stack[0], 2) < 0,
+            np.NaN,
+            self._deformation(du_stack[0], 2),
+        )
 
         shear_RGPS_cut = shear_RGPS[~np.isnan(shear_RGPS)]
-        div_RGPS_cut = div_RGPS[~np.isnan(div_RGPS)]
+        ndiv_RGPS_cut = ndiv_RGPS[~np.isnan(ndiv_RGPS)]
+        pdiv_RGPS_cut = pdiv_RGPS[~np.isnan(pdiv_RGPS)]
 
         # CDF, we have to cut under 0.005 for nice CDF
         shear_RGPS_cut1 = np.where(
             shear_RGPS_cut < 0.005, np.NaN, shear_RGPS_cut
         )
-        div_RGPS_cut1 = np.where(div_RGPS_cut < 0.005, np.NaN, div_RGPS_cut)
+        ndiv_RGPS_cut1 = np.where(
+            np.abs(ndiv_RGPS_cut) < 0.005, np.NaN, ndiv_RGPS_cut
+        )
+        pdiv_RGPS_cut1 = np.where(
+            np.abs(pdiv_RGPS_cut) < 0.005, np.NaN, pdiv_RGPS_cut
+        )
         shear_RGPS_cut2 = shear_RGPS_cut1[~np.isnan(shear_RGPS_cut1)]
-        div_RGPS_cut2 = div_RGPS_cut1[~np.isnan(div_RGPS_cut1)]
+        ndiv_RGPS_cut2 = ndiv_RGPS_cut1[~np.isnan(ndiv_RGPS_cut1)]
+        pdiv_RGPS_cut2 = pdiv_RGPS_cut1[~np.isnan(pdiv_RGPS_cut1)]
 
         n = np.logspace(np.log10(5e-3), 0, num=1000)
 
         p_RGPS_shear, x_RGPS_shear = np.histogram(
             shear_RGPS_cut2, bins=n, density=1
         )
-        p_RGPS_div, x_RGPS_div = np.histogram(div_RGPS_cut2, bins=n, density=1)
+        p_RGPS_ndiv, x_RGPS_ndiv = np.histogram(
+            ndiv_RGPS_cut2, bins=n, density=1
+        )
+        p_RGPS_pdiv, x_RGPS_pdiv = np.histogram(
+            pdiv_RGPS_cut2, bins=n, density=1
+        )
 
         dx_RGPS_shear = x_RGPS_shear[1:] - x_RGPS_shear[:-1]
         X1_RGPS_shear = (x_RGPS_shear[1:] + x_RGPS_shear[:-1]) / 2
         F1_RGPS_shear = np.cumsum(p_RGPS_shear * dx_RGPS_shear)
 
-        dx_RGPS_div = x_RGPS_div[1:] - x_RGPS_div[:-1]
-        X1_RGPS_div = (x_RGPS_div[1:] + x_RGPS_div[:-1]) / 2
-        F1_RGPS_div = np.cumsum(p_RGPS_div * dx_RGPS_div)
+        dx_RGPS_ndiv = x_RGPS_ndiv[1:] - x_RGPS_ndiv[:-1]
+        X1_RGPS_ndiv = (x_RGPS_ndiv[1:] + x_RGPS_ndiv[:-1]) / 2
+        F1_RGPS_ndiv = np.cumsum(p_RGPS_ndiv * dx_RGPS_ndiv)
+
+        dx_RGPS_pdiv = x_RGPS_pdiv[1:] - x_RGPS_pdiv[:-1]
+        X1_RGPS_pdiv = (x_RGPS_pdiv[1:] + x_RGPS_pdiv[:-1]) / 2
+        F1_RGPS_pdiv = np.cumsum(p_RGPS_pdiv * dx_RGPS_pdiv)
 
         for k in range(len(du_stack) - 1):
             shear = self._deformation(du_stack[k + 1], 1)
-            div = np.abs(self._deformation(du_stack[k + 1], 2))
+            ndiv = np.where(
+                self._deformation(du_stack[k + 1], 2) > 0,
+                np.NaN,
+                -self._deformation(du_stack[k + 1], 2),
+            )
+            pdiv = np.where(
+                self._deformation(du_stack[k + 1], 2) < 0,
+                np.NaN,
+                self._deformation(du_stack[k + 1], 2),
+            )
 
             shear_cut = shear[~np.isnan(shear)]
-            div_cut = div[~np.isnan(div)]
+            ndiv_cut = ndiv[~np.isnan(ndiv)]
+            pdiv_cut = pdiv[~np.isnan(pdiv)]
 
             # CDF, we have to cut under 0.005 for nice CDF
             shear_cut1 = np.where(shear_cut < 0.005, np.NaN, shear_cut)
-            div_cut1 = np.where(div_cut < 0.005, np.NaN, div_cut)
+            ndiv_cut1 = np.where(np.abs(ndiv_cut) < 0.005, np.NaN, ndiv_cut)
+            pdiv_cut1 = np.where(np.abs(pdiv_cut) < 0.005, np.NaN, pdiv_cut)
             shear_cut2 = shear_cut1[~np.isnan(shear_cut1)]
-            div_cut2 = div_cut1[~np.isnan(div_cut1)]
+            ndiv_cut2 = ndiv_cut1[~np.isnan(ndiv_cut1)]
+            pdiv_cut2 = pdiv_cut1[~np.isnan(pdiv_cut1)]
 
             p_shear, x_shear = np.histogram(shear_cut2, bins=n, density=1)
-            p_div, x_div = np.histogram(div_cut2, bins=n, density=1)
+            p_ndiv, x_ndiv = np.histogram(ndiv_cut2, bins=n, density=1)
+            p_pdiv, x_pdiv = np.histogram(pdiv_cut2, bins=n, density=1)
 
             dx_shear = x_shear[1:] - x_shear[:-1]
             X1_shear = (x_shear[1:] + x_shear[:-1]) / 2
             F1_shear = np.cumsum(p_shear * dx_shear)
 
-            dx_div = x_div[1:] - x_div[:-1]
-            X1_div = (x_div[1:] + x_div[:-1]) / 2
-            F1_div = np.cumsum(p_div * dx_div)
+            dx_ndiv = x_ndiv[1:] - x_ndiv[:-1]
+            X1_ndiv = (x_ndiv[1:] + x_ndiv[:-1]) / 2
+            F1_ndiv = np.cumsum(p_ndiv * dx_ndiv)
+
+            dx_pdiv = x_pdiv[1:] - x_pdiv[:-1]
+            X1_pdiv = (x_pdiv[1:] + x_pdiv[:-1]) / 2
+            F1_pdiv = np.cumsum(p_pdiv * dx_pdiv)
 
             ks_distance_shear = np.amax(np.abs(F1_shear - F1_RGPS_shear))
-            ks_distance_div = np.amax(np.abs(F1_div - F1_RGPS_div))
+            ks_distance_ndiv = np.amax(np.abs(F1_ndiv - F1_RGPS_ndiv))
+            ks_distance_pdiv = np.amax(np.abs(F1_pdiv - F1_RGPS_pdiv))
 
             # plots
             ax_shear.plot(
@@ -1493,11 +1595,18 @@ class Arctic(sts.Scale):
                 label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_shear),
             )
 
-            ax_div.plot(
-                X1_div,
-                F1_div,
+            ax_ndiv.plot(
+                X1_ndiv,
+                F1_ndiv,
                 color=colors_plot[k + 1],
-                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_div),
+                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_ndiv),
+            )
+
+            ax_pdiv.plot(
+                X1_pdiv,
+                F1_pdiv,
+                color=colors_plot[k + 1],
+                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_pdiv),
             )
 
         # RGPS plots
@@ -1507,8 +1616,18 @@ class Arctic(sts.Scale):
             color=colors_plot[0],
             label=dam_plot[0],
         )
-        ax_div.plot(
-            X1_RGPS_div, F1_RGPS_div, color=colors_plot[0], label=dam_plot[0],
+        ax_ndiv.plot(
+            X1_RGPS_ndiv,
+            F1_RGPS_ndiv,
+            color=colors_plot[0],
+            label=dam_plot[0],
+        )
+
+        ax_pdiv.plot(
+            X1_RGPS_pdiv,
+            F1_RGPS_pdiv,
+            color=colors_plot[0],
+            label=dam_plot[0],
         )
 
         # axis labels
@@ -1518,13 +1637,26 @@ class Arctic(sts.Scale):
         ax_shear.set_ylim(ymin=0, ymax=1.05)
         ax_shear.set_xlim(xmin=5e-3, xmax=1.5)
 
-        ax_div.set_xlabel("Absolute divergence rate [day$^{-1}$]")
-        ax_div.set_xscale("log")
-        ax_div.set_ylim(ymin=0, ymax=1.05)
-        ax_div.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_ndiv.set_xlabel("Neg. Divergence rate [day$^{-1}$]")
+        ax_ndiv.set_xscale("log")
+        ax_ndiv.set_ylim(ymin=0, ymax=1.05)
+        ax_ndiv.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_ndiv.set_yticklabels([])
+        ticks = [1e0, 1e-1, 1e-2]
+        tick_labels = [r"$-10^{0}$", r"$-10^{-1}$", r"$-10^{-2}$"]
+        ax_ndiv.xaxis.set_ticks(ticks)
+        ax_ndiv.xaxis.set_ticklabels(tick_labels)
+        ax_ndiv.invert_xaxis()
+
+        ax_pdiv.set_xlabel("Pos. Divergence rate [day$^{-1}$]")
+        ax_pdiv.set_xscale("log")
+        ax_pdiv.set_ylim(ymin=0, ymax=1.05)
+        ax_pdiv.set_xlim(xmin=5e-3, xmax=1.5)
+        ax_pdiv.set_yticklabels([])
 
         ax_shear.legend(loc=4, fontsize="x-small")
-        ax_div.legend(loc=4, fontsize="x-small")
+        ax_ndiv.legend(loc=4, fontsize="x-small")
+        ax_pdiv.legend(loc=4, fontsize="x-small")
         # save fig
         if save:
             fig.savefig(
