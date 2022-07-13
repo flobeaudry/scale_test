@@ -20,8 +20,6 @@
 #   CANCELED  compute lagrangian trajectories from eulerian ones
 # ----------------------------------------------------------------------
 
-from pickletools import optimize
-from matplotlib import pyplot as plt
 import numpy as np
 import libs.selection as sel
 from libs.constants import *

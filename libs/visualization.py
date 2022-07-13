@@ -34,7 +34,6 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 import matplotlib.ticker
 from libs.constants import *
-from scipy.spatial import ConvexHull
 from descartes import PolygonPatch
 import alphashape
 from mpl_toolkits.axes_grid1 import make_axes_locatable
