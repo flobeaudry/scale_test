@@ -71,10 +71,17 @@ if arctic_plots == 1:
     dedt_plot_Dadv = dataset10Dadv.multi_load(
         datatype="dedt", time_end="2002-01-03-18-00", dt=dt
     )
+    dudx = np.load("RGPS_derivatives/DUDX.npy")
+    dudy = np.load("RGPS_derivatives/DUDY.npy")
+    dvdx = np.load("RGPS_derivatives/DVDX.npy")
+    dvdy = np.load("RGPS_derivatives/DVDY.npy")
+    du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+    deps_RGPS_plot = dataset_RGPS._deformation(du80_RGPS, 0)
 
     dedt_plot_ta = dataset10D._time_average(dedt_plot, dt)
     dedt_plot_ta_Dadv = dataset10Dadv._time_average(dedt_plot_Dadv, dt)
 
+    dataset_RGPS.arctic_plot_RGPS(deps_RGPS_plot[..., 0], "dedt", "_02_")
     dataset10.arctic_plot(dedt_plot_ta[..., 0])
     dataset10Dadv.arctic_plot(dedt_plot_ta_Dadv[..., 0])
 

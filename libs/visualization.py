@@ -414,7 +414,6 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
                 cmap=cmocean.cm.amp,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
                 transform=ccrs.PlateCarree(),
