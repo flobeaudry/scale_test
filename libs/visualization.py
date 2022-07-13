@@ -305,9 +305,8 @@ class Arctic(sts.Scale):
                 + self.datatype
                 + str(self.resolution)
                 + self.fig_name_supp
-                + ".eps",
+                + ".pdf",
                 transparent=0,
-                format="eps",
             )
 
     def _encircle(
@@ -442,9 +441,8 @@ class Arctic(sts.Scale):
                 + str(self.resolution)
                 + fig_name_supp
                 + "RGPS"
-                + ".eps",
+                + ".pdf",
                 transparent=0,
-                format="eps",
             )
 
     def scale_plot_vect(
@@ -654,8 +652,8 @@ class Arctic(sts.Scale):
                 + ".{}".format(self.fig_type)
             )
             fig.savefig(
-                "images/ss{}".format(self.resolution) + fig_name_supp + ".eps",
-                format="eps",
+                "images/ss{}".format(self.resolution) + fig_name_supp + ".pdf",
+                format="pdf",
             )
 
         return mean_def, mean_scale, coefficients[0]
@@ -786,8 +784,7 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/ssm{}".format(self.resolution)
                 + fig_name_supp
-                + ".eps",
-                format="eps",
+                + ".pdf",
                 transparent=0,
             )
 
@@ -863,8 +860,7 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/ssmT{}".format(self.resolution)
                 + fig_name_supp
-                + ".eps",
-                format="eps",
+                + ".pdf",
                 transparent=0,
             )
 
@@ -1398,8 +1394,8 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/pdfm{}".format(self.resolution)
                 + fig_name_supp
-                + ".eps",
-                format="eps",
+                + ".pdf",
+                format="pdf",
                 transparent=0,
             )
 
@@ -1708,8 +1704,7 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/cdfm{}".format(self.resolution)
                 + fig_name_supp
-                + ".eps",
-                format="eps",
+                + ".pdf",
                 transparent=0,
             )
 
@@ -1917,7 +1912,6 @@ class Arctic(sts.Scale):
             fig.savefig(
                 "images/multifractal{}".format(self.resolution)
                 + fig_name_supp
-                + ".eps",
-                format="eps",
+                + ".pdf",
                 transparent=0,
             )

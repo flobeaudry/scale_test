@@ -61,4 +61,4 @@ cbar = fig.colorbar(cf)
 cbar.ax.set_ylabel("Temporal presence [%]", rotation=-90, va="bottom")
 
 fig.savefig("images/rgps80mask.png")
-fig.savefig("images/rgps80mask.eps", format="eps")
+fig.savefig("images/rgps80mask.pdf")
