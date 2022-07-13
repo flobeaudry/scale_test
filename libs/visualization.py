@@ -1697,7 +1697,7 @@ class Arctic(sts.Scale):
         ax_pdiv.set_yticklabels([])
 
         ax_shear.legend(loc=4, fontsize="x-small")
-        ax_ndiv.legend(loc=4, fontsize="x-small")
+        ax_ndiv.legend(loc=3, fontsize="x-small")
         ax_pdiv.legend(loc=4, fontsize="x-small")
         # save fig
         if save:
