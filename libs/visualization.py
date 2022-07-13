@@ -1827,8 +1827,8 @@ class Arctic(sts.Scale):
         fig = plt.figure(dpi=300, figsize=(4, 4))
 
         # definitions for the axes
-        left, width = 0.14, 0.73
-        bottom, height = 0.12, 0.8
+        left, width = 0.14, 0.75
+        bottom, height = 0.14, 0.75
 
         rect_scatter = [left, bottom, width, height]
         ax = fig.add_axes(rect_scatter)
@@ -1907,7 +1907,7 @@ class Arctic(sts.Scale):
                 q_array2, coeff[:, k], ".", color=colors_plot[k], markersize=5
             )
 
-        ax.legend(loc=1, fontsize="x-small")
+        ax.legend(loc=2, fontsize="x-small")
         if save:
             fig.savefig(
                 "images/multifractal{}".format(self.resolution)
