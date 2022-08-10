@@ -418,7 +418,9 @@ class Arctic(sts.Scale):
                 zorder=1,
             )
             cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
+            cbar.ax.set_ylabel(
+                "Ice deformation rate [day$^{-1}$]", rotation=-90, va="bottom"
+            )
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
@@ -734,17 +736,12 @@ class Arctic(sts.Scale):
                 "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                # "xkcd:blush",
+                "xkcd:blush",
             ]
         )
         shape_plot = np.array(["^", "v"])
         dam_plot = np.array(
-            [
-                "RGPS: ",
-                "No damage: ",
-                "Damage: ",
-                # "Advection + healing: ",
-            ]
+            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
         )
         # loop over
         for k in range(mean_def.shape[1]):
@@ -810,17 +807,12 @@ class Arctic(sts.Scale):
                 "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                # "xkcd:blush",
+                "xkcd:blush",
             ]
         )
         shape_plot = np.array(["^", "v"])
         dam_plot = np.array(
-            [
-                "RGPS: ",
-                "No damage: ",
-                "Damage: ",
-                # "Advection + healing: ",
-            ]
+            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
         )
         # loop over
         for k in range(mean_def.shape[1]):
@@ -1043,16 +1035,11 @@ class Arctic(sts.Scale):
                 "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                # "xkcd:blush",
+                "xkcd:blush",
             ]
         )
         dam_plot = np.array(
-            [
-                "RGPS: ",
-                "No damage: ",
-                "Damage: ",
-                # "Advection + healing: ",
-            ]
+            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
         )
 
         model_diff_shear = []
@@ -1512,16 +1499,11 @@ class Arctic(sts.Scale):
                 "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                # "xkcd:blush",
+                "xkcd:blush",
             ]
         )
         dam_plot = np.array(
-            [
-                "RGPS: N/A",
-                "No damage: ",
-                "Damage: ",
-                # "Advection + healing: ",
-            ]
+            ["RGPS: N/A", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
         )
 
         shear_RGPS = self._deformation(du_stack[0], 1)
@@ -1868,16 +1850,11 @@ class Arctic(sts.Scale):
                 "xkcd:gross green",
                 "xkcd:dark blue grey",
                 "xkcd:tomato",
-                # "xkcd:blush",
+                "xkcd:blush",
             ]
         )
         dam_plot = np.array(
-            [
-                "RGPS: ",
-                "No damage: ",
-                "Damage: ",
-                # "Advection + healing: ",
-            ]
+            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
         )
 
         q_array1 = np.arange(0.1, q + 0.6, 0.1)

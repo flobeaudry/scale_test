@@ -55,7 +55,7 @@ rect_scatter = [
 ax = fig.add_axes(rect_scatter)
 
 cf = ax.pcolormesh(shear_sum * 100, vmin=0, vmax=100)
-ax.pcolormesh(continents, cmap="binary", vmin=0, vmax=1)
+ax.pcolormesh(continents, cmap="cmo.topo", vmin=0, vmax=1)
 ax.contour(shear_sum * 100, levels=np.array([80]))
 cbar = fig.colorbar(cf)
 cbar.ax.set_ylabel("Temporal presence [%]", rotation=-90, va="bottom")
