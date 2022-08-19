@@ -16,6 +16,7 @@ dataset10 = vis.Arctic(
     resolution=10,
     fig_name_supp="_02",
     fig_type="png",
+    trans=True,
 )
 
 dataset10Dadv2 = vis.Arctic(
@@ -28,6 +29,7 @@ dataset10Dadv2 = vis.Arctic(
     resolution=10,
     fig_name_supp="Dadv_02_2",
     fig_type="png",
+    trans=True,
 )
 
 dataset10Dadv = vis.Arctic(
@@ -40,6 +42,7 @@ dataset10Dadv = vis.Arctic(
     resolution=10,
     fig_name_supp="Dadv_02",
     fig_type="png",
+    trans=True,
 )
 
 
@@ -49,13 +52,14 @@ dataset_RGPS = vis.Arctic(
     resolution=12.5,
     fig_name_supp="_02_RGPS",
     fig_type="png",
+    trans=True,
 )
 
 # ----------------------------------------------------------------------
 
 dt = "00-06-00"
 time_end = "2002-01-31-18-00"
-arctic_plots = 0
+arctic_plots = 1
 
 # ----------------------------------------------------------------------
 # dedt plots

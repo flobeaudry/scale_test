@@ -64,6 +64,7 @@ class Arctic(sts.Scale):
         save: bool = 0,
         fig_type: str = "png",
         fig_name_supp: str = None,
+        trans: bool = False,
     ):
         """
         Class attributes for Arctic.
@@ -96,6 +97,7 @@ class Arctic(sts.Scale):
         self.step = step
         self.fig_shape = fig_shape
         self.fig_name_supp = fig_name_supp
+        self.trans = trans
         super(Arctic, self).__init__(
             directory, time, expno, datatype, tolerance, resolution, nx, ny
         )
@@ -127,6 +129,8 @@ class Arctic(sts.Scale):
 
         # figure initialization
         fig = plt.figure(dpi=300)
+        if self.trans:
+            fig.patch.set_facecolor("None")
         ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
         fig.subplots_adjust(
             bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
@@ -349,6 +353,8 @@ class Arctic(sts.Scale):
 
         # figure initialization
         fig = plt.figure(dpi=300)
+        if self.trans:
+            fig.patch.set_facecolor("None")
         ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
         fig.subplots_adjust(
             bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
@@ -470,6 +476,8 @@ class Arctic(sts.Scale):
         """
 
         fig = plt.figure(dpi=300, figsize=(6, 4))
+        if self.trans:
+            fig.patch.set_facecolor("None")
 
         # initialization of the list containing the means
         mean_def = np.zeros(len(scales))
@@ -669,6 +677,8 @@ class Arctic(sts.Scale):
             ax: the axis in the figure
         """
         fig = plt.figure(dpi=300, figsize=(6, 4))
+        if self.trans:
+            fig.patch.set_facecolor("None")
 
         # definitions for the axes
         left, width = 0.14, 0.73
@@ -740,9 +750,7 @@ class Arctic(sts.Scale):
             ]
         )
         shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(
-            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
-        )
+        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -811,9 +819,7 @@ class Arctic(sts.Scale):
             ]
         )
         shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(
-            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
-        )
+        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -871,7 +877,15 @@ class Arctic(sts.Scale):
             [type]: figure of pdf
         """
         # init plot
-        fig = plt.figure(dpi=300, figsize=(8, 3.5))
+        fig = plt.figure(
+            dpi=300,
+            figsize=(
+                8,
+                0.65 * 3.5 + 0.18 * 3.5 + 0.055 * (len(du_stack) - 1) * 3.5,
+            ),
+        )
+        if self.trans:
+            fig.patch.set_facecolor("None")
 
         # definitions for the axis
         left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
@@ -905,7 +919,7 @@ class Arctic(sts.Scale):
         ]
 
         left_shearB, width_shearB = (1 - 3 * 0.267) / 4 + 0.033, 0.267
-        bottom_shearB, height_shearB = 0.18, 0.15
+        bottom_shearB, height_shearB = 0.18, 0.055 * (len(du_stack) - 1)
         rect_scatter_shearB = [
             left_shearB,
             bottom_shearB,
@@ -914,7 +928,7 @@ class Arctic(sts.Scale):
         ]
 
         left_ndivB, width_ndivB = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
-        bottom_ndivB, height_ndivB = 0.18, 0.15
+        bottom_ndivB, height_ndivB = 0.18, 0.055 * (len(du_stack) - 1)
         rect_scatter_ndivB = [
             left_ndivB,
             bottom_ndivB,
@@ -926,7 +940,7 @@ class Arctic(sts.Scale):
             3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
             0.267,
         )
-        bottom_pdivB, height_pdivB = 0.18, 0.15
+        bottom_pdivB, height_pdivB = 0.18, 0.055 * (len(du_stack) - 1)
         rect_scatter_pdivB = [
             left_pdivB,
             bottom_pdivB,
@@ -1038,9 +1052,7 @@ class Arctic(sts.Scale):
                 "xkcd:blush",
             ]
         )
-        dam_plot = np.array(
-            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
-        )
+        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
 
         model_diff_shear = []
         model_diff_ndiv = []
@@ -1247,9 +1259,11 @@ class Arctic(sts.Scale):
         model_diff_ndiv = np.asarray(model_diff_ndiv)
         model_diff_pdiv = np.asarray(model_diff_pdiv)
 
+        list_y = np.arange(0, model_diff_shear.shape[0] + 1)
+
         splot = ax_shearB.pcolormesh(
             n,
-            [0, 1, 2],
+            list_y,
             model_diff_shear,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1257,7 +1271,7 @@ class Arctic(sts.Scale):
         )
         ndplot = ax_ndivB.pcolormesh(
             n,
-            [0, 1, 2],
+            list_y,
             model_diff_ndiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1265,7 +1279,7 @@ class Arctic(sts.Scale):
         )
         pdplot = ax_pdivB.pcolormesh(
             n,
-            [0, 1, 2],
+            list_y,
             model_diff_pdiv,
             cmap="coolwarm",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1335,8 +1349,8 @@ class Arctic(sts.Scale):
 
         ax_shearB.set_xscale("log")
         ax_shearB.set_xlim(xmin=5e-3, xmax=2)
-        ticksB = [0.5, 1.5]
-        tick_labelsB = ["VP", "VPd"]
+        ticksB = [0.5, 1.5, 2.5]
+        tick_labelsB = ["VP", "VPd", "VPd2"]
         ax_shearB.yaxis.set_ticks(ticksB)
         ax_shearB.yaxis.set_ticklabels(tick_labelsB)
         ax_shearB.set_xticklabels([])
@@ -1402,6 +1416,8 @@ class Arctic(sts.Scale):
         """
         # init plot
         fig = plt.figure(dpi=300, figsize=(8, 2.17))
+        if self.trans:
+            fig.patch.set_facecolor("None")
 
         # definitions for the axis
         left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
@@ -1502,9 +1518,7 @@ class Arctic(sts.Scale):
                 "xkcd:blush",
             ]
         )
-        dam_plot = np.array(
-            ["RGPS: N/A", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
-        )
+        dam_plot = np.array(["RGPS: N/A", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
 
         shear_RGPS = self._deformation(du_stack[0], 1)
         ndiv_RGPS = np.where(
@@ -1801,6 +1815,8 @@ class Arctic(sts.Scale):
         """
 
         fig = plt.figure(dpi=300, figsize=(4, 4))
+        if self.trans:
+            fig.patch.set_facecolor("None")
 
         # definitions for the axes
         left, width = 0.14, 0.75
@@ -1853,9 +1869,7 @@ class Arctic(sts.Scale):
                 "xkcd:blush",
             ]
         )
-        dam_plot = np.array(
-            ["RGPS: ", "No damage: ", "Damage: ", "Damage ($t_h=2$): ",]
-        )
+        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
 
         q_array1 = np.arange(0.1, q + 0.6, 0.1)
         q_array2 = np.arange(0.1, q + 0.1, 0.1)
