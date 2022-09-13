@@ -743,14 +743,29 @@ class Arctic(sts.Scale):
         fig, ax = self._multiplot_precond(0)
         colors_plot = np.array(
             [
-                "xkcd:gross green",
                 "xkcd:dark blue grey",
+                "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
+                "xkcd:dark teal",
+                "xkcd:blue green",
+                "xkcd:light teal",
+                "xkcd:mint",
             ]
         )
         shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
+        dam_plot = np.array(
+            [
+                "RGPS: ",
+                "VP: ",
+                "VPd: ",
+                "VPd ($t_h=2$): ",
+                "VPd (n=2)",
+                "VPd (n=3)",
+                "VPd (n=4)",
+                "VPd (n=5)",
+            ]
+        )
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -812,14 +827,29 @@ class Arctic(sts.Scale):
         fig, ax = self._multiplot_precond(1)
         colors_plot = np.array(
             [
-                "xkcd:gross green",
                 "xkcd:dark blue grey",
+                "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
+                "xkcd:dark teal",
+                "xkcd:blue green",
+                "xkcd:light teal",
+                "xkcd:mint",
             ]
         )
         shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
+        dam_plot = np.array(
+            [
+                "RGPS: ",
+                "VP: ",
+                "VPd: ",
+                "VPd ($t_h=2$): ",
+                "VPd (n=2)",
+                "VPd (n=3)",
+                "VPd (n=4)",
+                "VPd (n=5)",
+            ]
+        )
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -1046,13 +1076,28 @@ class Arctic(sts.Scale):
 
         colors_plot = np.array(
             [
-                "xkcd:gross green",
                 "xkcd:dark blue grey",
+                "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
+                "xkcd:dark teal",
+                "xkcd:blue green",
+                "xkcd:light teal",
+                "xkcd:mint",
             ]
         )
-        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
+        dam_plot = np.array(
+            [
+                "RGPS: ",
+                "VP: ",
+                "VPd: ",
+                "VPd ($t_h=2$): ",
+                "VPd (n=2)",
+                "VPd (n=3)",
+                "VPd (n=4)",
+                "VPd (n=5)",
+            ]
+        )
 
         model_diff_shear = []
         model_diff_ndiv = []
@@ -1512,13 +1557,28 @@ class Arctic(sts.Scale):
 
         colors_plot = np.array(
             [
-                "xkcd:gross green",
                 "xkcd:dark blue grey",
+                "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
+                "xkcd:dark teal",
+                "xkcd:blue green",
+                "xkcd:light teal",
+                "xkcd:mint",
             ]
         )
-        dam_plot = np.array(["RGPS: N/A", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
+        dam_plot = np.array(
+            [
+                "RGPS: ",
+                "VP: ",
+                "VPd: ",
+                "VPd ($t_h=2$): ",
+                "VPd (n=2)",
+                "VPd (n=3)",
+                "VPd (n=4)",
+                "VPd (n=5)",
+            ]
+        )
 
         shear_RGPS = self._deformation(du_stack[0], 1)
         ndiv_RGPS = np.where(
@@ -1863,13 +1923,28 @@ class Arctic(sts.Scale):
 
         colors_plot = np.array(
             [
-                "xkcd:gross green",
                 "xkcd:dark blue grey",
+                "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
+                "xkcd:dark teal",
+                "xkcd:blue green",
+                "xkcd:light teal",
+                "xkcd:mint",
             ]
         )
-        dam_plot = np.array(["RGPS: ", "VP: ", "VPd: ", "VPd ($t_h=2$): ",])
+        dam_plot = np.array(
+            [
+                "RGPS: ",
+                "VP: ",
+                "VPd: ",
+                "VPd ($t_h=2$): ",
+                "VPd (n=2)",
+                "VPd (n=3)",
+                "VPd (n=4)",
+                "VPd (n=5)",
+            ]
+        )
 
         q_array1 = np.arange(0.1, q + 0.6, 0.1)
         q_array2 = np.arange(0.1, q + 0.1, 0.1)
