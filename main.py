@@ -71,18 +71,18 @@ dataset85 = vis.Arctic(
     trans=True,
 )
 
-# dataset93 = vis.Arctic(
-#     directory="output93",
-#     time="2002-01-01-00-00",
-#     expno="93",
-#     datatype="u",
-#     fig_shape="round",
-#     save=1,
-#     resolution=10,
-#     fig_name_supp="93",
-#     fig_type="png",
-#     trans=True,
-# )
+dataset93 = vis.Arctic(
+    directory="output93",
+    time="2002-01-01-00-00",
+    expno="93",
+    datatype="u",
+    fig_shape="round",
+    save=1,
+    resolution=10,
+    fig_name_supp="93",
+    fig_type="png",
+    trans=True,
+)
 
 dataset95 = vis.Arctic(
     directory="output95",
@@ -111,10 +111,17 @@ dataset_RGPS = vis.Arctic(
 dt = "00-06-00"
 time_end = "2002-01-31-18-00"
 datasets = np.array(
-    [dataset10]
-    #     , dataset10Dadv, dataset10Dadv2, dataset83, dataset85, dataset95]
+    [
+        dataset10,
+        dataset10Dadv,
+        dataset10Dadv2,
+        dataset83,
+        dataset93,
+        dataset85,
+        dataset95,
+    ]
 )
-arctic_plots = 0
+arctic_plots = 1
 
 # ----------------------------------------------------------------------
 # dedt plots

@@ -743,27 +743,27 @@ class Arctic(sts.Scale):
         fig, ax = self._multiplot_precond(0)
         colors_plot = np.array(
             [
-                "xkcd:dark blue grey",
+                "black",
                 "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
-                "xkcd:dark teal",
                 "xkcd:blue green",
-                "xkcd:light teal",
-                "xkcd:mint",
+                "xkcd:aquamarine",
+                "xkcd:purple blue",
+                "xkcd:light violet",
             ]
         )
         shape_plot = np.array(["^", "v"])
         dam_plot = np.array(
             [
-                "RGPS: ",
-                "VP: ",
-                "VPd: ",
-                "VPd ($t_h=2$): ",
-                "VPd (n=2)",
-                "VPd (n=3)",
-                "VPd (n=4)",
-                "VPd (n=5)",
+                "RGPS",
+                "VP",
+                "VPd(1,30)",
+                "VPd(1,2)",
+                "VPd(3,30)",
+                "VPd(3,2)",
+                "VPd(5,30)",
+                "VPd(5,2)",
             ]
         )
         # loop over
@@ -785,15 +785,35 @@ class Arctic(sts.Scale):
                 mean_def[:, k],
                 "^",
                 color=colors_plot[k],
-                label=dam_plot[k]
-                + r"$\beta$ = {:.2f}, corr = {:.2f}".format(
-                    np.abs(coefficients[0]), corr
-                ),
+                label="{:.2f}".format(np.abs(coefficients[0])),
                 markersize=5,
             )
             ax.plot(t, np.exp(fit(np.log(t))), color=colors_plot[k])
 
-        ax.legend(loc=1, fontsize="x-small")
+        legend1 = ax.legend(
+            loc=1,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            title=r"$\beta$",
+        )
+        ax.legend(
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            labels=dam_plot,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            ncol=1,
+        )
+        plt.gca().add_artist(legend1)
+
         if save:
             fig.savefig(
                 "images/ssm{}".format(self.resolution)
@@ -827,27 +847,27 @@ class Arctic(sts.Scale):
         fig, ax = self._multiplot_precond(1)
         colors_plot = np.array(
             [
-                "xkcd:dark blue grey",
+                "black",
                 "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
-                "xkcd:dark teal",
                 "xkcd:blue green",
-                "xkcd:light teal",
-                "xkcd:mint",
+                "xkcd:aquamarine",
+                "xkcd:purple blue",
+                "xkcd:light violet",
             ]
         )
         shape_plot = np.array(["^", "v"])
         dam_plot = np.array(
             [
-                "RGPS: ",
-                "VP: ",
-                "VPd: ",
-                "VPd ($t_h=2$): ",
-                "VPd (n=2)",
-                "VPd (n=3)",
-                "VPd (n=4)",
-                "VPd (n=5)",
+                "RGPS",
+                "VP",
+                "VPd(1,30)",
+                "VPd(1,2)",
+                "VPd(3,30)",
+                "VPd(3,2)",
+                "VPd(5,30)",
+                "VPd(5,2)",
             ]
         )
         # loop over
@@ -869,15 +889,35 @@ class Arctic(sts.Scale):
                 mean_def[:, k],
                 "^",
                 color=colors_plot[k],
-                label=dam_plot[k]
-                + r"$\alpha$ = {:.2f}, corr = {:.2f}".format(
-                    np.abs(coefficients[0]), corr
-                ),
+                label="{:.2f}".format(np.abs(coefficients[0])),
                 markersize=5,
             )
             ax.plot(t, np.exp(fit(np.log(t))), color=colors_plot[k])
 
-        ax.legend(loc=1, fontsize="x-small")
+        legend1 = ax.legend(
+            loc=1,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            title=r"$\alpha$",
+        )
+        ax.legend(
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            labels=dam_plot,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            ncol=1,
+        )
+        plt.gca().add_artist(legend1)
+
         if save:
             fig.savefig(
                 "images/ssmT{}".format(self.resolution)
@@ -906,20 +946,51 @@ class Arctic(sts.Scale):
         Returns:
             [type]: figure of pdf
         """
-        # init plot
-        fig = plt.figure(
-            dpi=300,
-            figsize=(
-                8,
-                0.65 * 3.5 + 0.18 * 3.5 + 0.055 * (len(du_stack) - 1) * 3.5,
-            ),
+        # colors and stuff
+        colors_plot = np.array(
+            [
+                "black",
+                "xkcd:gross green",
+                "xkcd:tomato",
+                "xkcd:blush",
+                "xkcd:blue green",
+                "xkcd:aquamarine",
+                "xkcd:purple blue",
+                "xkcd:light violet",
+            ]
         )
+        dam_plot = np.array(
+            [
+                "RGPS",
+                "VP",
+                "VPd(1,30)",
+                "VPd(1,2)",
+                "VPd(3,30)",
+                "VPd(3,2)",
+                "VPd(5,30)",
+                "VPd(5,2)",
+            ]
+        )
+
+        # init plot
+        basefigsizey = 3.5
+        basefigsizex = 8
+        figsizex = basefigsizex
+        figsizey = basefigsizey + 0.05 * (len(du_stack) - 1)
+        fig = plt.figure(dpi=300, figsize=(figsizex, figsizey),)
         if self.trans:
             fig.patch.set_facecolor("None")
 
         # definitions for the axis
-        left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
-        bottom_shear, height_shear = 0.5, 0.42
+        extraspaceinit = 0.07 * figsizex / basefigsizex
+        graphsizex = (0.267 - extraspaceinit / 3) * basefigsizex / figsizex
+        separation = (1 - extraspaceinit - 3 * graphsizex) / 4
+
+        left_shear, width_shear = separation + extraspaceinit, graphsizex
+        bottom_shear, height_shear = (
+            0.53 * figsizey / basefigsizey,
+            0.38 * basefigsizey / figsizey,
+        )
         rect_scatter_shear = [
             left_shear,
             bottom_shear,
@@ -927,8 +998,14 @@ class Arctic(sts.Scale):
             height_shear,
         ]
 
-        left_ndiv, width_ndiv = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
-        bottom_ndiv, height_ndiv = 0.5, 0.42
+        left_ndiv, width_ndiv = (
+            2 * separation + extraspaceinit + graphsizex,
+            graphsizex,
+        )
+        bottom_ndiv, height_ndiv = (
+            0.53 * figsizey / basefigsizey,
+            0.38 * basefigsizey / figsizey,
+        )
         rect_scatter_ndiv = [
             left_ndiv,
             bottom_ndiv,
@@ -937,10 +1014,13 @@ class Arctic(sts.Scale):
         ]
 
         left_pdiv, width_pdiv = (
-            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
-            0.267,
+            3 * separation + extraspaceinit + 2 * graphsizex,
+            graphsizex,
         )
-        bottom_pdiv, height_pdiv = 0.5, 0.42
+        bottom_pdiv, height_pdiv = (
+            0.53 * figsizey / basefigsizey,
+            0.38 * basefigsizey / figsizey,
+        )
         rect_scatter_pdiv = [
             left_pdiv,
             bottom_pdiv,
@@ -948,8 +1028,11 @@ class Arctic(sts.Scale):
             height_pdiv,
         ]
 
-        left_shearB, width_shearB = (1 - 3 * 0.267) / 4 + 0.033, 0.267
-        bottom_shearB, height_shearB = 0.18, 0.055 * (len(du_stack) - 1)
+        left_shearB, width_shearB = separation + extraspaceinit, graphsizex
+        bottom_shearB, height_shearB = (
+            0.15 * basefigsizey / figsizey,
+            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
+        )
         rect_scatter_shearB = [
             left_shearB,
             bottom_shearB,
@@ -957,8 +1040,14 @@ class Arctic(sts.Scale):
             height_shearB,
         ]
 
-        left_ndivB, width_ndivB = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
-        bottom_ndivB, height_ndivB = 0.18, 0.055 * (len(du_stack) - 1)
+        left_ndivB, width_ndivB = (
+            2 * separation + extraspaceinit + graphsizex,
+            graphsizex,
+        )
+        bottom_ndivB, height_ndivB = (
+            0.15 * basefigsizey / figsizey,
+            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
+        )
         rect_scatter_ndivB = [
             left_ndivB,
             bottom_ndivB,
@@ -967,10 +1056,13 @@ class Arctic(sts.Scale):
         ]
 
         left_pdivB, width_pdivB = (
-            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
-            0.267,
+            3 * separation + extraspaceinit + 2 * graphsizex,
+            graphsizex,
         )
-        bottom_pdivB, height_pdivB = 0.18, 0.055 * (len(du_stack) - 1)
+        bottom_pdivB, height_pdivB = (
+            0.15 * basefigsizey / figsizey,
+            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
+        )
         rect_scatter_pdivB = [
             left_pdivB,
             bottom_pdivB,
@@ -1059,9 +1151,9 @@ class Arctic(sts.Scale):
             direction="out",
             bottom=False,
             top=True,
-            left=True,
-            right=False,
-            labelleft=True,
+            left=False,
+            right=True,
+            labelright=True,
         )
 
         ax_pdivB.tick_params(
@@ -1072,31 +1164,6 @@ class Arctic(sts.Scale):
             left=True,
             right=False,
             labelleft=True,
-        )
-
-        colors_plot = np.array(
-            [
-                "xkcd:dark blue grey",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:dark teal",
-                "xkcd:blue green",
-                "xkcd:light teal",
-                "xkcd:mint",
-            ]
-        )
-        dam_plot = np.array(
-            [
-                "RGPS: ",
-                "VP: ",
-                "VPd: ",
-                "VPd ($t_h=2$): ",
-                "VPd (n=2)",
-                "VPd (n=3)",
-                "VPd (n=4)",
-                "VPd (n=5)",
-            ]
         )
 
         model_diff_shear = []
@@ -1282,21 +1349,21 @@ class Arctic(sts.Scale):
                 x_shear_mid,
                 p_shear,
                 color=colors_plot[k],
-                label=dam_plot[k] + "({:.1f})".format(-coeff_shear[-1]),
+                label="{:.1f}".format(-coeff_shear[-1]),
             )
 
             ax_ndiv.plot(
                 x_ndiv_mid,
                 p_ndiv,
                 color=colors_plot[k],
-                label=dam_plot[k] + "({:.1f})".format(-coeff_ndiv[-1]),
+                label="{:.1f}".format(-coeff_ndiv[-1]),
             )
 
             ax_pdiv.plot(
                 x_pdiv_mid,
                 p_pdiv,
                 color=colors_plot[k],
-                label=dam_plot[k] + "({:.1f})".format(-coeff_pdiv[-1]),
+                label="{:.1f}".format(-coeff_pdiv[-1]),
             )
 
         # model diff plots
@@ -1339,7 +1406,7 @@ class Arctic(sts.Scale):
         # plot numbers for best fit
         for y in range(model_diff_shear.shape[0]):
             ax_shearB.text(
-                1.9,
+                2.9,
                 y + 0.4,
                 "{:.2f}".format(num_shear[y]),
                 ha="right",
@@ -1347,7 +1414,7 @@ class Arctic(sts.Scale):
             )
         for y in range(model_diff_ndiv.shape[0]):
             ax_ndivB.text(
-                1.9,
+                2.9,
                 y + 0.4,
                 "{:.2f}".format(num_ndiv[y]),
                 ha="left",
@@ -1355,7 +1422,7 @@ class Arctic(sts.Scale):
             )
         for y in range(model_diff_pdiv.shape[0]):
             ax_pdivB.text(
-                1.9,
+                2.9,
                 y + 0.4,
                 "{:.2f}".format(num_pdiv[y]),
                 ha="right",
@@ -1363,19 +1430,19 @@ class Arctic(sts.Scale):
             )
 
         # axis labels
-        ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
+        ax_shear.set_xlabel("Shear strain rate [day$^{-1}$]")
         ax_shear.set_ylabel("PDF")
         ax_shear.set_xscale("log")
         ax_shear.set_yscale("log")
         ax_shear.set_ylim(ymin=1e-5, ymax=1e3)
-        ax_shear.set_xlim(xmin=5e-3, xmax=2)
+        ax_shear.set_xlim(xmin=5e-3, xmax=3)
         ax_shear.locator_params(axis="y", numticks=5)
 
-        ax_ndiv.set_xlabel("Neg. Divergence rate [day$^{-1}$]")
+        ax_ndiv.set_xlabel("Convergence [day$^{-1}$]")
         ax_ndiv.set_yscale("log")
         ax_ndiv.set_xscale("log")
         ax_ndiv.set_ylim(ymin=1e-5, ymax=1e3)
-        ax_ndiv.set_xlim(xmin=5e-3, xmax=2)
+        ax_ndiv.set_xlim(xmin=5e-3, xmax=3)
         ax_ndiv.locator_params(axis="y", numticks=5)
         ax_ndiv.set_yticklabels([])
         ticks = [1e0, 1e-1, 1e-2]
@@ -1384,20 +1451,22 @@ class Arctic(sts.Scale):
         ax_ndiv.xaxis.set_ticklabels(tick_labels)
         ax_ndiv.invert_xaxis()
 
-        ax_pdiv.set_xlabel("Pos. Divergence rate [day$^{-1}$]")
+        ax_pdiv.set_xlabel("Divergence [day$^{-1}$]")
         ax_pdiv.set_xscale("log")
         ax_pdiv.set_yscale("log")
         ax_pdiv.set_ylim(ymin=1e-5, ymax=1e3)
-        ax_pdiv.set_xlim(xmin=5e-3, xmax=2)
+        ax_pdiv.set_xlim(xmin=5e-3, xmax=3)
         ax_pdiv.locator_params(axis="y", numticks=5)
         ax_pdiv.set_yticklabels([])
 
         ax_shearB.set_xscale("log")
-        ax_shearB.set_xlim(xmin=5e-3, xmax=2)
-        ticksB = [0.5, 1.5, 2.5]
-        tick_labelsB = ["VP", "VPd", "VPd2"]
+        ax_shearB.set_xlim(xmin=5e-3, xmax=3)
+        ticksB = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
+        tick_labelsB = dam_plot[1:]
         ax_shearB.yaxis.set_ticks(ticksB)
         ax_shearB.yaxis.set_ticklabels(tick_labelsB)
+        for i in range(colors_plot[1:].shape[0]):
+            ax_shearB.get_yticklabels()[i].set_color(colors_plot[i + 1])
         ax_shearB.set_xticklabels([])
         sdivider = make_axes_locatable(ax_shearB)
         scax = sdivider.append_axes("bottom", size=0.1, pad=0.1)
@@ -1405,7 +1474,7 @@ class Arctic(sts.Scale):
         scbar.ax.set_xlabel("Log difference to RGPS PDF")
 
         ax_ndivB.set_xscale("log")
-        ax_ndivB.set_xlim(xmin=5e-3, xmax=2)
+        ax_ndivB.set_xlim(xmin=5e-3, xmax=3)
         ax_ndivB.set_yticklabels([])
         ax_ndivB.set_xticklabels([])
         ax_ndivB.yaxis.set_ticks(ticksB)
@@ -1416,7 +1485,7 @@ class Arctic(sts.Scale):
         ndcbar.ax.set_xlabel("Log difference to RGPS PDF")
 
         ax_pdivB.set_xscale("log")
-        ax_pdivB.set_xlim(xmin=5e-3, xmax=2)
+        ax_pdivB.set_xlim(xmin=5e-3, xmax=3)
         ax_pdivB.set_yticklabels([])
         ax_pdivB.set_xticklabels([])
         ax_pdivB.yaxis.set_ticks(ticksB)
@@ -1425,9 +1494,33 @@ class Arctic(sts.Scale):
         pdcbar = fig.colorbar(pdplot, cax=pdcax, orientation="horizontal")
         pdcbar.ax.set_xlabel("Log difference to RGPS PDF")
 
-        ax_shear.legend(loc=1, fontsize="x-small")
-        ax_ndiv.legend(loc=2, fontsize="x-small")
-        ax_pdiv.legend(loc=1, fontsize="x-small")
+        ax_shear.legend(
+            loc=7,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$k_{\dot\varepsilon_{II}}$",
+        )
+        ax_ndiv.legend(
+            loc=6,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$k_{\dot\varepsilon_{I}<0}$",
+        )
+        ax_pdiv.legend(
+            loc=7,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$k_{\dot\varepsilon_{I}>0}$",
+        )
 
         # save fig
         if save:
@@ -1460,12 +1553,12 @@ class Arctic(sts.Scale):
             [type]: figure of pdf
         """
         # init plot
-        fig = plt.figure(dpi=300, figsize=(8, 2.17))
+        fig = plt.figure(dpi=300, figsize=(8, 2.2))
         if self.trans:
             fig.patch.set_facecolor("None")
 
         # definitions for the axis
-        left_shear, width_shear = (1 - 3 * 0.267) / 4 + 0.033, 0.267
+        left_shear, width_shear = (1 - 3 * 0.28) / 4 + 0.033, 0.25
         bottom_shear, height_shear = 0.2, 0.68
         rect_scatter_shear = [
             left_shear,
@@ -1474,7 +1567,7 @@ class Arctic(sts.Scale):
             height_shear,
         ]
 
-        left_ndiv, width_ndiv = (1 - 3 * 0.267) / 2 + 0.267 + 0.033, 0.267
+        left_ndiv, width_ndiv = (1 - 3 * 0.28) / 2 + 0.25 + 0.033, 0.25
         bottom_ndiv, height_ndiv = 0.2, 0.68
         rect_scatter_ndiv = [
             left_ndiv,
@@ -1484,8 +1577,8 @@ class Arctic(sts.Scale):
         ]
 
         left_pdiv, width_pdiv = (
-            3 * (1 - 3 * 0.267) / 4 + 2 * 0.267 + 0.033,
-            0.267,
+            3 * (1 - 3 * 0.28) / 4 + 2 * 0.25 + 0.033,
+            0.25,
         )
         bottom_pdiv, height_pdiv = 0.2, 0.68
         rect_scatter_pdiv = [
@@ -1557,26 +1650,26 @@ class Arctic(sts.Scale):
 
         colors_plot = np.array(
             [
-                "xkcd:dark blue grey",
+                "black",
                 "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
-                "xkcd:dark teal",
                 "xkcd:blue green",
-                "xkcd:light teal",
-                "xkcd:mint",
+                "xkcd:aquamarine",
+                "xkcd:purple blue",
+                "xkcd:light violet",
             ]
         )
         dam_plot = np.array(
             [
-                "RGPS: ",
-                "VP: ",
-                "VPd: ",
-                "VPd ($t_h=2$): ",
-                "VPd (n=2)",
-                "VPd (n=3)",
-                "VPd (n=4)",
-                "VPd (n=5)",
+                "RGPS",
+                "VP",
+                "VPd(1,30)",
+                "VPd(1,2)",
+                "VPd(3,30)",
+                "VPd(3,2)",
+                "VPd(5,30)",
+                "VPd(5,2)",
             ]
         )
 
@@ -1684,52 +1777,43 @@ class Arctic(sts.Scale):
                 X1_shear,
                 F1_shear,
                 color=colors_plot[k + 1],
-                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_shear),
+                label="{:.2f}".format(ks_distance_shear),
             )
 
             ax_ndiv.plot(
                 X1_ndiv,
                 F1_ndiv,
                 color=colors_plot[k + 1],
-                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_ndiv),
+                label="{:.2f}".format(ks_distance_ndiv),
             )
 
             ax_pdiv.plot(
                 X1_pdiv,
                 F1_pdiv,
                 color=colors_plot[k + 1],
-                label=dam_plot[k + 1] + "({:.2f})".format(ks_distance_pdiv),
+                label="{:.2f}".format(ks_distance_pdiv),
             )
 
         # RGPS plots
         ax_shear.plot(
-            X1_RGPS_shear,
-            F1_RGPS_shear,
-            color=colors_plot[0],
-            label=dam_plot[0],
+            X1_RGPS_shear, F1_RGPS_shear, color=colors_plot[0],
         )
         ax_ndiv.plot(
-            X1_RGPS_ndiv,
-            F1_RGPS_ndiv,
-            color=colors_plot[0],
-            label=dam_plot[0],
+            X1_RGPS_ndiv, F1_RGPS_ndiv, color=colors_plot[0],
         )
 
         ax_pdiv.plot(
-            X1_RGPS_pdiv,
-            F1_RGPS_pdiv,
-            color=colors_plot[0],
-            label=dam_plot[0],
+            X1_RGPS_pdiv, F1_RGPS_pdiv, color=colors_plot[0],
         )
 
         # axis labels
-        ax_shear.set_xlabel("Shear rate [day$^{-1}$]")
+        ax_shear.set_xlabel("Shear strain rate [day$^{-1}$]")
         ax_shear.set_ylabel("CDF")
         ax_shear.set_xscale("log")
         ax_shear.set_ylim(ymin=0, ymax=1.05)
         ax_shear.set_xlim(xmin=5e-3, xmax=1.5)
 
-        ax_ndiv.set_xlabel("Neg. Divergence rate [day$^{-1}$]")
+        ax_ndiv.set_xlabel("Convergence [day$^{-1}$]")
         ax_ndiv.set_xscale("log")
         ax_ndiv.set_ylim(ymin=0, ymax=1.05)
         ax_ndiv.set_xlim(xmin=5e-3, xmax=1.5)
@@ -1740,15 +1824,55 @@ class Arctic(sts.Scale):
         ax_ndiv.xaxis.set_ticklabels(tick_labels)
         ax_ndiv.invert_xaxis()
 
-        ax_pdiv.set_xlabel("Pos. Divergence rate [day$^{-1}$]")
+        ax_pdiv.set_xlabel("Divergence [day$^{-1}$]")
         ax_pdiv.set_xscale("log")
         ax_pdiv.set_ylim(ymin=0, ymax=1.05)
         ax_pdiv.set_xlim(xmin=5e-3, xmax=1.5)
         ax_pdiv.set_yticklabels([])
 
-        ax_shear.legend(loc=4, fontsize="x-small")
-        ax_ndiv.legend(loc=3, fontsize="x-small")
-        ax_pdiv.legend(loc=4, fontsize="x-small")
+        legend1 = ax_pdiv.legend(
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            labels=dam_plot,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            ncol=1,
+        )
+
+        ax_shear.legend(
+            loc=4,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$D_{\dot\varepsilon_{II}}$",
+        )
+        ax_ndiv.legend(
+            loc=3,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$D_{\dot\varepsilon_{I}<0}$",
+        )
+        ax_pdiv.legend(
+            loc=4,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            title=r"$D_{\dot\varepsilon_{I}>0}$",
+        )
+
+        plt.gca().add_artist(legend1)
+
         # save fig
         if save:
             fig.savefig(
@@ -1874,12 +1998,12 @@ class Arctic(sts.Scale):
             temp (bool, optional): temporal or spatial. Defaults to 0.
         """
 
-        fig = plt.figure(dpi=300, figsize=(4, 4))
+        fig = plt.figure(dpi=300, figsize=(6, 4))
         if self.trans:
             fig.patch.set_facecolor("None")
 
         # definitions for the axes
-        left, width = 0.14, 0.75
+        left, width = 0.14, 0.7
         bottom, height = 0.14, 0.75
 
         rect_scatter = [left, bottom, width, height]
@@ -1923,26 +2047,26 @@ class Arctic(sts.Scale):
 
         colors_plot = np.array(
             [
-                "xkcd:dark blue grey",
+                "black",
                 "xkcd:gross green",
                 "xkcd:tomato",
                 "xkcd:blush",
-                "xkcd:dark teal",
                 "xkcd:blue green",
-                "xkcd:light teal",
-                "xkcd:mint",
+                "xkcd:aquamarine",
+                "xkcd:purple blue",
+                "xkcd:light violet",
             ]
         )
         dam_plot = np.array(
             [
-                "RGPS: ",
-                "VP: ",
-                "VPd: ",
-                "VPd ($t_h=2$): ",
-                "VPd (n=2)",
-                "VPd (n=3)",
-                "VPd (n=4)",
-                "VPd (n=5)",
+                "RGPS",
+                "VP",
+                "VPd(1,30)",
+                "VPd(1,2)",
+                "VPd(3,30)",
+                "VPd(3,2)",
+                "VPd(5,30)",
+                "VPd(5,2)",
             ]
         )
 
@@ -1958,8 +2082,7 @@ class Arctic(sts.Scale):
                 ),
                 ":",
                 color=colors_plot[k],
-                label=dam_plot[k]
-                + "({:.2f}, {:.2f}, {:.2f})".format(
+                label="({:.2f}, {:.2f}, {:.2f})".format(
                     param[0, k], param[1, k], param[2, k]
                 ),
             )
@@ -1967,7 +2090,30 @@ class Arctic(sts.Scale):
                 q_array2, coeff[:, k], ".", color=colors_plot[k], markersize=5
             )
 
-        ax.legend(loc=2, fontsize="x-small")
+        legend1 = ax.legend(
+            loc=2,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            title=r"$(\nu,C_1,H)$",
+        )
+        ax.legend(
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            labels=dam_plot,
+            fontsize="x-small",
+            frameon=False,
+            labelcolor=colors_plot,
+            handlelength=0,
+            handletextpad=0,
+            markerscale=0,
+            ncol=1,
+        )
+        plt.gca().add_artist(legend1)
+
         if save:
             fig.savefig(
                 "images/multifractal{}".format(self.resolution)
