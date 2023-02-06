@@ -11,7 +11,11 @@ from libs.constants import *
 
 L_RGPS = [12.5, 25, 50, 100, 200, 400]
 
-dataset_RGPS = vis.Arctic(fig_shape="round", save=1, resolution=12.5,)
+dataset_RGPS = vis.Arctic(
+    fig_shape="round",
+    save=1,
+    resolution=12.5,
+)
 
 shear = np.load("RGPS_deformations/SHR.npy")
 div = np.load("RGPS_deformations/DIV.npy")
@@ -54,7 +58,7 @@ rect_scatter = [
 ]
 ax = fig.add_axes(rect_scatter)
 
-cf = ax.pcolormesh(shear_sum * 100, vmin=0, vmax=100)
+cf = ax.pcolormesh(shear_sum * 100, cmap="summer", vmin=0, vmax=100)
 ax.pcolormesh(continents, cmap="cmo.topo", vmin=0, vmax=1)
 ax.contour(shear_sum * 100, levels=np.array([80]))
 cbar = fig.colorbar(cf)

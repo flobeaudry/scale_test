@@ -4,20 +4,21 @@ import libs.visualization as vis
 from scipy.special import factorial
 
 dataset = vis.Arctic(
-    directory="output10D_1997",
-    time="1997-01-01-00-00",
-    expno="01",
+    directory="output99",
+    time="2002-01-01-06-00",
+    expno="99",
     datatype="damage",
     fig_shape="round",
     save=0,
     resolution=10,
-    fig_name_supp="_97",
+    fig_name_supp="_02",
 )
 
 dt = "00-06-00"
-time_end = "1997-01-03-18-00"
+time_end = "2002-01-01-06-00"
 
 dam = dataset.multi_load(dt, time_end)
+dam = np.where(dam > 0, dam, np.NaN)
 
 plt.pcolormesh(dam[..., -1])
 plt.show()

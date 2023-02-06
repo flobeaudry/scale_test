@@ -85,10 +85,6 @@ class Data:
             nx, ny (int, optional): number of cells in each direction.
         """
 
-        print(
-            "Welcome in the data loader routine! To cancel selection, enter exit or quit."
-        )
-
         self.directory = directory
         self.time = time
         self.time_init = time

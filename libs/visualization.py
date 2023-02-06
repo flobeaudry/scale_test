@@ -102,18 +102,20 @@ class Arctic(sts.Scale):
             directory, time, expno, datatype, tolerance, resolution, nx, ny
         )
 
-    def arctic_plot(self, formated_data: np.ndarray):
+    def arctic_plot(
+        self, formated_data: np.ndarray, title: string = None, ax=None
+    ):
         """
         Plots passed data on the Arctic circle, and can save the image to images/ directory.
 
         Args:
             formated_data (np.ndarray): data to plot (ny, nx)
+            title (string): title of subplot
 
         Raises:
             SystemExit: If invalid data format
             SystemExit: If invalid data type
         """
-
         # cartesian coordonates on the plane for the corners of the cells for pcolor
         x0 = np.arange(self.nx + 1) * self.resolution - 2500
         y0 = np.arange(self.ny + 1) * self.resolution - 2250
@@ -127,14 +129,16 @@ class Arctic(sts.Scale):
 
             lon1, lat1 = self._coordinates(x1, y1)
 
-        # figure initialization
-        fig = plt.figure(dpi=300)
-        if self.trans:
-            fig.patch.set_facecolor("None")
-        ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
-        fig.subplots_adjust(
-            bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
-        )
+        axi = ax
+        if axi is None:
+            # figure initialization
+            fig = plt.figure(dpi=300)
+            if self.trans:
+                fig.patch.set_facecolor("None")
+            ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
+            fig.subplots_adjust(
+                bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
+            )
 
         # Compute a circle in axes coordinates, which we can use as a boundary
         # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -147,7 +151,18 @@ class Arctic(sts.Scale):
             ax.set_boundary(circle, transform=ax.transAxes)
 
         # Limit the map to 65 degrees latitude and above.
-        ax.set_extent([-180, 180, 65, 90], ccrs.PlateCarree())
+        ax.set_extent([-180, 180, 65, 90], crs=ccrs.PlateCarree())
+
+        # title
+        ax.text(
+            0.5,
+            1.05,
+            title,
+            fontsize=10,
+            transform=ax.transAxes,
+            va="center",
+            ha="center",
+        )
 
         # all the plots
         # for concentration
@@ -162,8 +177,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for thickness
         elif self.datatype == "h":
@@ -176,8 +189,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for temperature
         elif self.datatype == "Ti":
@@ -189,8 +200,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for deformation rates
         elif self.datatype in ["dedt", "shear"]:
@@ -205,8 +214,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         elif self.datatype == "divergence":
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
@@ -220,8 +227,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for viscosity
         elif self.datatype == "viscosity":
@@ -235,8 +240,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for damage
         elif self.datatype == "dam":
@@ -251,8 +254,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         # for velocities
         elif self.datatype == "u":
@@ -284,8 +285,6 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=0,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
 
         else:
             raise SystemExit("Something is wrong with your data type...")
@@ -294,24 +293,25 @@ class Arctic(sts.Scale):
         ax.add_feature(cfeature.LAND, zorder=3)
         ax.coastlines(resolution="50m", zorder=4)
 
-        if self.save:
-            fig.savefig(
-                "images/"
-                + self.datatype
-                + str(self.resolution)
-                + self.fig_name_supp
-                + "."
-                + self.fig_type,
-                transparent=0,
-            )
-            fig.savefig(
-                "images/"
-                + self.datatype
-                + str(self.resolution)
-                + self.fig_name_supp
-                + ".pdf",
-                transparent=0,
-            )
+        if axi is None:
+            cbar = fig.colorbar(cf)
+            cbar.ax.set_ylabel(self.name, rotation=-90, va="bottom")
+            if self.save:
+                fig.savefig(
+                    "images/"
+                    + self.datatype
+                    + str(self.resolution)
+                    + self.fig_name_supp
+                    + "."
+                    + self.fig_type,
+                )
+                fig.savefig(
+                    "images/"
+                    + self.datatype
+                    + str(self.resolution)
+                    + self.fig_name_supp
+                    + ".pdf",
+                )
 
     def _encircle(
         self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase
@@ -336,7 +336,7 @@ class Arctic(sts.Scale):
         return ax
 
     def arctic_plot_RGPS(
-        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_",
+        self, data: np.ndarray, datatype: str, fig_name_supp: str = "_", ax=None
     ):
         """
         Function that plots data over the Arctic same as the other one but specifically for RGPS.
@@ -345,20 +345,25 @@ class Arctic(sts.Scale):
             data (np.ndarray): data to plot in 2D
             datatype (str): type of the data
             fig_name_supp (str, optional): supplementary figure description in the name when saving the figure. Defaults to "_".
+
+        Returns:
+            cf
         """
         x0 = np.arange(data.shape[0] + 1) * RES_RGPS - 2300
         y0 = np.arange(data.shape[1] + 1) * RES_RGPS - 1000
 
         lon, lat = self._coordinates(x0, y0, RGPS=True)
 
-        # figure initialization
-        fig = plt.figure(dpi=300)
-        if self.trans:
-            fig.patch.set_facecolor("None")
-        ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
-        fig.subplots_adjust(
-            bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
-        )
+        axi = ax
+        if axi is None:
+            # figure initialization
+            fig = plt.figure(dpi=300)
+            if self.trans:
+                fig.patch.set_facecolor("None")
+            ax = plt.subplot(1, 1, 1, projection=ccrs.NorthPolarStereo())
+            fig.subplots_adjust(
+                bottom=0.05, top=0.95, left=0.04, right=0.95, wspace=0.02
+            )
 
         # Compute a circle in axes coordinates, which we can use as a boundary
         # for the map. We can pan/zoom as much as we like - the boundary will be
@@ -387,13 +392,18 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
+            if axi is None:
+                cbar = fig.colorbar(cf)
+                cbar.ax.set_ylabel("[day$^{-1}$]", rotation=-90, va="bottom")
 
         elif datatype == "mask":
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
             cf = ax.pcolormesh(
-                lon, lat, data * 100, transform=ccrs.PlateCarree(), zorder=1,
+                lon,
+                lat,
+                data * 100,
+                transform=ccrs.PlateCarree(),
+                zorder=1,
             )
             x1 = np.arange(data.shape[0]) * RES_RGPS - 2300
             y1 = np.arange(data.shape[1]) * RES_RGPS - 1000
@@ -407,10 +417,11 @@ class Arctic(sts.Scale):
                 levels=np.array([80]),
                 transform=ccrs.PlateCarree(),
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(
-                "Temporal presence [%]", rotation=-90, va="bottom"
-            )
+            if axi is None:
+                cbar = fig.colorbar(cf)
+                cbar.ax.set_ylabel(
+                    "Temporal presence [%]", rotation=-90, va="bottom"
+                )
 
         else:
             ax.add_feature(cfeature.OCEAN, color="white", zorder=0)
@@ -423,34 +434,122 @@ class Arctic(sts.Scale):
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
-            cbar = fig.colorbar(cf)
-            cbar.ax.set_ylabel(
-                "Ice deformation rate [day$^{-1}$]", rotation=-90, va="bottom"
-            )
+            if axi is None:
+                cbar = fig.colorbar(cf)
+                cbar.ax.set_ylabel(
+                    "Ice deformation rate [day$^{-1}$]",
+                    rotation=-90,
+                    va="bottom",
+                )
 
         ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
         ax.coastlines(resolution="50m", zorder=4)
+        ax.text(
+            0.5,
+            1.05,
+            "RGPS",
+            fontsize=10,
+            transform=ax.transAxes,
+            va="center",
+            ha="center",
+        )
 
-        if self.save:
+        if axi is None:
+            if self.save:
+                fig.savefig(
+                    "images/"
+                    + datatype
+                    + str(self.resolution)
+                    + fig_name_supp
+                    + "RGPS"
+                    + "."
+                    + self.fig_type,
+                )
+                fig.savefig(
+                    "images/"
+                    + datatype
+                    + str(self.resolution)
+                    + fig_name_supp
+                    + "RGPS"
+                    + ".pdf",
+                )
+
+        return cf
+
+    def multi_fig_precond(self, x: int, y: int):
+        """
+        This function creates axis for multiplot of Arctic.
+
+        Args:
+            x (int): number of pictures on the x axis.
+
+            y (int): number of pictures on the y axis.
+
+        Returns:
+            fig, axss
+        """
+        # figure initialization
+        fig, axss = plt.subplots(
+            y,
+            x,
+            dpi=300,
+            figsize=(2 * x + 1, 2 * y),
+            subplot_kw={"projection": ccrs.NorthPolarStereo()},
+        )
+        fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.8196)
+        axssf = axss.flatten()
+
+        for i, ax in enumerate(axssf):
+            ax.text(
+                0,
+                1.1,
+                LETTER[i],
+                transform=ax.transAxes,
+                fontsize=10,
+                fontweight="bold",
+                va="top",
+                ha="left",
+            )
+        if self.trans:
+            fig.patch.set_facecolor("None")
+
+        return fig, axssf
+
+    def multi_fig(self, fig, cf, save: bool = 0):
+        """
+        This function takes all arctic plots and put them in a nice array of dim (x,y).
+
+        Args:
+            fig: figure to save and plot
+            ax: axis of data
+            cf: plots of data
+
+            save (bool): to save or not to save fig.
+        """
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.03, 0.6])
+        cbar = fig.colorbar(cf, cax=cbar_ax, extend="max")
+        cbar.ax.set_ylabel(
+            "Ice deformation rate [day$^{-1}$]",
+            rotation=-90,
+            va="bottom",
+        )
+
+        if save:
             fig.savefig(
-                "images/"
-                + datatype
+                "images/M"
+                + self.datatype
                 + str(self.resolution)
-                + fig_name_supp
-                + "RGPS"
+                + self.fig_name_supp
                 + "."
                 + self.fig_type,
-                transparent=0,
             )
             fig.savefig(
-                "images/"
-                + datatype
+                "images/M"
+                + self.datatype
                 + str(self.resolution)
-                + fig_name_supp
-                + "RGPS"
+                + self.fig_name_supp
                 + ".pdf",
-                transparent=0,
             )
 
     def scale_plot_vect(
@@ -543,7 +642,7 @@ class Arctic(sts.Scale):
                 ),  # viscosity[k, indices],
                 s=0.5,
                 cmap=newcmp,
-                norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E ** 2),
+                norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E**2),
             )
             # same thing with only viscosities that are under visc_max (plastic def)
             # viscosity[k, viscosity[k] >= ETA_MAX * E ** 2] = np.NaN
@@ -561,9 +660,9 @@ class Arctic(sts.Scale):
         # add red line for zeta max
         cax = cbar.ax
         cax.hlines(
-            ETA_MAX * E ** 2,
+            ETA_MAX * E**2,
             0,
-            ETA_MAX * E ** 2 * 10,
+            ETA_MAX * E**2 * 10,
             colors="r",
             linewidth=2,
         )
@@ -698,27 +797,24 @@ class Arctic(sts.Scale):
             right=True,
         )
         ax.tick_params(
-            which="minor", labelleft=False,
+            which="minor",
+            labelleft=False,
         )
         # axe labels
         if type == 0:  # space
             ax.set_xlabel("Spatial scale [km]")
-            ax.set_ylabel(
-                r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]"
-            )
+            ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_ylim(ymin=4e-3, ymax=2e-1)
-            ax.set_xlim(xmin=6, xmax=8e2)
+            ax.set_ylim(ymin=6e-3, ymax=6e-2)
+            ax.set_xlim(xmin=7, xmax=9e2)
             # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
         if type == 1:  # time
-            ax.set_xlabel("Temporal scale [km]")
-            ax.set_ylabel(
-                r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]"
-            )
+            ax.set_xlabel("Temporal scale [days]")
+            ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_ylim(ymin=4e-3, ymax=2e-1)
+            ax.set_ylim(ymin=6e-3, ymax=6e-2)
             ax.set_xlim(xmin=2, xmax=4e1)
             # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
 
@@ -729,6 +825,8 @@ class Arctic(sts.Scale):
         mean_def: np.ndarray,
         mean_scale: np.ndarray,
         fig_name_supp: str,
+        names_plot: np.ndarray,
+        colors_plot: np.ndarray,
         save: bool = True,
     ):
         """
@@ -741,31 +839,7 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond(0)
-        colors_plot = np.array(
-            [
-                "black",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:blue green",
-                "xkcd:aquamarine",
-                "xkcd:purple blue",
-                "xkcd:light violet",
-            ]
-        )
-        shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(
-            [
-                "RGPS",
-                "VP",
-                "VPd(1,30)",
-                "VPd(1,2)",
-                "VPd(3,30)",
-                "VPd(3,2)",
-                "VPd(5,30)",
-                "VPd(5,2)",
-            ]
-        )
+
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -783,7 +857,7 @@ class Arctic(sts.Scale):
             ax.plot(
                 mean_scale[:, k],
                 mean_def[:, k],
-                "^",
+                ".",
                 color=colors_plot[k],
                 label="{:.2f}".format(np.abs(coefficients[0])),
                 markersize=5,
@@ -803,7 +877,7 @@ class Arctic(sts.Scale):
         ax.legend(
             loc="center left",
             bbox_to_anchor=(1, 0.5),
-            labels=dam_plot,
+            labels=names_plot,
             fontsize="x-small",
             frameon=False,
             labelcolor=colors_plot,
@@ -819,13 +893,9 @@ class Arctic(sts.Scale):
                 "images/ssm{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=0,
             )
             fig.savefig(
-                "images/ssm{}".format(self.resolution)
-                + fig_name_supp
-                + ".pdf",
-                transparent=0,
+                "images/ssm{}".format(self.resolution) + fig_name_supp + ".pdf",
             )
 
     def multi_plot_temporal(
@@ -833,6 +903,8 @@ class Arctic(sts.Scale):
         mean_def: np.ndarray,
         mean_scale: np.ndarray,
         fig_name_supp: str,
+        names_plot: np.ndarray,
+        colors_plot: np.ndarray,
         save: bool = True,
     ):
         """
@@ -845,31 +917,7 @@ class Arctic(sts.Scale):
             save (bool, optional): Should you want to save it. Defaults to True.
         """
         fig, ax = self._multiplot_precond(1)
-        colors_plot = np.array(
-            [
-                "black",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:blue green",
-                "xkcd:aquamarine",
-                "xkcd:purple blue",
-                "xkcd:light violet",
-            ]
-        )
-        shape_plot = np.array(["^", "v"])
-        dam_plot = np.array(
-            [
-                "RGPS",
-                "VP",
-                "VPd(1,30)",
-                "VPd(1,2)",
-                "VPd(3,30)",
-                "VPd(3,2)",
-                "VPd(5,30)",
-                "VPd(5,2)",
-            ]
-        )
+
         # loop over
         for k in range(mean_def.shape[1]):
             # linear regression over the means
@@ -887,7 +935,7 @@ class Arctic(sts.Scale):
             ax.plot(
                 mean_scale[:, k],
                 mean_def[:, k],
-                "^",
+                ".",
                 color=colors_plot[k],
                 label="{:.2f}".format(np.abs(coefficients[0])),
                 markersize=5,
@@ -907,7 +955,7 @@ class Arctic(sts.Scale):
         ax.legend(
             loc="center left",
             bbox_to_anchor=(1, 0.5),
-            labels=dam_plot,
+            labels=names_plot,
             fontsize="x-small",
             frameon=False,
             labelcolor=colors_plot,
@@ -923,17 +971,20 @@ class Arctic(sts.Scale):
                 "images/ssmT{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=0,
             )
             fig.savefig(
                 "images/ssmT{}".format(self.resolution)
                 + fig_name_supp
                 + ".pdf",
-                transparent=0,
             )
 
     def pdf_du(
-        self, du_stack: list, save: bool, fig_name_supp: string,
+        self,
+        du_stack: list,
+        save: bool,
+        fig_name_supp: string,
+        names_plot: np.ndarray,
+        colors_plot: np.ndarray,
     ):
         """
         It simply computes everything for pdf plot. RGPS must be the FIRST in the stack!
@@ -946,128 +997,90 @@ class Arctic(sts.Scale):
         Returns:
             [type]: figure of pdf
         """
-        # colors and stuff
-        colors_plot = np.array(
-            [
-                "black",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:blue green",
-                "xkcd:aquamarine",
-                "xkcd:purple blue",
-                "xkcd:light violet",
-            ]
-        )
-        dam_plot = np.array(
-            [
-                "RGPS",
-                "VP",
-                "VPd(1,30)",
-                "VPd(1,2)",
-                "VPd(3,30)",
-                "VPd(3,2)",
-                "VPd(5,30)",
-                "VPd(5,2)",
-            ]
-        )
-
         # init plot
-        basefigsizey = 3.5
-        basefigsizex = 8
+        basefigsizey = 3
+        basefigsizex = 8.2
         figsizex = basefigsizex
-        figsizey = basefigsizey + 0.05 * (len(du_stack) - 1)
-        fig = plt.figure(dpi=300, figsize=(figsizex, figsizey),)
+        figsizey = basefigsizey + 0.1 * (len(du_stack) - 1)
+        fig = plt.figure(
+            dpi=300,
+            figsize=(figsizex, figsizey),
+        )
         if self.trans:
             fig.patch.set_facecolor("None")
 
         # definitions for the axis
-        extraspaceinit = 0.07 * figsizex / basefigsizex
+        extraspaceinit = 0.093 * figsizex / basefigsizex
         graphsizex = (0.267 - extraspaceinit / 3) * basefigsizex / figsizex
         separation = (1 - extraspaceinit - 3 * graphsizex) / 4
 
-        left_shear, width_shear = separation + extraspaceinit, graphsizex
-        bottom_shear, height_shear = (
-            0.53 * figsizey / basefigsizey,
-            0.38 * basefigsizey / figsizey,
+        bottom, height = (
+            0.47 * figsizey / basefigsizey,
+            0.45 * basefigsizey / figsizey,
         )
+        bottomB, heightB = (
+            0.17 * basefigsizey / figsizey,
+            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
+        )
+
+        left_shear, width_shear = separation + extraspaceinit, graphsizex
         rect_scatter_shear = [
             left_shear,
-            bottom_shear,
+            bottom,
             width_shear,
-            height_shear,
+            height,
         ]
 
         left_ndiv, width_ndiv = (
             2 * separation + extraspaceinit + graphsizex,
             graphsizex,
         )
-        bottom_ndiv, height_ndiv = (
-            0.53 * figsizey / basefigsizey,
-            0.38 * basefigsizey / figsizey,
-        )
         rect_scatter_ndiv = [
             left_ndiv,
-            bottom_ndiv,
+            bottom,
             width_ndiv,
-            height_ndiv,
+            height,
         ]
 
         left_pdiv, width_pdiv = (
             3 * separation + extraspaceinit + 2 * graphsizex,
             graphsizex,
         )
-        bottom_pdiv, height_pdiv = (
-            0.53 * figsizey / basefigsizey,
-            0.38 * basefigsizey / figsizey,
-        )
         rect_scatter_pdiv = [
             left_pdiv,
-            bottom_pdiv,
+            bottom,
             width_pdiv,
-            height_pdiv,
+            height,
         ]
 
         left_shearB, width_shearB = separation + extraspaceinit, graphsizex
-        bottom_shearB, height_shearB = (
-            0.15 * basefigsizey / figsizey,
-            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
-        )
         rect_scatter_shearB = [
             left_shearB,
-            bottom_shearB,
+            bottomB,
             width_shearB,
-            height_shearB,
+            heightB,
         ]
 
         left_ndivB, width_ndivB = (
             2 * separation + extraspaceinit + graphsizex,
             graphsizex,
         )
-        bottom_ndivB, height_ndivB = (
-            0.15 * basefigsizey / figsizey,
-            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
-        )
         rect_scatter_ndivB = [
             left_ndivB,
-            bottom_ndivB,
+            bottomB,
             width_ndivB,
-            height_ndivB,
+            heightB,
         ]
 
         left_pdivB, width_pdivB = (
             3 * separation + extraspaceinit + 2 * graphsizex,
             graphsizex,
         )
-        bottom_pdivB, height_pdivB = (
-            0.15 * basefigsizey / figsizey,
-            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
-        )
         rect_scatter_pdivB = [
             left_pdivB,
-            bottom_pdivB,
+            bottomB,
             width_pdivB,
-            height_pdivB,
+            heightB,
         ]
 
         ax_shear = fig.add_axes(rect_scatter_shear)
@@ -1377,7 +1390,7 @@ class Arctic(sts.Scale):
             n,
             list_y,
             model_diff_shear,
-            cmap="coolwarm",
+            cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
             linewidth=0.005,
         )
@@ -1385,7 +1398,7 @@ class Arctic(sts.Scale):
             n,
             list_y,
             model_diff_ndiv,
-            cmap="coolwarm",
+            cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
             linewidth=0.005,
         )
@@ -1393,7 +1406,7 @@ class Arctic(sts.Scale):
             n,
             list_y,
             model_diff_pdiv,
-            cmap="coolwarm",
+            cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
             linewidth=0.005,
         )
@@ -1411,6 +1424,7 @@ class Arctic(sts.Scale):
                 "{:.2f}".format(num_shear[y]),
                 ha="right",
                 va="center",
+                fontsize=8,
             )
         for y in range(model_diff_ndiv.shape[0]):
             ax_ndivB.text(
@@ -1419,6 +1433,7 @@ class Arctic(sts.Scale):
                 "{:.2f}".format(num_ndiv[y]),
                 ha="left",
                 va="center",
+                fontsize=8,
             )
         for y in range(model_diff_pdiv.shape[0]):
             ax_pdivB.text(
@@ -1427,6 +1442,7 @@ class Arctic(sts.Scale):
                 "{:.2f}".format(num_pdiv[y]),
                 ha="right",
                 va="center",
+                fontsize=8,
             )
 
         # axis labels
@@ -1461,11 +1477,11 @@ class Arctic(sts.Scale):
 
         ax_shearB.set_xscale("log")
         ax_shearB.set_xlim(xmin=5e-3, xmax=3)
-        ticksB = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
-        tick_labelsB = dam_plot[1:]
+        ticksB = np.arange(0.5, len(du_stack) - 0.5, 1)
+        tick_labelsB = names_plot[1 : len(du_stack)]
         ax_shearB.yaxis.set_ticks(ticksB)
-        ax_shearB.yaxis.set_ticklabels(tick_labelsB)
-        for i in range(colors_plot[1:].shape[0]):
+        ax_shearB.yaxis.set_ticklabels(tick_labelsB, fontsize=8)
+        for i in range(colors_plot[1 : len(du_stack)].shape[0]):
             ax_shearB.get_yticklabels()[i].set_color(colors_plot[i + 1])
         ax_shearB.set_xticklabels([])
         sdivider = make_axes_locatable(ax_shearB)
@@ -1501,6 +1517,7 @@ class Arctic(sts.Scale):
             labelcolor=colors_plot,
             handlelength=0,
             handletextpad=0,
+            labelspacing=0.35,
             title=r"$k_{\dot\varepsilon_{II}}$",
         )
         ax_ndiv.legend(
@@ -1510,7 +1527,8 @@ class Arctic(sts.Scale):
             labelcolor=colors_plot,
             handlelength=0,
             handletextpad=0,
-            title=r"$k_{\dot\varepsilon_{I}<0}$",
+            labelspacing=0.35,
+            title=r"$k_{\dot\varepsilon_{I<0}}$",
         )
         ax_pdiv.legend(
             loc=7,
@@ -1519,7 +1537,71 @@ class Arctic(sts.Scale):
             labelcolor=colors_plot,
             handlelength=0,
             handletextpad=0,
-            title=r"$k_{\dot\varepsilon_{I}>0}$",
+            labelspacing=0.35,
+            title=r"$k_{\dot\varepsilon_{I>0}}$",
+        )
+
+        # axis name
+        ax_shear.text(
+            0,
+            1.13,
+            "(a)",
+            transform=ax_shear.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_pdiv.text(
+            0,
+            1.13,
+            "(c)",
+            transform=ax_pdiv.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_ndiv.text(
+            0,
+            1.13,
+            "(b)",
+            transform=ax_ndiv.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+
+        ax_shearB.text(
+            0,
+            1.175,
+            "(d)",
+            transform=ax_shearB.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_pdivB.text(
+            0,
+            1.175,
+            "(f)",
+            transform=ax_pdivB.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_ndivB.text(
+            0,
+            1.175,
+            "(e)",
+            transform=ax_ndivB.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
         )
 
         # save fig
@@ -1528,18 +1610,21 @@ class Arctic(sts.Scale):
                 "images/pdfm{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=0,
             )
             fig.savefig(
                 "images/pdfm{}".format(self.resolution)
                 + fig_name_supp
                 + ".pdf",
                 format="pdf",
-                transparent=0,
             )
 
     def cdf_du(
-        self, du_stack: list, save: bool, fig_name_supp: string,
+        self,
+        du_stack: list,
+        save: bool,
+        fig_name_supp: string,
+        names_plot: np.ndarray,
+        colors_plot: np.ndarray,
     ):
         """
         It simply computes everything for cdf plot.
@@ -1646,31 +1731,6 @@ class Arctic(sts.Scale):
             left=True,
             right=True,
             labelleft=True,
-        )
-
-        colors_plot = np.array(
-            [
-                "black",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:blue green",
-                "xkcd:aquamarine",
-                "xkcd:purple blue",
-                "xkcd:light violet",
-            ]
-        )
-        dam_plot = np.array(
-            [
-                "RGPS",
-                "VP",
-                "VPd(1,30)",
-                "VPd(1,2)",
-                "VPd(3,30)",
-                "VPd(3,2)",
-                "VPd(5,30)",
-                "VPd(5,2)",
-            ]
         )
 
         shear_RGPS = self._deformation(du_stack[0], 1)
@@ -1796,14 +1856,20 @@ class Arctic(sts.Scale):
 
         # RGPS plots
         ax_shear.plot(
-            X1_RGPS_shear, F1_RGPS_shear, color=colors_plot[0],
+            X1_RGPS_shear,
+            F1_RGPS_shear,
+            color=colors_plot[0],
         )
         ax_ndiv.plot(
-            X1_RGPS_ndiv, F1_RGPS_ndiv, color=colors_plot[0],
+            X1_RGPS_ndiv,
+            F1_RGPS_ndiv,
+            color=colors_plot[0],
         )
 
         ax_pdiv.plot(
-            X1_RGPS_pdiv, F1_RGPS_pdiv, color=colors_plot[0],
+            X1_RGPS_pdiv,
+            F1_RGPS_pdiv,
+            color=colors_plot[0],
         )
 
         # axis labels
@@ -1830,10 +1896,42 @@ class Arctic(sts.Scale):
         ax_pdiv.set_xlim(xmin=5e-3, xmax=1.5)
         ax_pdiv.set_yticklabels([])
 
+        # axis name
+        ax_shear.text(
+            0,
+            1.13,
+            "(a)",
+            transform=ax_shear.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_pdiv.text(
+            0,
+            1.13,
+            "(c)",
+            transform=ax_pdiv.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+        ax_ndiv.text(
+            0,
+            1.13,
+            "(b)",
+            transform=ax_ndiv.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+
         legend1 = ax_pdiv.legend(
             loc="center left",
             bbox_to_anchor=(1, 0.5),
-            labels=dam_plot,
+            labels=names_plot,
             fontsize="x-small",
             frameon=False,
             labelcolor=colors_plot,
@@ -1847,7 +1945,7 @@ class Arctic(sts.Scale):
             loc=4,
             fontsize="x-small",
             frameon=False,
-            labelcolor=colors_plot,
+            labelcolor=colors_plot[1:],
             handlelength=0,
             handletextpad=0,
             title=r"$D_{\dot\varepsilon_{II}}$",
@@ -1856,19 +1954,19 @@ class Arctic(sts.Scale):
             loc=3,
             fontsize="x-small",
             frameon=False,
-            labelcolor=colors_plot,
+            labelcolor=colors_plot[1:],
             handlelength=0,
             handletextpad=0,
-            title=r"$D_{\dot\varepsilon_{I}<0}$",
+            title=r"$D_{\dot\varepsilon_{I<0}}$",
         )
         ax_pdiv.legend(
             loc=4,
             fontsize="x-small",
             frameon=False,
-            labelcolor=colors_plot,
+            labelcolor=colors_plot[1:],
             handlelength=0,
             handletextpad=0,
-            title=r"$D_{\dot\varepsilon_{I}>0}$",
+            title=r"$D_{\dot\varepsilon_{I>0}}$",
         )
 
         plt.gca().add_artist(legend1)
@@ -1879,17 +1977,19 @@ class Arctic(sts.Scale):
                 "images/cdfm{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=0,
             )
             fig.savefig(
                 "images/cdfm{}".format(self.resolution)
                 + fig_name_supp
                 + ".pdf",
-                transparent=0,
             )
 
     def multifractal_spatial(
-        self, q: int, deps: np.ndarray, scale: np.ndarray, RGPS: bool = False,
+        self,
+        q: int,
+        deps: np.ndarray,
+        scale: np.ndarray,
+        RGPS: bool = False,
     ) -> tuple:
         """
         Function that computes the multifractal fit with good parameters.
@@ -1912,7 +2012,7 @@ class Arctic(sts.Scale):
         if RGPS == True:
             for n in q_array:
                 mean_depsq, mean_scale, coeff = self.scale_plot_vect(
-                    deps ** n,
+                    deps**n,
                     scale,
                     L_RGPS,
                     save=0,
@@ -1922,7 +2022,11 @@ class Arctic(sts.Scale):
         else:
             for n in q_array:
                 mean_depsq, mean_scale, coeff = self.scale_plot_vect(
-                    deps ** n, scale, L10, save=0, fig_name_supp="_dedtQ_97",
+                    deps**n,
+                    scale,
+                    L10,
+                    save=0,
+                    fig_name_supp="_dedtQ_97",
                 )
                 coeff_list.append(coeff)
 
@@ -1984,6 +2088,8 @@ class Arctic(sts.Scale):
         q: int,
         save: bool,
         fig_name_supp: string,
+        names_plot: np.ndarray,
+        colors_plot: np.ndarray,
         temp: bool = 0,
     ):
         """
@@ -2020,7 +2126,8 @@ class Arctic(sts.Scale):
             right=True,
         )
         ax.tick_params(
-            which="minor", labelleft=False,
+            which="minor",
+            labelleft=False,
         )
         # axe labels
         ax.set_xlabel(r"Moment $q$")
@@ -2044,31 +2151,6 @@ class Arctic(sts.Scale):
         # set major ticks
         ax.xaxis.set_ticks(xticks)
         ax.xaxis.set_ticklabels(xtick_labels)
-
-        colors_plot = np.array(
-            [
-                "black",
-                "xkcd:gross green",
-                "xkcd:tomato",
-                "xkcd:blush",
-                "xkcd:blue green",
-                "xkcd:aquamarine",
-                "xkcd:purple blue",
-                "xkcd:light violet",
-            ]
-        )
-        dam_plot = np.array(
-            [
-                "RGPS",
-                "VP",
-                "VPd(1,30)",
-                "VPd(1,2)",
-                "VPd(3,30)",
-                "VPd(3,2)",
-                "VPd(5,30)",
-                "VPd(5,2)",
-            ]
-        )
 
         q_array1 = np.arange(0.1, q + 0.6, 0.1)
         q_array2 = np.arange(0.1, q + 0.1, 0.1)
@@ -2103,7 +2185,7 @@ class Arctic(sts.Scale):
         ax.legend(
             loc="center left",
             bbox_to_anchor=(1, 0.5),
-            labels=dam_plot,
+            labels=names_plot,
             fontsize="x-small",
             frameon=False,
             labelcolor=colors_plot,
@@ -2119,11 +2201,9 @@ class Arctic(sts.Scale):
                 "images/multifractal{}".format(self.resolution)
                 + fig_name_supp
                 + ".{}".format(self.fig_type),
-                transparent=0,
             )
             fig.savefig(
                 "images/multifractal{}".format(self.resolution)
                 + fig_name_supp
                 + ".pdf",
-                transparent=0,
             )
