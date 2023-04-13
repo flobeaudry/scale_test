@@ -184,7 +184,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                cmap=cmocean.cm.dense,
+                cmap=cmocean.cm.curl,
                 norm=colors.Normalize(vmin=0, vmax=5),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
@@ -209,7 +209,7 @@ class Arctic(sts.Scale):
                 lat,
                 formated_data,
                 # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
-                cmap=cmocean.cm.amp,
+                cmap=cmocean.cm.thermal,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
@@ -289,7 +289,7 @@ class Arctic(sts.Scale):
         else:
             raise SystemExit("Something is wrong with your data type...")
 
-        ax.gridlines(zorder=2)
+        # ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
         ax.coastlines(resolution="50m", zorder=4)
 
@@ -429,7 +429,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 data,
-                cmap=cmocean.cm.amp,
+                cmap=cmocean.cm.thermal,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
@@ -442,7 +442,7 @@ class Arctic(sts.Scale):
                     va="bottom",
                 )
 
-        ax.gridlines(zorder=2)
+        # ax.gridlines(zorder=2)
         ax.add_feature(cfeature.LAND, zorder=3)
         ax.coastlines(resolution="50m", zorder=4)
         ax.text(
@@ -477,7 +477,7 @@ class Arctic(sts.Scale):
 
         return cf
 
-    def multi_fig_precond(self, x: int, y: int):
+    def multi_fig_precond(self, x: int, y: int, total: int):
         """
         This function creates axis for multiplot of Arctic.
 
@@ -499,15 +499,20 @@ class Arctic(sts.Scale):
         )
         fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.8196)
         axssf = axss.flatten()
+        k = x * y - total
+        if k > 0:
+            axssf[-k].axis("off")
+        elif k < 0:
+            print("You need {} more axis in order to do this plot.".format(-k))
 
-        for i, ax in enumerate(axssf):
+        for i, ax in enumerate(axssf[:-k]):
             ax.text(
-                0,
+                -0.1,
                 1.1,
                 LETTER[i],
                 transform=ax.transAxes,
                 fontsize=10,
-                fontweight="bold",
+                fontweight="normal",
                 va="top",
                 ha="left",
             )
@@ -516,7 +521,13 @@ class Arctic(sts.Scale):
 
         return fig, axssf
 
-    def multi_fig(self, fig, cf, save: bool = 0):
+    def multi_fig(
+        self,
+        fig,
+        cf,
+        save: bool = 0,
+        label: str = "Ice deformation rate [day$^{-1}$]",
+    ):
         """
         This function takes all arctic plots and put them in a nice array of dim (x,y).
 
@@ -526,11 +537,12 @@ class Arctic(sts.Scale):
             cf: plots of data
 
             save (bool): to save or not to save fig.
+            label (str): name and units of the colorbar.
         """
         cbar_ax = fig.add_axes([0.85, 0.2, 0.03, 0.6])
         cbar = fig.colorbar(cf, cax=cbar_ax, extend="max")
         cbar.ax.set_ylabel(
-            "Ice deformation rate [day$^{-1}$]",
+            label,
             rotation=-90,
             va="bottom",
         )
@@ -780,7 +792,7 @@ class Arctic(sts.Scale):
             fig.patch.set_facecolor("None")
 
         # definitions for the axes
-        left, width = 0.14, 0.73
+        left, width = 0.12, 0.7
         bottom, height = 0.12, 0.8
 
         rect_scatter = [left, bottom, width, height]
@@ -1001,7 +1013,7 @@ class Arctic(sts.Scale):
         basefigsizey = 3
         basefigsizex = 8.2
         figsizex = basefigsizex
-        figsizey = basefigsizey + 0.1 * (len(du_stack) - 1)
+        figsizey = basefigsizey + 0.12 * (len(du_stack) - 1)
         fig = plt.figure(
             dpi=300,
             figsize=(figsizex, figsizey),
@@ -1015,12 +1027,12 @@ class Arctic(sts.Scale):
         separation = (1 - extraspaceinit - 3 * graphsizex) / 4
 
         bottom, height = (
-            0.47 * figsizey / basefigsizey,
+            1 - 0.52 * basefigsizey / figsizey,
             0.45 * basefigsizey / figsizey,
         )
         bottomB, heightB = (
             0.17 * basefigsizey / figsizey,
-            0.05 * (len(du_stack) - 1) * basefigsizey / figsizey,
+            0.045 * len(du_stack) * basefigsizey / figsizey,
         )
 
         left_shear, width_shear = separation + extraspaceinit, graphsizex
@@ -1512,7 +1524,7 @@ class Arctic(sts.Scale):
 
         ax_shear.legend(
             loc=7,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot,
             handlelength=0,
@@ -1522,7 +1534,7 @@ class Arctic(sts.Scale):
         )
         ax_ndiv.legend(
             loc=6,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot,
             handlelength=0,
@@ -1532,7 +1544,7 @@ class Arctic(sts.Scale):
         )
         ax_pdiv.legend(
             loc=7,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot,
             handlelength=0,
@@ -1548,7 +1560,7 @@ class Arctic(sts.Scale):
             "(a)",
             transform=ax_shear.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1558,7 +1570,7 @@ class Arctic(sts.Scale):
             "(c)",
             transform=ax_pdiv.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1568,7 +1580,7 @@ class Arctic(sts.Scale):
             "(b)",
             transform=ax_ndiv.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1579,7 +1591,7 @@ class Arctic(sts.Scale):
             "(d)",
             transform=ax_shearB.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1589,7 +1601,7 @@ class Arctic(sts.Scale):
             "(f)",
             transform=ax_pdivB.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1599,7 +1611,7 @@ class Arctic(sts.Scale):
             "(e)",
             transform=ax_ndivB.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1903,7 +1915,7 @@ class Arctic(sts.Scale):
             "(a)",
             transform=ax_shear.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1913,7 +1925,7 @@ class Arctic(sts.Scale):
             "(c)",
             transform=ax_pdiv.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1923,7 +1935,7 @@ class Arctic(sts.Scale):
             "(b)",
             transform=ax_ndiv.transAxes,
             fontsize=10,
-            fontweight="bold",
+            fontweight="normal",
             va="top",
             ha="left",
         )
@@ -1943,7 +1955,7 @@ class Arctic(sts.Scale):
 
         ax_shear.legend(
             loc=4,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot[1:],
             handlelength=0,
@@ -1952,7 +1964,7 @@ class Arctic(sts.Scale):
         )
         ax_ndiv.legend(
             loc=3,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot[1:],
             handlelength=0,
@@ -1961,7 +1973,7 @@ class Arctic(sts.Scale):
         )
         ax_pdiv.legend(
             loc=4,
-            fontsize="x-small",
+            fontsize="xx-small",
             frameon=False,
             labelcolor=colors_plot[1:],
             handlelength=0,

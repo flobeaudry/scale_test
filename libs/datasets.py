@@ -209,6 +209,32 @@ dataset45 = vis.Arctic(
     trans=trans,
 )
 
+dataset67 = vis.Arctic(
+    directory="output67",
+    time=start_time,
+    expno="67",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="67",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+dataset68 = vis.Arctic(
+    directory="output68",
+    time=start_time,
+    expno="68",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="68",
+    fig_type=fig_type,
+    trans=trans,
+)
+
 dataset_RGPS = vis.Arctic(
     fig_shape=fig_shape,
     save=save,

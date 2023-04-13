@@ -14,15 +14,16 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset10,
+        dataset29,
         dataset66,
         dataset10Dadv,
         dataset23,
         dataset25,
         dataset65,
-        dataset44,
-        dataset45,
-        dataset29,
+        # dataset44,
+        # dataset45,
+        dataset67,
+        dataset68,
         dataset33,
         dataset35,
     ]
@@ -31,15 +32,16 @@ datasets = np.array(
 datasets_name = np.array(
     [
         "RGPS",
-        "VP(2)",
+        "Control",
         "VP(0.7)",
         "VPd(2,1,30)",
         "VPd(2,3,30)",
         "VPd(2,5,30)",
         "VPd(0.7,5,30)",
-        "VPd(2,5,30,0.5)",
-        "VPd(2,5,30,2)",
-        "VPd(2,50,30)",
+        # "VPd(2,5,30,0.5)",
+        # "VPd(2,5,30,2)",
+        "VPd(2,5,30,35e3)",
+        "VPd(2,5,30,55e3)",
         "VPd(2,3,2)",
         "VPd(2,5,2)",
     ]
@@ -56,7 +58,7 @@ datasets_color = np.array(
         "xkcd:goldenrod",
         "xkcd:powder pink",
         "xkcd:deep rose",
-        "xkcd:light mauve",
+        # "xkcd:light mauve",
         "xkcd:azure",
         "xkcd:pastel blue",
     ]
@@ -67,7 +69,7 @@ datasets_color = np.array(
 # ----------------------------------------------------------------------
 
 if arctic_plots == 1:
-    fig, axss = dataset10.multi_fig_precond(x, y)
+    fig, axss = dataset10.multi_fig_precond(x, y, total)
 
     dudx = np.load("RGPS_derivatives/DUDX.npy")
     dudy = np.load("RGPS_derivatives/DUDY.npy")
@@ -89,7 +91,6 @@ if arctic_plots == 1:
             dedt_plot_ta[..., 0], title=datasets_name[k + 1], ax=axss[k + 1]
         )
 
-    # axssf[-1].axis("off")
     dataset10.multi_fig(fig, cf, save=1)
 
 # ----------------------------------------------------------------------
