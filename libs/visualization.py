@@ -103,7 +103,13 @@ class Arctic(sts.Scale):
         )
 
     def arctic_plot(
-        self, formated_data: np.ndarray, title: string = None, ax=None
+        self,
+        formated_data: np.ndarray,
+        title: string = None,
+        ax=None,
+        cmap=None,
+        top=None,
+        bot=None,
     ):
         """
         Plots passed data on the Arctic circle, and can save the image to images/ directory.
@@ -184,8 +190,8 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                cmap=cmocean.cm.curl,
-                norm=colors.Normalize(vmin=0, vmax=5),
+                cmap=cmap,
+                norm=colors.Normalize(vmin=bot, vmax=top),
                 transform=ccrs.PlateCarree(),
                 zorder=1,
             )
@@ -312,6 +318,8 @@ class Arctic(sts.Scale):
                     + self.fig_name_supp
                     + ".pdf",
                 )
+
+        return cf
 
     def _encircle(
         self, x: np.ndarray, y: np.ndarray, ax: matplotlib.axes.SubplotBase
@@ -501,21 +509,34 @@ class Arctic(sts.Scale):
         axssf = axss.flatten()
         k = x * y - total
         if k > 0:
-            axssf[-k].axis("off")
+            axssf[:-k].axis("off")
+            for i, ax in enumerate(axssf[:-k]):
+                ax.text(
+                    -0.1,
+                    1.1,
+                    LETTER[i],
+                    transform=ax.transAxes,
+                    fontsize=10,
+                    fontweight="normal",
+                    va="top",
+                    ha="left",
+                )
         elif k < 0:
             print("You need {} more axis in order to do this plot.".format(-k))
-
-        for i, ax in enumerate(axssf[:-k]):
-            ax.text(
-                -0.1,
-                1.1,
-                LETTER[i],
-                transform=ax.transAxes,
-                fontsize=10,
-                fontweight="normal",
-                va="top",
-                ha="left",
-            )
+            exit()
+            
+        elif k == 0:
+            for i, ax in enumerate(axssf):
+                ax.text(
+                    -0.1,
+                    1.1,
+                    LETTER[i],
+                    transform=ax.transAxes,
+                    fontsize=10,
+                    fontweight="normal",
+                    va="top",
+                    ha="left",
+                )
         if self.trans:
             fig.patch.set_facecolor("None")
 
@@ -2045,7 +2066,6 @@ class Arctic(sts.Scale):
         coeff = np.abs(np.asarray(coeff_list))
 
         def sum_leastsqr(paramtuple):
-
             beta = self.structure_function(q_array, *paramtuple)
 
             return np.sum((coeff - beta) ** 2)
@@ -2082,7 +2102,6 @@ class Arctic(sts.Scale):
         coeff = np.abs(np.asarray(coeff_list))
 
         def sum_leastsqr(paramtuple):
-
             alpha = self.structure_function(q_array, *paramtuple)
 
             return np.sum((coeff - alpha) ** 2)
