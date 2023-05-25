@@ -1691,39 +1691,45 @@ class Arctic(sts.Scale):
             [type]: figure of pdf
         """
         # init plot
-        fig = plt.figure(dpi=300, figsize=(8, 2.2))
+        fig = plt.figure(dpi=300, figsize=(8.2, 2.2))
         if self.trans:
             fig.patch.set_facecolor("None")
 
+        extraspaceinit = 0.033
+        extraspaceend = 0.093
+        graphsizex = 0.267 - extraspaceend / 3 - extraspaceinit / 3
+        separation = (1 - extraspaceinit - extraspaceend - 3 * graphsizex) / 4
+        bottom_height, height = 0.2, 0.68
+
         # definitions for the axis
-        left_shear, width_shear = (1 - 3 * 0.28) / 4 + 0.033, 0.25
-        bottom_shear, height_shear = 0.2, 0.68
+        left_shear, width_shear = extraspaceinit + separation, graphsizex
         rect_scatter_shear = [
             left_shear,
-            bottom_shear,
+            bottom_height,
             width_shear,
-            height_shear,
+            height,
         ]
 
-        left_ndiv, width_ndiv = (1 - 3 * 0.28) / 2 + 0.25 + 0.033, 0.25
-        bottom_ndiv, height_ndiv = 0.2, 0.68
+        left_ndiv, width_ndiv = (
+            extraspaceinit + 2 * separation + graphsizex,
+            graphsizex,
+        )
         rect_scatter_ndiv = [
             left_ndiv,
-            bottom_ndiv,
+            bottom_height,
             width_ndiv,
-            height_ndiv,
+            height,
         ]
 
         left_pdiv, width_pdiv = (
-            3 * (1 - 3 * 0.28) / 4 + 2 * 0.25 + 0.033,
-            0.25,
+            extraspaceinit + 3 * separation + 2 * graphsizex,
+            graphsizex,
         )
-        bottom_pdiv, height_pdiv = 0.2, 0.68
         rect_scatter_pdiv = [
             left_pdiv,
-            bottom_pdiv,
+            bottom_height,
             width_pdiv,
-            height_pdiv,
+            height,
         ]
 
         ax_shear = fig.add_axes(rect_scatter_shear)
@@ -2160,8 +2166,8 @@ class Arctic(sts.Scale):
             fig.patch.set_facecolor("None")
 
         # definitions for the axes
-        left, width = 0.14, 0.7
-        bottom, height = 0.14, 0.75
+        left, width = 0.12, 0.7
+        bottom, height = 0.12, 0.8
 
         rect_scatter = [left, bottom, width, height]
         ax = fig.add_axes(rect_scatter)
