@@ -1441,7 +1441,7 @@ class Arctic(sts.Scale):
 
         splot = ax_shearB.pcolormesh(
             n,
-            list_y,
+            -list_y,
             model_diff_shear,
             cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1449,7 +1449,7 @@ class Arctic(sts.Scale):
         )
         ndplot = ax_ndivB.pcolormesh(
             n,
-            list_y,
+            -list_y,
             model_diff_ndiv,
             cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1457,7 +1457,7 @@ class Arctic(sts.Scale):
         )
         pdplot = ax_pdivB.pcolormesh(
             n,
-            list_y,
+            -list_y,
             model_diff_pdiv,
             cmap="coolwarm",  # "BrBG",
             norm=colors.Normalize(vmin=-1, vmax=1),
@@ -1473,25 +1473,23 @@ class Arctic(sts.Scale):
         for y in range(model_diff_shear.shape[0]):
             ax_shearB.text(
                 2.9,
-                y + 0.4,
+                -(y + 0.6),
                 "{:.2f}".format(num_shear[y]),
                 ha="right",
                 va="center",
                 fontsize=8,
             )
-        for y in range(model_diff_ndiv.shape[0]):
             ax_ndivB.text(
                 2.9,
-                y + 0.4,
+                -(y + 0.6),
                 "{:.2f}".format(num_ndiv[y]),
                 ha="left",
                 va="center",
                 fontsize=8,
             )
-        for y in range(model_diff_pdiv.shape[0]):
             ax_pdivB.text(
                 2.9,
-                y + 0.4,
+                -(y + 0.6),
                 "{:.2f}".format(num_pdiv[y]),
                 ha="right",
                 va="center",
@@ -1530,7 +1528,7 @@ class Arctic(sts.Scale):
 
         ax_shearB.set_xscale("log")
         ax_shearB.set_xlim(xmin=5e-3, xmax=3)
-        ticksB = np.arange(0.5, len(du_stack) - 0.5, 1)
+        ticksB = np.arange(-0.5, -len(du_stack) + 0.5, -1)
         tick_labelsB = names_plot[1 : len(du_stack)]
         ax_shearB.yaxis.set_ticks(ticksB)
         ax_shearB.yaxis.set_ticklabels(tick_labelsB, fontsize=8)
