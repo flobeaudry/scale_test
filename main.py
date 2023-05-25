@@ -14,18 +14,18 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset29,
-        dataset66,
-        dataset10Dadv,
-        dataset23,
-        dataset25,
-        dataset65,
-        # dataset44,
-        # dataset45,
-        dataset67,
-        dataset68,
-        dataset33,
-        dataset35,
+        dataset29,  # Control
+        dataset66,  # VP(0.7)
+        dataset10Dadv,  # VPd(2,1,30,27.5)
+        dataset23,  # VPd(2,3,30,27.5)
+        dataset25,  # VPd(2,5,30,27.5)
+        dataset33,  # VPd(2,3,2,27.5)
+        dataset35,  # VPd(2,5,2,27.5)
+        dataset65,  # VPd(0.7,5,30,27.5)
+        # dataset44,  # VPd(2,5,30,0.5)
+        # dataset45,  # VPd(2,5,30,2)
+        dataset67,  # VPd(2,5,30,35)
+        dataset68,  # VPd(2,5,30,35)
     ]
 )
 
@@ -37,30 +37,30 @@ datasets_name = np.array(
         "VPd(2,1,30,27.5)",
         "VPd(2,3,30,27.5)",
         "VPd(2,5,30,27.5)",
+        "VPd(2,3,2,27.5)",
+        "VPd(2,5,2,27.5)",
         "VPd(0.7,5,30,27.5)",
         # "VPd(2,5,30,0.5)",
         # "VPd(2,5,30,2)",
         "VPd(2,5,30,35)",
         "VPd(2,5,30,55)",
-        "VPd(2,3,2,27.5)",
-        "VPd(2,5,2,27.5)",
     ]
 )
 
 datasets_color = np.array(
     [
-        "black",
-        "xkcd:dark mauve",
-        "xkcd:sandy",
-        "xkcd:blue green",
-        "xkcd:kelly green",
-        "xkcd:light teal",
-        "xkcd:goldenrod",
-        "xkcd:powder pink",
-        "xkcd:deep rose",
-        # "xkcd:light mauve",
-        "xkcd:azure",
-        "xkcd:pastel blue",
+        "black",  # RGPS
+        "xkcd:dark mauve",  # Control
+        "xkcd:sandy",  # VP(0.7)
+        "xkcd:blue green",  # VPd(2,1,30,27.5)
+        "xkcd:kelly green",  # VPd(2,3,30,27.5)
+        "xkcd:light teal",  # VPd(2,5,30,27.5)
+        "xkcd:azure",  # VPd(2,3,2,27.5)
+        "xkcd:pastel blue",  # VPd(2,5,2,27.5)
+        "xkcd:goldenrod",  # VPd(0.7,5,30,27.5)
+        "xkcd:powder pink",  # VPd(2,5,30,35)
+        "xkcd:deep rose",  # VPd(2,5,30,35)
+        # "xkcd:light mauve",   # VPd(2,5,30,0.5)
     ]
 )
 
@@ -69,7 +69,7 @@ datasets_color = np.array(
 # ----------------------------------------------------------------------
 
 if arctic_plots == 1:
-    fig, axss = dataset10.multi_fig_precond(x, y, total)
+    fig, axss = dataset10.multi_fig_precond(x, y, total, remove)
 
     dudx = np.load("RGPS_derivatives/DUDX.npy")
     dudy = np.load("RGPS_derivatives/DUDY.npy")
@@ -79,7 +79,7 @@ if arctic_plots == 1:
     deps_RGPS_plot = dataset_RGPS._deformation(du80_RGPS, 0)
 
     cf = dataset_RGPS.arctic_plot_RGPS(
-        deps_RGPS_plot[..., 0], "dedt", "_02_", ax=axss[0]
+        deps_RGPS_plot[..., 0], "dedt", "_02_", ax=np.delete(axss, remove)[0]
     )
 
     for k, dataset in enumerate(datasets):
@@ -88,7 +88,9 @@ if arctic_plots == 1:
         )
         dedt_plot_ta = dataset._time_average(dedt_plot, dt)
         dataset.arctic_plot(
-            dedt_plot_ta[..., 0], title=datasets_name[k + 1], ax=axss[k + 1]
+            dedt_plot_ta[..., 0],
+            title=datasets_name[k + 1],
+            ax=np.delete(axss, remove)[k + 1],
         )
 
     dataset10.multi_fig(fig, cf, save=1)

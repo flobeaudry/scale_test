@@ -485,7 +485,9 @@ class Arctic(sts.Scale):
 
         return cf
 
-    def multi_fig_precond(self, x: int, y: int, total: int):
+    def multi_fig_precond(
+        self, x: int, y: int, total: int, special: list = None
+    ):
         """
         This function creates axis for multiplot of Arctic.
 
@@ -493,6 +495,10 @@ class Arctic(sts.Scale):
             x (int): number of pictures on the x axis.
 
             y (int): number of pictures on the y axis.
+
+            total (int): total number of plots to make in the grid.
+
+            special (list, optional): list of indices in the flatten grid x by y to to not draw plots.
 
         Returns:
             fig, axss
@@ -509,22 +515,36 @@ class Arctic(sts.Scale):
         axssf = axss.flatten()
         k = x * y - total
         if k > 0:
-            axssf[:-k].axis("off")
-            for i, ax in enumerate(axssf[:-k]):
-                ax.text(
-                    -0.1,
-                    1.1,
-                    LETTER[i],
-                    transform=ax.transAxes,
-                    fontsize=10,
-                    fontweight="normal",
-                    va="top",
-                    ha="left",
-                )
+            if special is None:
+                [ax.set_axis_off() for ax in axssf[-k:].ravel()]
+                for i, ax in enumerate(axssf[:-k]):
+                    ax.text(
+                        -0.1,
+                        1.1,
+                        LETTER[i],
+                        transform=ax.transAxes,
+                        fontsize=10,
+                        fontweight="normal",
+                        va="top",
+                        ha="left",
+                    )
+            else:
+                [ax.set_axis_off() for ax in axssf[special].ravel()]
+                for i, ax in enumerate(np.delete(axssf, special)):
+                    ax.text(
+                        -0.1,
+                        1.1,
+                        LETTER[i],
+                        transform=ax.transAxes,
+                        fontsize=10,
+                        fontweight="normal",
+                        va="top",
+                        ha="left",
+                    )
         elif k < 0:
             print("You need {} more axis in order to do this plot.".format(-k))
             exit()
-            
+
         elif k == 0:
             for i, ax in enumerate(axssf):
                 ax.text(

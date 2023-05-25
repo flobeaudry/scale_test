@@ -15,6 +15,7 @@ arctic_plots = 1
 x = 3
 y = 4
 total = 11
+remove = [6]
 
 # if you want to plot the deformation statistics plots
 deformation_plots = 0
