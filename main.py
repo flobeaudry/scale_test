@@ -34,16 +34,16 @@ datasets_name = np.array(
         "RGPS",
         "Control",
         "VP(0.7)",
-        "VPd(2,1,30)",
-        "VPd(2,3,30)",
-        "VPd(2,5,30)",
-        "VPd(0.7,5,30)",
+        "VPd(2,1,30,27.5)",
+        "VPd(2,3,30,27.5)",
+        "VPd(2,5,30,27.5)",
+        "VPd(0.7,5,30,27.5)",
         # "VPd(2,5,30,0.5)",
         # "VPd(2,5,30,2)",
-        "VPd(2,5,30,35e3)",
-        "VPd(2,5,30,55e3)",
-        "VPd(2,3,2)",
-        "VPd(2,5,2)",
+        "VPd(2,5,30,35)",
+        "VPd(2,5,30,55)",
+        "VPd(2,3,2,27.5)",
+        "VPd(2,5,2,27.5)",
     ]
 )
 
@@ -96,263 +96,273 @@ if arctic_plots == 1:
 # ----------------------------------------------------------------------
 # load everthing, compute du, mask du with RGPS80
 # ----------------------------------------------------------------------
+if deformation_plots:
+    if not load:
+        # mask80
+        # mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
+        mask80 = np.load("RGPS_mask/mask80JFM.npy")
 
-if load == 0:
-
-    # mask80
-    # mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
-    mask80 = np.load("RGPS_mask/mask80JFM.npy")
-
-    # RGPS data
-    # deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
-    # load derivatives and mask it
-    dudx = dataset_RGPS.mask80_times_RGPS(
-        np.load("RGPS_derivatives/DUDX.npy"), mask80
-    )
-    dudy = dataset_RGPS.mask80_times_RGPS(
-        np.load("RGPS_derivatives/DUDY.npy"), mask80
-    )
-    dvdx = dataset_RGPS.mask80_times_RGPS(
-        np.load("RGPS_derivatives/DVDX.npy"), mask80
-    )
-    dvdy = dataset_RGPS.mask80_times_RGPS(
-        np.load("RGPS_derivatives/DVDY.npy"), mask80
-    )
-
-    # stack them
-    du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
-
-    # ------------------------------------------------------------------
-    # Scaling spatial
-    # ------------------------------------------------------------------
-    (
-        deps_RGPS_du,
-        shear_RGPS_du,
-        div_RGPS_du,
-        scale_RGPS_du,
-    ) = dataset_RGPS.spatial_mean_du(du80_RGPS, L_RGPS)
-
-    # ------------------------------------------------------------------
-    # Scaling temporal
-    # ------------------------------------------------------------------
-    (
-        deps_RGPS_du_T,
-        shear_RGPS_du_T,
-        div_RGPS_du_T,
-        scale_RGPS_du_T,
-    ) = dataset_RGPS.temporal_mean_du(du80_RGPS, T10)
-
-    # ------------------------------------------------------------------
-    # Means (only for spatial)
-    # ------------------------------------------------------------------
-    (mean_deps_RGPS_du, mean_scale_RGPS_du, __,) = dataset_RGPS.scale_plot_vect(
-        deps_RGPS_du,
-        scale_RGPS_du,
-        L_RGPS,
-        save=0,
-        fig_name_supp="_dedt_02_RGPS_du",
-    )
-    # ------------------------------------------------------------------
-    # multifractality
-    # ------------------------------------------------------------------
-    # spatial
-    parametersRGPS, coeffRGPS = dataset_RGPS.multifractal_spatial(
-        3,
-        deps_RGPS_du,
-        scale_RGPS_du,
-        RGPS=1,
-    )
-
-    # temporal
-    parametersRGPS_T, coeffRGPS_T = dataset_RGPS.multifractal_temporal(
-        3, du80_RGPS
-    )
-
-    # ------------------------------------------------------------------
-    # initialize stack of deformations and means with RGPS
-    # ------------------------------------------------------------------
-    du80_stack = [du80_RGPS]
-
-    mean_deps_stack = np.empty((mean_deps_RGPS_du.shape[0], len(datasets) + 1))
-    mean_scale_stack = np.empty(
-        (mean_scale_RGPS_du.shape[0], len(datasets) + 1)
-    )
-
-    mean_deps_stack_T = np.empty((deps_RGPS_du_T.shape[0], len(datasets) + 1))
-    mean_scale_stack_T = np.empty((scale_RGPS_du_T.shape[0], len(datasets) + 1))
-
-    param_stack = np.empty((parametersRGPS.shape[0], len(datasets) + 1))
-    coeff_stack = np.empty((coeffRGPS.shape[0], len(datasets) + 1))
-
-    param_stack_T = np.empty((parametersRGPS_T.shape[0], len(datasets) + 1))
-    coeff_stack_T = np.empty((coeffRGPS_T.shape[0], len(datasets) + 1))
-
-    mean_deps_stack[:, 0] = mean_deps_RGPS_du
-    mean_scale_stack[:, 0] = mean_scale_RGPS_du
-
-    mean_deps_stack_T[:, 0] = deps_RGPS_du_T
-    mean_scale_stack_T[:, 0] = scale_RGPS_du_T
-
-    param_stack[:, 0] = parametersRGPS
-    coeff_stack[:, 0] = coeffRGPS
-
-    param_stack_T[:, 0] = parametersRGPS_T
-    coeff_stack_T[:, 0] = coeffRGPS_T
-
-    # ------------------------------------------------------------------
-    # loop on all sim datasets
-    # ------------------------------------------------------------------
-    for j, dataset in enumerate(datasets):
-        # calcul time averaged
-        u_v = dataset.multi_load(dt, time_end, datatype=datatype)
-        u_v = np.where(u_v == 0, np.NaN, u_v)
-        u_v_ta = dataset._time_average(u_v, dt)
-
-        # calcul du
-        du = dataset._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
-
-        # mask the data
-        du80 = du
-        du80[..., 0] = dataset.mask80_times(du[..., 0], mask80)[0]
-        du80[..., 1] = dataset.mask80_times(du[..., 1], mask80)[0]
-        du80[..., 2] = dataset.mask80_times(du[..., 2], mask80)[0]
-        du80[..., 3] = dataset.mask80_times(du[..., 3], mask80)[0]
-
-        # --------------------------------------------------------------
-        #       Scaling
-        # --------------------------------------------------------------
-
-        # spatial
-        deps, shear, div, scale = dataset.spatial_mean_du(du80, L10)
-
-        # temporal
-        deps_T, shear_T, div_T, scale_T = dataset.temporal_mean_du(du80, T10)
-
-        # means (only spatial)
-        mean_deps, mean_scale, __ = dataset.scale_plot_vect(
-            deps, scale, L10, save=0, fig_name_supp="_dedt_02"
+        # RGPS data
+        # deps, div, shear = dataset_RGPS.nc_load("RGPS_data/w0102n_3dys.nc", tf=29)
+        # load derivatives and mask it
+        dudx = dataset_RGPS.mask80_times_RGPS(
+            np.load("RGPS_derivatives/DUDX.npy"), mask80
+        )
+        dudy = dataset_RGPS.mask80_times_RGPS(
+            np.load("RGPS_derivatives/DUDY.npy"), mask80
+        )
+        dvdx = dataset_RGPS.mask80_times_RGPS(
+            np.load("RGPS_derivatives/DVDX.npy"), mask80
+        )
+        dvdy = dataset_RGPS.mask80_times_RGPS(
+            np.load("RGPS_derivatives/DVDY.npy"), mask80
         )
 
-        # --------------------------------------------------------------
-        #       Multifractality
-        # --------------------------------------------------------------
+        # stack them
+        du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
+        # --------------------------------------------------------------
+        # Scaling spatial
+        # --------------------------------------------------------------
+        (
+            deps_RGPS_du,
+            shear_RGPS_du,
+            div_RGPS_du,
+            scale_RGPS_du,
+        ) = dataset_RGPS.spatial_mean_du(du80_RGPS, L_RGPS)
+
+        # --------------------------------------------------------------
+        # Scaling temporal
+        # --------------------------------------------------------------
+        (
+            deps_RGPS_du_T,
+            shear_RGPS_du_T,
+            div_RGPS_du_T,
+            scale_RGPS_du_T,
+        ) = dataset_RGPS.temporal_mean_du(du80_RGPS, T10)
+
+        # --------------------------------------------------------------
+        # Means (only for spatial)
+        # --------------------------------------------------------------
+        (
+            mean_deps_RGPS_du,
+            mean_scale_RGPS_du,
+            __,
+        ) = dataset_RGPS.scale_plot_vect(
+            deps_RGPS_du,
+            scale_RGPS_du,
+            L_RGPS,
+            save=0,
+            fig_name_supp="_dedt_02_RGPS_du",
+        )
+        # --------------------------------------------------------------
+        # multifractality
+        # --------------------------------------------------------------
         # spatial
-        parameters, coeff = dataset.multifractal_spatial(
+        parametersRGPS, coeffRGPS = dataset_RGPS.multifractal_spatial(
             3,
-            deps,
-            scale,
+            deps_RGPS_du,
+            scale_RGPS_du,
+            RGPS=1,
         )
 
         # temporal
-        parameters_T, coeff_T = dataset.multifractal_temporal(3, du80)
+        parametersRGPS_T, coeffRGPS_T = dataset_RGPS.multifractal_temporal(
+            3, du80_RGPS
+        )
 
         # --------------------------------------------------------------
-        # append to lists
+        # initialize stack of deformations and means with RGPS
         # --------------------------------------------------------------
-        du80_stack.append(du80)
+        du80_stack = [du80_RGPS]
 
-        mean_deps_stack[:, j + 1] = mean_deps
-        mean_scale_stack[:, j + 1] = mean_scale
+        mean_deps_stack = np.empty(
+            (mean_deps_RGPS_du.shape[0], len(datasets) + 1)
+        )
+        mean_scale_stack = np.empty(
+            (mean_scale_RGPS_du.shape[0], len(datasets) + 1)
+        )
 
-        mean_deps_stack_T[:, j + 1] = deps_T
-        mean_scale_stack_T[:, j + 1] = scale_T
+        mean_deps_stack_T = np.empty(
+            (deps_RGPS_du_T.shape[0], len(datasets) + 1)
+        )
+        mean_scale_stack_T = np.empty(
+            (scale_RGPS_du_T.shape[0], len(datasets) + 1)
+        )
 
-        param_stack[:, j + 1] = parameters
-        coeff_stack[:, j + 1] = coeff
+        param_stack = np.empty((parametersRGPS.shape[0], len(datasets) + 1))
+        coeff_stack = np.empty((coeffRGPS.shape[0], len(datasets) + 1))
 
-        param_stack_T[:, j + 1] = parameters_T
-        coeff_stack_T[:, j + 1] = coeff_T
+        param_stack_T = np.empty((parametersRGPS_T.shape[0], len(datasets) + 1))
+        coeff_stack_T = np.empty((coeffRGPS_T.shape[0], len(datasets) + 1))
 
-    np.savez(
-        namefile,
+        mean_deps_stack[:, 0] = mean_deps_RGPS_du
+        mean_scale_stack[:, 0] = mean_scale_RGPS_du
+
+        mean_deps_stack_T[:, 0] = deps_RGPS_du_T
+        mean_scale_stack_T[:, 0] = scale_RGPS_du_T
+
+        param_stack[:, 0] = parametersRGPS
+        coeff_stack[:, 0] = coeffRGPS
+
+        param_stack_T[:, 0] = parametersRGPS_T
+        coeff_stack_T[:, 0] = coeffRGPS_T
+
+        # --------------------------------------------------------------
+        # loop on all sim datasets
+        # --------------------------------------------------------------
+        for j, dataset in enumerate(datasets):
+            # calcul time averaged
+            u_v = dataset.multi_load(dt, time_end, datatype=datatype)
+            u_v = np.where(u_v == 0, np.NaN, u_v)
+            u_v_ta = dataset._time_average(u_v, dt)
+
+            # calcul du
+            du = dataset._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
+
+            # mask the data
+            du80 = du
+            du80[..., 0] = dataset.mask80_times(du[..., 0], mask80)[0]
+            du80[..., 1] = dataset.mask80_times(du[..., 1], mask80)[0]
+            du80[..., 2] = dataset.mask80_times(du[..., 2], mask80)[0]
+            du80[..., 3] = dataset.mask80_times(du[..., 3], mask80)[0]
+
+            # ----------------------------------------------------------
+            #       Scaling
+            # ----------------------------------------------------------
+
+            # spatial
+            deps, shear, div, scale = dataset.spatial_mean_du(du80, L10)
+
+            # temporal
+            deps_T, shear_T, div_T, scale_T = dataset.temporal_mean_du(
+                du80, T10
+            )
+
+            # means (only spatial)
+            mean_deps, mean_scale, __ = dataset.scale_plot_vect(
+                deps, scale, L10, save=0, fig_name_supp="_dedt_02"
+            )
+
+            # ----------------------------------------------------------
+            #       Multifractality
+            # ----------------------------------------------------------
+
+            # spatial
+            parameters, coeff = dataset.multifractal_spatial(
+                3,
+                deps,
+                scale,
+            )
+
+            # temporal
+            parameters_T, coeff_T = dataset.multifractal_temporal(3, du80)
+
+            # ----------------------------------------------------------
+            # append to lists
+            # ----------------------------------------------------------
+            du80_stack.append(du80)
+
+            mean_deps_stack[:, j + 1] = mean_deps
+            mean_scale_stack[:, j + 1] = mean_scale
+
+            mean_deps_stack_T[:, j + 1] = deps_T
+            mean_scale_stack_T[:, j + 1] = scale_T
+
+            param_stack[:, j + 1] = parameters
+            coeff_stack[:, j + 1] = coeff
+
+            param_stack_T[:, j + 1] = parameters_T
+            coeff_stack_T[:, j + 1] = coeff_T
+
+        np.savez(
+            namefile,
+            du80_stack,
+            mean_deps_stack,
+            mean_scale_stack,
+            mean_deps_stack_T,
+            mean_scale_stack_T,
+            param_stack,
+            coeff_stack,
+            param_stack_T,
+            coeff_stack_T,
+        )
+
+    elif load:
+        datafile = np.load(namefile, allow_pickle=True)
+
+        du80_stack = datafile["arr_0"]
+
+        mean_deps_stack = datafile["arr_1"]
+        mean_scale_stack = datafile["arr_2"]
+
+        mean_deps_stack_T = datafile["arr_3"]
+        mean_scale_stack_T = datafile["arr_4"]
+
+        param_stack = datafile["arr_5"]
+        coeff_stack = datafile["arr_6"]
+
+        param_stack_T = datafile["arr_7"]
+        coeff_stack_T = datafile["arr_8"]
+
+    # ------------------------------------------------------------------
+    # plot PDF and CDF
+    # ------------------------------------------------------------------
+
+    dataset10.pdf_du(
         du80_stack,
+        save=1,
+        fig_name_supp="_02",
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
+    )
+    dataset10.cdf_du(
+        du80_stack,
+        save=1,
+        fig_name_supp="_02",
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
+    )
+
+    # ----------------------------------------------------------------------
+    # multiplot scaling
+    # ----------------------------------------------------------------------
+    dataset10.multi_plot_spatial(
         mean_deps_stack,
         mean_scale_stack,
-        mean_deps_stack_T,
-        mean_scale_stack_T,
-        param_stack,
-        coeff_stack,
-        param_stack_T,
-        coeff_stack_T,
+        fig_name_supp="_dedt_02",
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
     )
 
-elif load:
+    dataset10.multi_plot_temporal(
+        mean_deps_stack_T,
+        mean_scale_stack_T,
+        fig_name_supp="_dedt_02",
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
+    )
 
-    datafile = np.load(namefile, allow_pickle=True)
+    # ----------------------------------------------------------------------
+    # multifractality plots
+    # ----------------------------------------------------------------------
+    dataset10.multifractal_plot(
+        param_stack,
+        coeff_stack,
+        3,
+        1,
+        "_param_02",
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
+    )
 
-    du80_stack = datafile["arr_0"]
-
-    mean_deps_stack = datafile["arr_1"]
-    mean_scale_stack = datafile["arr_2"]
-
-    mean_deps_stack_T = datafile["arr_3"]
-    mean_scale_stack_T = datafile["arr_4"]
-
-    param_stack = datafile["arr_5"]
-    coeff_stack = datafile["arr_6"]
-
-    param_stack_T = datafile["arr_7"]
-    coeff_stack_T = datafile["arr_8"]
-
-# ----------------------------------------------------------------------
-# plot PDF and CDF
-# ----------------------------------------------------------------------
-
-dataset10.pdf_du(
-    du80_stack,
-    save=1,
-    fig_name_supp="_02",
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
-dataset10.cdf_du(
-    du80_stack,
-    save=1,
-    fig_name_supp="_02",
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
-
-# ----------------------------------------------------------------------
-# multiplot scaling
-# ----------------------------------------------------------------------
-dataset10.multi_plot_spatial(
-    mean_deps_stack,
-    mean_scale_stack,
-    fig_name_supp="_dedt_02",
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
-
-dataset10.multi_plot_temporal(
-    mean_deps_stack_T,
-    mean_scale_stack_T,
-    fig_name_supp="_dedt_02",
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
-
-# ----------------------------------------------------------------------
-# multifractality plots
-# ----------------------------------------------------------------------
-dataset10.multifractal_plot(
-    param_stack,
-    coeff_stack,
-    3,
-    1,
-    "_param_02",
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
-
-dataset10.multifractal_plot(
-    param_stack_T,
-    coeff_stack_T,
-    3,
-    1,
-    "T_param_02",
-    temp=1,
-    names_plot=datasets_name,
-    colors_plot=datasets_color,
-)
+    dataset10.multifractal_plot(
+        param_stack_T,
+        coeff_stack_T,
+        3,
+        1,
+        "T_param_02",
+        temp=1,
+        names_plot=datasets_name,
+        colors_plot=datasets_color,
+    )
