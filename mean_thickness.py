@@ -43,7 +43,7 @@ datasets_name = np.array(
 )
 
 # massage obs
-fn = "SMOS_Icethickness_v3.3_north_20110130.nc"
+fn = "other_files/SMOS_Icethickness_v3.3_north_20110130.nc"
 temp = nc.Dataset(fn)
 obs = temp["sea_ice_thickness"][0]
 interpy = np.arange(520)

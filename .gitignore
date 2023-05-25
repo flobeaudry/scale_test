@@ -9,7 +9,7 @@
 *.npy
 /RGPS*/
 /massaged_data/
-/other files/
+/other_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
