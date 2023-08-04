@@ -267,20 +267,33 @@ class Arctic(sts.Scale):
             if self.step is None:
                 self.step = 80 // self.resolution
 
+            formated_data_src_crs = formated_data[
+                0 :: self.step, 0 :: self.step, 0
+            ] / np.cos(lat1[0 :: self.step, 0 :: self.step] / 180 * np.pi)
+
+            mag = self._velolicty_vector_magnitude(
+                formated_data[0 :: self.step, 0 :: self.step, 0],
+                formated_data[0 :: self.step, 0 :: self.step, 1],
+            )
+
+            mag_src_crs = self._velolicty_vector_magnitude(
+                formated_data_src_crs,
+                formated_data[0 :: self.step, 0 :: self.step, 1],
+            )
+
             ax.quiver(
                 lon1[0 :: self.step, 0 :: self.step],
                 lat1[0 :: self.step, 0 :: self.step],
-                formated_data[0 :: self.step, 0 :: self.step, 0],
-                formated_data[0 :: self.step, 0 :: self.step, 1],
+                formated_data_src_crs * mag / mag_src_crs,
+                formated_data[0 :: self.step, 0 :: self.step, 1]
+                * mag
+                / mag_src_crs,
                 color="black",
                 transform=ccrs.PlateCarree(),
                 zorder=1,
+                angles="xy",
             )
-            # divide formated data above by this if you want arrows of same lenght.
-            # / self._velolicty_vector_magnitude(
-            #         formated_data[0 :: self.step, 0 :: self.step, 0],
-            #         formated_data[0 :: self.step, 0 :: self.step, 1],
-            #     )
+
             cf = ax.pcolormesh(
                 lon,
                 lat,
