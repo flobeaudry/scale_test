@@ -20,6 +20,7 @@ remove = [6]
 # if you want to plot the deformation statistics plots
 deformation_plots = 1
 # if you want to use data that has already been processed to do plots
-load = 1
+load = 0
 # name of the file where you save your processed data
-namefile = "massaged_data/try.npz"
+namefile = "artificial_fields/DUDX.npy"  # test with my own "artificial" file
+#namefile = "massaged_data/try.npz"  # antoine's original file that I don't know

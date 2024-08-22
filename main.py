@@ -14,53 +14,55 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset29,  # Control
-        dataset66,  # VP(0.7)
-        dataset10Dadv,  # VPd(2,1,30,27.5)
-        dataset23,  # VPd(2,3,30,27.5)
-        dataset25,  # VPd(2,5,30,27.5)
-        dataset33,  # VPd(2,3,2,27.5)
-        dataset35,  # VPd(2,5,2,27.5)
-        dataset65,  # VPd(0.7,5,30,27.5)
-        # dataset44,  # VPd(2,5,30,0.5)
-        # dataset45,  # VPd(2,5,30,2)
-        dataset67,  # VPd(2,5,30,35)
-        dataset68,  # VPd(2,5,30,35)
+        dataset29
+        #dataset29,  # Control
+        #dataset66,  # VP(0.7)
+        #dataset10Dadv,  # VPd(2,1,30,27.5)
+        #dataset23,  # VPd(2,3,30,27.5)
+        #dataset25,  # VPd(2,5,30,27.5)
+        #dataset33,  # VPd(2,3,2,27.5)
+        #dataset35,  # VPd(2,5,2,27.5)
+        #dataset65,  # VPd(0.7,5,30,27.5)
+        ## dataset44,  # VPd(2,5,30,0.5)
+        ## dataset45,  # VPd(2,5,30,2)
+        #dataset67,  # VPd(2,5,30,35)
+        #dataset68,  # VPd(2,5,30,35)
     ]
 )
 
 datasets_name = np.array(
     [
-        "RGPS",
-        "Control",
-        "VP(0.7)",
-        "VPd(2,1,30,27.5)",
-        "VPd(2,3,30,27.5)",
-        "VPd(2,5,30,27.5)",
-        "VPd(2,3,2,27.5)",
-        "VPd(2,5,2,27.5)",
-        "VPd(0.7,5,30,27.5)",
-        # "VPd(2,5,30,0.5)",
-        # "VPd(2,5,30,2)",
-        "VPd(2,5,30,35)",
-        "VPd(2,5,30,55)",
+        "Test"
+        #"RGPS",
+        #"Control",
+        #"VP(0.7)",
+        #"VPd(2,1,30,27.5)",
+        #"VPd(2,3,30,27.5)",
+        #"VPd(2,5,30,27.5)",
+        #"VPd(2,3,2,27.5)",
+        #"VPd(2,5,2,27.5)",
+        #"VPd(0.7,5,30,27.5)",
+        ## "VPd(2,5,30,0.5)",
+        ## "VPd(2,5,30,2)",
+        #"VPd(2,5,30,35)",
+        #"VPd(2,5,30,55)",
     ]
 )
 
 datasets_color = np.array(
     [
         "black",  # RGPS
-        "xkcd:dark mauve",  # Control
-        "xkcd:sandy",  # VP(0.7)
-        "xkcd:blue green",  # VPd(2,1,30,27.5)
-        "xkcd:kelly green",  # VPd(2,3,30,27.5)
-        "xkcd:light teal",  # VPd(2,5,30,27.5)
-        "xkcd:azure",  # VPd(2,3,2,27.5)
-        "xkcd:pastel blue",  # VPd(2,5,2,27.5)
-        "xkcd:goldenrod",  # VPd(0.7,5,30,27.5)
-        "xkcd:powder pink",  # VPd(2,5,30,35)
-        "xkcd:deep rose",  # VPd(2,5,30,35)
-        # "xkcd:light mauve",   # VPd(2,5,30,0.5)
+        #"xkcd:dark mauve",  # Control
+        #"xkcd:sandy",  # VP(0.7)
+        #"xkcd:blue green",  # VPd(2,1,30,27.5)
+        #"xkcd:kelly green",  # VPd(2,3,30,27.5)
+        #"xkcd:light teal",  # VPd(2,5,30,27.5)
+        #"xkcd:azure",  # VPd(2,3,2,27.5)
+        #"xkcd:pastel blue",  # VPd(2,5,2,27.5)
+        #"xkcd:goldenrod",  # VPd(0.7,5,30,27.5)
+        #"xkcd:powder pink",  # VPd(2,5,30,35)
+        #"xkcd:deep rose",  # VPd(2,5,30,35)
+        ## "xkcd:light mauve",   # VPd(2,5,30,0.5)
     ]
 )
 
@@ -71,10 +73,14 @@ datasets_color = np.array(
 if arctic_plots == 1:
     fig, axss = dataset10.multi_fig_precond(x, y, total, remove)
 
-    dudx = np.load("RGPS_derivatives/DUDX.npy")
-    dudy = np.load("RGPS_derivatives/DUDY.npy")
-    dvdx = np.load("RGPS_derivatives/DVDX.npy")
-    dvdy = np.load("RGPS_derivatives/DVDY.npy")
+    dudx = np.load("artificial_fields/DUDX.npy")
+    dudy = np.load("artificial_fields/DUDY.npy")
+    dvdx = np.load("artificial_fields/DVDX.npy")
+    dvdy = np.load("artificial_fields/DVDY.npy")
+    #dudx = np.load("RGPS_derivatives/DUDX.npy")
+    #dudy = np.load("RGPS_derivatives/DUDY.npy")
+    #dvdx = np.load("RGPS_derivatives/DVDX.npy")
+    #dvdy = np.load("RGPS_derivatives/DVDY.npy")
     du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
     deps_RGPS_plot = dataset_RGPS._deformation(du80_RGPS, 0)
 
@@ -100,6 +106,7 @@ if arctic_plots == 1:
 # ----------------------------------------------------------------------
 if deformation_plots:
     if not load:
+        '''
         # mask80
         # mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
         mask80 = np.load("RGPS_mask/mask80JFM.npy")
@@ -121,6 +128,14 @@ if deformation_plots:
         )
 
         # stack them
+        du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+        '''
+        
+        dudx = np.load("artificial_fields/DUDX.npy")
+        dudy = np.load("artificial_fields/DUDY.npy")
+        dvdx = np.load("artificial_fields/DVDX.npy")
+        dvdy = np.load("artificial_fields/DVDY.npy")
+        #print(np.shape(dudx), np.shape(dudy), np.shape(dvdx), np.shape(dvdy))
         du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
         # --------------------------------------------------------------
@@ -216,7 +231,8 @@ if deformation_plots:
         for j, dataset in enumerate(datasets):
             # calcul time averaged
             u_v = dataset.multi_load(dt, time_end, datatype=datatype)
-            u_v = np.where(u_v == 0, np.NaN, u_v)
+            u_v = np.where(u_v == 0, np.nan, u_v)
+            #u_v = np.where(u_v == 0, np.NaN, u_v)
             u_v_ta = dataset._time_average(u_v, dt)
 
             # calcul du

@@ -250,8 +250,11 @@ class Scale(sel.Data):
                     )
 
             # take only boxes that are at least 50% filled
+            #du_bool_sum = np.where(
+            #    du_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, du_bool_sum,
+            #)
             du_bool_sum = np.where(
-                du_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, du_bool_sum,
+                du_bool_sum < scale_grid_unit ** 2 // 2, np.nan, du_bool_sum,
             )
 
             # compute the means
