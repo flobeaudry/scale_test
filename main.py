@@ -33,9 +33,9 @@ datasets = np.array(
 
 datasets_name = np.array(
     [
-        "Control",
         "RGPS",
-        "Test",
+        "Background",
+        "SIM",
         #"VP(0.7)",
         #"VPd(2,1,30,27.5)",
         #"VPd(2,3,30,27.5)",
@@ -54,10 +54,10 @@ datasets_color = np.array(
     [
         "black",  # RGPS
         "xkcd:dark mauve",  # Control
-        "xkcd:sandy",  # VP(0.7)
+        #"xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)
         #"xkcd:kelly green",  # VPd(2,3,30,27.5)
-        #"xkcd:light teal",  # VPd(2,5,30,27.5)
+        "xkcd:light teal",  # VPd(2,5,30,27.5)
         #"xkcd:azure",  # VPd(2,3,2,27.5)
         #"xkcd:pastel blue",  # VPd(2,5,2,27.5)
         #"xkcd:goldenrod",  # VPd(0.7,5,30,27.5)
