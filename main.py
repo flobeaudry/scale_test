@@ -14,7 +14,8 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset29
+        dataset10,
+        dataset29,
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
         #dataset10Dadv,  # VPd(2,1,30,27.5)
@@ -32,9 +33,9 @@ datasets = np.array(
 
 datasets_name = np.array(
     [
-        "Test"
-        #"RGPS",
-        #"Control",
+        "Control",
+        "RGPS",
+        "Test",
         #"VP(0.7)",
         #"VPd(2,1,30,27.5)",
         #"VPd(2,3,30,27.5)",
@@ -52,8 +53,8 @@ datasets_name = np.array(
 datasets_color = np.array(
     [
         "black",  # RGPS
-        #"xkcd:dark mauve",  # Control
-        #"xkcd:sandy",  # VP(0.7)
+        "xkcd:dark mauve",  # Control
+        "xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)
         #"xkcd:kelly green",  # VPd(2,3,30,27.5)
         #"xkcd:light teal",  # VPd(2,5,30,27.5)
@@ -71,12 +72,12 @@ datasets_color = np.array(
 # ----------------------------------------------------------------------
 
 if arctic_plots == 1:
-    fig, axss = dataset10.multi_fig_precond(x, y, total, remove)
+    fig, axss = dataset.multi_fig_precond(x, y, total, remove)
 
-    dudx = np.load("artificial_fields/DUDX.npy")
-    dudy = np.load("artificial_fields/DUDY.npy")
-    dvdx = np.load("artificial_fields/DVDX.npy")
-    dvdy = np.load("artificial_fields/DVDY.npy")
+    dudx = np.load("../artificial_fields/DUDX.npy")
+    dudy = np.load("../artificial_fields/DUDY.npy")
+    dvdx = np.load("../artificial_fields/DVDX.npy")
+    dvdy = np.load("../artificial_fields/DVDY.npy")
     #dudx = np.load("RGPS_derivatives/DUDX.npy")
     #dudy = np.load("RGPS_derivatives/DUDY.npy")
     #dvdx = np.load("RGPS_derivatives/DVDX.npy")
@@ -99,14 +100,14 @@ if arctic_plots == 1:
             ax=np.delete(axss, remove)[k + 1],
         )
 
-    dataset10.multi_fig(fig, cf, save=1)
+    dataset.multi_fig(fig, cf, save=1)
 
 # ----------------------------------------------------------------------
 # load everthing, compute du, mask du with RGPS80
 # ----------------------------------------------------------------------
 if deformation_plots:
     if not load:
-        '''
+        
         # mask80
         # mask80 = dataset_RGPS.mask80("RGPS_data", ti=-1, tf=88)
         mask80 = np.load("RGPS_mask/mask80JFM.npy")
@@ -129,14 +130,14 @@ if deformation_plots:
 
         # stack them
         du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
-        '''
         
-        dudx = np.load("artificial_fields/DUDX.npy")
-        dudy = np.load("artificial_fields/DUDY.npy")
-        dvdx = np.load("artificial_fields/DVDX.npy")
-        dvdy = np.load("artificial_fields/DVDY.npy")
+        
+        #dudx = np.load("../artificial_fields/DUDX.npy")
+        #dudy = np.load("../artificial_fields/DUDY.npy")
+        #dvdx = np.load("../artificial_fields/DVDX.npy")
+        #dvdy = np.load("../artificial_fields/DVDY.npy")
         #print(np.shape(dudx), np.shape(dudy), np.shape(dvdx), np.shape(dvdy))
-        du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+        #du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
 
         # --------------------------------------------------------------
         # Scaling spatial
@@ -225,25 +226,34 @@ if deformation_plots:
         param_stack_T[:, 0] = parametersRGPS_T
         coeff_stack_T[:, 0] = coeffRGPS_T
 
+
         # --------------------------------------------------------------
         # loop on all sim datasets
         # --------------------------------------------------------------
+        
         for j, dataset in enumerate(datasets):
             # calcul time averaged
             u_v = dataset.multi_load(dt, time_end, datatype=datatype)
             u_v = np.where(u_v == 0, np.nan, u_v)
-            #u_v = np.where(u_v == 0, np.NaN, u_v)
             u_v_ta = dataset._time_average(u_v, dt)
 
             # calcul du
             du = dataset._derivative(u_v_ta[:, :, 0, :], u_v_ta[:, :, 1, :])
 
             # mask the data
+            
+            #dudx = np.load("../artificial_fields/DUDX.npy")
+            #dudy = np.load("../artificial_fields/DUDY.npy")
+            #dvdx = np.load("../artificial_fields/DVDX.npy")
+            #dvdy = np.load("../artificial_fields/DVDY.npy")
+            #du80 = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+            
             du80 = du
             du80[..., 0] = dataset.mask80_times(du[..., 0], mask80)[0]
             du80[..., 1] = dataset.mask80_times(du[..., 1], mask80)[0]
             du80[..., 2] = dataset.mask80_times(du[..., 2], mask80)[0]
             du80[..., 3] = dataset.mask80_times(du[..., 3], mask80)[0]
+            
 
             # ----------------------------------------------------------
             #       Scaling
@@ -292,7 +302,9 @@ if deformation_plots:
 
             param_stack_T[:, j + 1] = parameters_T
             coeff_stack_T[:, j + 1] = coeff_T
-
+        
+        '''
+        # Check this
         np.savez(
             namefile,
             du80_stack,
@@ -305,6 +317,7 @@ if deformation_plots:
             param_stack_T,
             coeff_stack_T,
         )
+        '''
 
     elif load:
         datafile = np.load(namefile, allow_pickle=True)

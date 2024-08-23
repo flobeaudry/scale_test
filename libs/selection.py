@@ -34,6 +34,7 @@
 
 import numpy as np
 import netCDF4 as nc
+import os
 from os import path, listdir
 from datetime import datetime, timedelta
 from libs.constants import *
@@ -228,12 +229,14 @@ class Data:
 
         if expno is not None:
             self.expno = expno
-
+        print('expno',expno)
+        print('expno',self.expno)
+        print(self._list_files(self.directory, self.expno))
         # loop until input is valid
         while 1:
             # counter to verify if it is input or argument (0: arg, 1:input)
             n = 0
-
+            
             # enter experience number
             if self.expno is None:
                 self.expno = input("Experience number? (format is ##) ")
@@ -733,7 +736,7 @@ class Data:
         """
 
         ix = np.isin(raw_def, [-999, -888])
-        vc = np.vectorize(lambda x: np.NaN if x == -999 else np.NaN)
+        vc = np.vectorize(lambda x: np.nan if x == -999 else np.nan)
         formated_def = np.where(ix, vc(raw_def), raw_def)
 
         return formated_def
@@ -773,6 +776,7 @@ class Data:
             self.datatype = "u"
 
         # load all necessary parts, order is important.
+        #directory = 'output29'  # TEST
         self._load_directory(directory)
         self._load_time(time)
         self._load_expno(expno)
@@ -969,7 +973,7 @@ class Data:
 
         return np.where(
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2) == 0,
-            np.NaN,
+            np.nan,
             np.sqrt(formated_vel_u ** 2 + formated_vel_v ** 2),
         )
 
@@ -1101,15 +1105,15 @@ class Data:
 
             div = np.flip(np.transpose(ds["divergence"][:], (1, 2, 0)), axis=0)
             div = div[..., indices]
-            # div = np.where(np.abs(div) < 5e-3, np.NaN, div)
+            # div = np.where(np.abs(div) < 5e-3, np.nan, div)
 
             shear = np.flip(np.transpose(ds["shear"][:], (1, 2, 0)), axis=0)
             shear = shear[..., indices]
-            # shear = np.where(shear < 5e-3, np.NaN, shear)
+            # shear = np.where(shear < 5e-3, np.nan, shear)
 
             deps = np.sqrt(div ** 2 + shear ** 2)
             deps.mask = 0
-            deps = np.where(deps == 0.0, np.NaN, deps)
+            deps = np.where(deps == 0.0, np.nan, deps)
 
             print("Done loading RGPS data.")
             print(
@@ -1162,7 +1166,7 @@ class Data:
 
             deps = np.sqrt(div ** 2 + shear ** 2)
             deps.mask = 0
-            deps = np.where(deps == 0.0, np.NaN, deps)
+            deps = np.where(deps == 0.0, np.nan, deps)
 
         return deps, div, shear
 
@@ -1217,7 +1221,7 @@ class Data:
 
             # sum all layers and divide by the number of layer to test which cells are covered for a least 80% of the time
             mask_sum = np.sum(mask_array, axis=-1)
-            mask80 = np.where(mask_sum / size >= 0.8, 1, np.NaN)
+            mask80 = np.where(mask_sum / size >= 0.8, 1, np.nan)
             print("Done loading RGPS80 mask.")
 
         return mask80
@@ -1281,13 +1285,13 @@ class Data:
         )
 
         # +1 to match shape of x_RGPS_10
-        id_xmin = np.int(
+        id_xmin = int(
             (
                 np.abs(np.min(x0_SIM) - np.min(x0_RGPS_10_SIM))
                 // self.resolution
             )
         )
-        id_xmax = np.int(
+        id_xmax = int(
             (
                 np.abs(np.min(x0_SIM) - np.max(x0_RGPS_10_SIM))
                 // self.resolution
@@ -1295,13 +1299,13 @@ class Data:
             )
         )
 
-        id_ymin = np.int(
+        id_ymin = int(
             (
                 np.abs(np.min(y0_SIM) - np.min(y0_RGPS_10_SIM))
                 // self.resolution
             )
         )
-        id_ymax = np.int(
+        id_ymax = int(
             (
                 np.abs(np.min(y0_SIM) - np.max(y0_RGPS_10_SIM))
                 // self.resolution
@@ -1320,13 +1324,13 @@ class Data:
         mask_RGPS_10 = np.round(shift(mask_RGPS_10, shift=(-75, 55)))
         mask_RGPS_10 = np.round(zoom(mask_RGPS_10, zoom=1 / 1.7))
         mask_RGPS_10 = np.transpose(
-            np.where(mask_RGPS_10 == 0, np.NaN, mask_RGPS_10)
+            np.where(mask_RGPS_10 == 0, np.nan, mask_RGPS_10)
         )
 
         for i in range(id_xmin, id_xmax):
             for j in range(id_ymin, id_ymax):
                 mask[j, i] = mask_RGPS_10[i - id_xmin, j - id_ymin]
-        mask = np.where(mask == 0, np.NaN, mask)
+        mask = np.where(mask == 0, np.nan, mask)
 
         data80 = np.transpose(np.transpose(data, (2, 0, 1)) * mask, (1, 2, 0))
 

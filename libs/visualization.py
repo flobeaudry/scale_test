@@ -214,7 +214,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.nan),
                 cmap=cmocean.cm.thermal,
                 norm=colors.Normalize(vmin=0, vmax=0.1),
                 transform=ccrs.PlateCarree(),
@@ -227,7 +227,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.nan),
                 cmap=cmocean.cm.curl,
                 norm=colors.Normalize(vmin=-0.3, vmax=0.3),
                 transform=ccrs.PlateCarree(),
@@ -241,7 +241,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.nan),
                 cmap=cmocean.cm.amp,
                 transform=ccrs.PlateCarree(),
                 zorder=1,
@@ -254,7 +254,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 formated_data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.nan),
                 cmap=cmocean.cm.amp,
                 norm=colors.Normalize(vmin=0.985, vmax=1),
                 transform=ccrs.PlateCarree(),
@@ -407,7 +407,7 @@ class Arctic(sts.Scale):
                 lon,
                 lat,
                 data,
-                # np.where(self.load(datatype="A") > 0.15, formated_data, np.NaN),
+                # np.where(self.load(datatype="A") > 0.15, formated_data, np.nan),
                 cmap=cmocean.cm.curl,
                 norm=colors.Normalize(vmin=-0.04, vmax=0.04),
                 transform=ccrs.PlateCarree(),
@@ -700,18 +700,27 @@ class Arctic(sts.Scale):
             newcolors[:51, :] = bot
             newcmp = ListedColormap(newcolors)
             # plot
+            #cf = ax.scatter(
+            #    scaling[k][indices],
+            #    deformation[k][indices],
+            #    c=np.zeros_like(
+            #        deformation[k][indices]
+            #    ),  # viscosity[k, indices],
+            #    s=0.5,
+            #    cmap=newcmp,
+            #    norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E**2),
+            #)
+            print(scaling[k])
+            print(deformation[k][indices])
             cf = ax.scatter(
                 scaling[k][indices],
                 deformation[k][indices],
-                c=np.zeros_like(
-                    deformation[k][indices]
-                ),  # viscosity[k, indices],
                 s=0.5,
                 cmap=newcmp,
-                norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E**2),
+                #norm=colors.Normalize(vmin=0, vmax=5 * ETA_MAX * E**2),
             )
             # same thing with only viscosities that are under visc_max (plastic def)
-            # viscosity[k, viscosity[k] >= ETA_MAX * E ** 2] = np.NaN
+            # viscosity[k, viscosity[k] >= ETA_MAX * E ** 2] = np.nan
             # indices = ~np.isnan(viscosity[k])
             # mean_def_cut[k] = np.average(deformation[k, indices, 0],)
             # mean_scale_cut[k] = np.average(deformation[k, indices, 1],)
@@ -1253,12 +1262,12 @@ class Arctic(sts.Scale):
             ndiv = np.where(
                 self._deformation(du_stack[k], 2) < 0,
                 -self._deformation(du_stack[k], 2),
-                np.NaN,
+                np.nan,
             )
             pdiv = np.where(
                 self._deformation(du_stack[k], 2) > 0,
                 self._deformation(du_stack[k], 2),
-                np.NaN,
+                np.nan,
             )
 
             shear_cut = shear[~np.isnan(shear)]
@@ -1270,9 +1279,9 @@ class Arctic(sts.Scale):
             p_shear, x_shear = np.histogram(shear_cut, bins=n, density=1)
             p_ndiv, x_ndiv = np.histogram(ndiv_cut, bins=n, density=1)
             p_pdiv, x_pdiv = np.histogram(pdiv_cut, bins=n, density=1)
-            p_shear = np.where(p_shear == 0.0, np.NaN, p_shear)
-            p_ndiv = np.where(p_ndiv == 0.0, np.NaN, p_ndiv)
-            p_pdiv = np.where(p_pdiv == 0.0, np.NaN, p_pdiv)
+            p_shear = np.where(p_shear == 0.0, np.nan, p_shear)
+            p_ndiv = np.where(p_ndiv == 0.0, np.nan, p_ndiv)
+            p_pdiv = np.where(p_pdiv == 0.0, np.nan, p_pdiv)
 
             # convert bin edges to centers
             x_shear_mid = (x_shear[:-1] + x_shear[1:]) / 2
@@ -1397,6 +1406,7 @@ class Arctic(sts.Scale):
                 pt_ndiv = np.delete(p_ndiv, np.asarray(indices_ndiv))
                 pt_pdiv = np.delete(p_pdiv, np.asarray(indices_pdiv))
 
+            '''
             # fit
             coeff_shear = (
                 np.polynomial.Polynomial.fit(
@@ -1422,27 +1432,28 @@ class Arctic(sts.Scale):
             best_fit_shear = np.polynomial.Polynomial(coeff_shear)
             best_fit_ndiv = np.polynomial.Polynomial(coeff_ndiv)
             best_fit_pdiv = np.polynomial.Polynomial(coeff_pdiv)
-
+            '''
+            
             # plots
             ax_shear.plot(
                 x_shear_mid,
                 p_shear,
                 color=colors_plot[k],
-                label="{:.1f}".format(-coeff_shear[-1]),
+                #label="{:.1f}".format(-coeff_shear[-1]),
             )
 
             ax_ndiv.plot(
                 x_ndiv_mid,
                 p_ndiv,
                 color=colors_plot[k],
-                label="{:.1f}".format(-coeff_ndiv[-1]),
+                #label="{:.1f}".format(-coeff_ndiv[-1]),
             )
 
             ax_pdiv.plot(
                 x_pdiv_mid,
                 p_pdiv,
                 color=colors_plot[k],
-                label="{:.1f}".format(-coeff_pdiv[-1]),
+                #label="{:.1f}".format(-coeff_pdiv[-1]),
             )
 
         # model diff plots
@@ -1806,12 +1817,12 @@ class Arctic(sts.Scale):
         shear_RGPS = self._deformation(du_stack[0], 1)
         ndiv_RGPS = np.where(
             self._deformation(du_stack[0], 2) > 0,
-            np.NaN,
+            np.nan,
             -self._deformation(du_stack[0], 2),
         )
         pdiv_RGPS = np.where(
             self._deformation(du_stack[0], 2) < 0,
-            np.NaN,
+            np.nan,
             self._deformation(du_stack[0], 2),
         )
 
@@ -1821,13 +1832,13 @@ class Arctic(sts.Scale):
 
         # CDF, we have to cut under 0.005 for nice CDF
         shear_RGPS_cut1 = np.where(
-            shear_RGPS_cut < 0.005, np.NaN, shear_RGPS_cut
+            shear_RGPS_cut < 0.005, np.nan, shear_RGPS_cut
         )
         ndiv_RGPS_cut1 = np.where(
-            np.abs(ndiv_RGPS_cut) < 0.005, np.NaN, ndiv_RGPS_cut
+            np.abs(ndiv_RGPS_cut) < 0.005, np.nan, ndiv_RGPS_cut
         )
         pdiv_RGPS_cut1 = np.where(
-            np.abs(pdiv_RGPS_cut) < 0.005, np.NaN, pdiv_RGPS_cut
+            np.abs(pdiv_RGPS_cut) < 0.005, np.nan, pdiv_RGPS_cut
         )
         shear_RGPS_cut2 = shear_RGPS_cut1[~np.isnan(shear_RGPS_cut1)]
         ndiv_RGPS_cut2 = ndiv_RGPS_cut1[~np.isnan(ndiv_RGPS_cut1)]
@@ -1861,12 +1872,12 @@ class Arctic(sts.Scale):
             shear = self._deformation(du_stack[k + 1], 1)
             ndiv = np.where(
                 self._deformation(du_stack[k + 1], 2) > 0,
-                np.NaN,
+                np.nan,
                 -self._deformation(du_stack[k + 1], 2),
             )
             pdiv = np.where(
                 self._deformation(du_stack[k + 1], 2) < 0,
-                np.NaN,
+                np.nan,
                 self._deformation(du_stack[k + 1], 2),
             )
 
@@ -1875,9 +1886,9 @@ class Arctic(sts.Scale):
             pdiv_cut = pdiv[~np.isnan(pdiv)]
 
             # CDF, we have to cut under 0.005 for nice CDF
-            shear_cut1 = np.where(shear_cut < 0.005, np.NaN, shear_cut)
-            ndiv_cut1 = np.where(np.abs(ndiv_cut) < 0.005, np.NaN, ndiv_cut)
-            pdiv_cut1 = np.where(np.abs(pdiv_cut) < 0.005, np.NaN, pdiv_cut)
+            shear_cut1 = np.where(shear_cut < 0.005, np.nan, shear_cut)
+            ndiv_cut1 = np.where(np.abs(ndiv_cut) < 0.005, np.nan, ndiv_cut)
+            pdiv_cut1 = np.where(np.abs(pdiv_cut) < 0.005, np.nan, pdiv_cut)
             shear_cut2 = shear_cut1[~np.isnan(shear_cut1)]
             ndiv_cut2 = ndiv_cut1[~np.isnan(ndiv_cut1)]
             pdiv_cut2 = pdiv_cut1[~np.isnan(pdiv_cut1)]
