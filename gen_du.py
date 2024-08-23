@@ -53,7 +53,8 @@ end_date = datetime(2002, 1, 31, 18)  # January 31st, 18:00
 time_delta = timedelta(hours=6)
 
 # Directory to save the files
-output_dir = "output10"
+#output_dir = "output10"
+output_dir = "output11"
 os.makedirs(output_dir, exist_ok=True)
 
 current_time = start_date
@@ -62,7 +63,7 @@ while current_time <= end_date:
     u, v = create_fields(time_step)
 
     # Formatting filename
-    file_suffix = current_time.strftime("%Y_%m_%d_%H_%M") + ".10"
+    file_suffix = current_time.strftime("%Y_%m_%d_%H_%M") + ".11"
     u_filename = os.path.join(output_dir, f"u{file_suffix}")
     v_filename = os.path.join(output_dir, f"v{file_suffix}")
 
@@ -72,8 +73,12 @@ while current_time <= end_date:
     # Save the fields with .10 extension
     #u.astype(np.float32).tofile(u_filename)
     #v.astype(np.float32).tofile(v_filename)
-    np.savetxt(u_filename, u+0.1, fmt='%.6f')
-    np.savetxt(v_filename, v+0.1, fmt='%.6f')
+    
+    
+    np.savetxt(u_filename, np.random.rand(ny, nx+1), fmt='%.6f')
+    np.savetxt(v_filename, np.random.rand(ny+1, nx), fmt='%.6f')
+    #np.savetxt(u_filename, u+np.random.rand(ny, nx+1), fmt='%.6f')
+    #np.savetxt(v_filename, v+np.random.rand(ny+1, nx), fmt='%.6f')
 
     # Increment time by 6 hours
     current_time += time_delta

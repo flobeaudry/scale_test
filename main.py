@@ -14,7 +14,7 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset10,
+        dataset11,
         dataset29,
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -72,26 +72,22 @@ datasets_color = np.array(
 # ----------------------------------------------------------------------
 
 if arctic_plots == 1:
-    fig, axss = dataset.multi_fig_precond(x, y, total, remove)
+    fig, axss = dataset29.multi_fig_precond(x, y, total, remove)
 
-    dudx = np.load("../artificial_fields/DUDX.npy")
-    dudy = np.load("../artificial_fields/DUDY.npy")
-    dvdx = np.load("../artificial_fields/DVDX.npy")
-    dvdy = np.load("../artificial_fields/DVDY.npy")
-    #dudx = np.load("RGPS_derivatives/DUDX.npy")
-    #dudy = np.load("RGPS_derivatives/DUDY.npy")
-    #dvdx = np.load("RGPS_derivatives/DVDX.npy")
-    #dvdy = np.load("RGPS_derivatives/DVDY.npy")
+    dudx = np.load("RGPS_derivatives/DUDX.npy")
+    dudy = np.load("RGPS_derivatives/DUDY.npy")
+    dvdx = np.load("RGPS_derivatives/DVDX.npy")
+    dvdy = np.load("RGPS_derivatives/DVDY.npy")
     du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
     deps_RGPS_plot = dataset_RGPS._deformation(du80_RGPS, 0)
 
     cf = dataset_RGPS.arctic_plot_RGPS(
-        deps_RGPS_plot[..., 0], "dedt", "_02_", ax=np.delete(axss, remove)[0]
+        deps_RGPS_plot[..., 0], "u", "_02_", ax=np.delete(axss, remove)[0]
     )
 
     for k, dataset in enumerate(datasets):
         dedt_plot = dataset.multi_load(
-            datatype="dedt", time_end="2002-01-31-18-00", dt=dt
+            datatype="u", time_end="2002-01-31-18-00", dt=dt
         )
         dedt_plot_ta = dataset._time_average(dedt_plot, dt)
         dataset.arctic_plot(
@@ -100,7 +96,7 @@ if arctic_plots == 1:
             ax=np.delete(axss, remove)[k + 1],
         )
 
-    dataset.multi_fig(fig, cf, save=1)
+    dataset29.multi_fig(fig, cf, save=1)
 
 # ----------------------------------------------------------------------
 # load everthing, compute du, mask du with RGPS80
@@ -340,14 +336,14 @@ if deformation_plots:
     # plot PDF and CDF
     # ------------------------------------------------------------------
 
-    dataset10.pdf_du(
+    dataset29.pdf_du(
         du80_stack,
         save=1,
         fig_name_supp="_02",
         names_plot=datasets_name,
         colors_plot=datasets_color,
     )
-    dataset10.cdf_du(
+    dataset29.cdf_du(
         du80_stack,
         save=1,
         fig_name_supp="_02",
@@ -358,7 +354,7 @@ if deformation_plots:
     # ----------------------------------------------------------------------
     # multiplot scaling
     # ----------------------------------------------------------------------
-    dataset10.multi_plot_spatial(
+    dataset29.multi_plot_spatial(
         mean_deps_stack,
         mean_scale_stack,
         fig_name_supp="_dedt_02",
@@ -366,7 +362,7 @@ if deformation_plots:
         colors_plot=datasets_color,
     )
 
-    dataset10.multi_plot_temporal(
+    dataset29.multi_plot_temporal(
         mean_deps_stack_T,
         mean_scale_stack_T,
         fig_name_supp="_dedt_02",
@@ -377,7 +373,7 @@ if deformation_plots:
     # ----------------------------------------------------------------------
     # multifractality plots
     # ----------------------------------------------------------------------
-    dataset10.multifractal_plot(
+    dataset29.multifractal_plot(
         param_stack,
         coeff_stack,
         3,
@@ -387,7 +383,7 @@ if deformation_plots:
         colors_plot=datasets_color,
     )
 
-    dataset10.multifractal_plot(
+    dataset29.multifractal_plot(
         param_stack_T,
         coeff_stack_T,
         3,

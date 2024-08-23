@@ -14,14 +14,14 @@ fig_shape = "square"
 save = 0
 
 # if you want to plot maps of the Arctic
-arctic_plots = 0
+arctic_plots = 1
 x = 3
 y = 4
 total = 11
 remove = [6]
 
 # if you want to plot the deformation statistics plots
-deformation_plots = 1
+deformation_plots = 0
 # if you want to use data that has already been processed to do plots
 load = 0
 # name of the file where you save your processed data

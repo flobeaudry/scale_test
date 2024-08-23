@@ -28,6 +28,20 @@ dataset10 = vis.Arctic(
     trans=trans,
 )
 
+# Only random backgroud between 0 and 1
+dataset11 = vis.Arctic(
+    directory="output11",
+    time=start_time,
+    expno="11",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="11",
+    fig_type=fig_type,
+    trans=trans,
+)
+
 dataset10_bad = vis.Arctic(
     directory="output10_2002",
     time=start_time,
