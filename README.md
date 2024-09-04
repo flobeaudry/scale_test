@@ -1,3 +1,7 @@
+# scale_test
+Creation of artificial velocity gradient fields and analysis with SIM-plots.
+
+
 # SIM-plots
 Plotting tools for the McGill Sea Ice Model.
 

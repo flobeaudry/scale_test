@@ -14,8 +14,10 @@ from libs.datasets import *
 
 datasets = np.array(
     [
-        dataset11,
-        dataset29,
+        #dataset11,  # Background
+        dataset12,  # divergence in x-dir
+        #dataset13,  # convergence in x-dir
+        dataset29,  # SIM control
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
         #dataset10Dadv,  # VPd(2,1,30,27.5)
@@ -34,7 +36,9 @@ datasets = np.array(
 datasets_name = np.array(
     [
         "RGPS",
-        "Background",
+        "U-div",
+        #"U-conv",
+        #"Background",
         "SIM",
         #"VP(0.7)",
         #"VPd(2,1,30,27.5)",
@@ -52,12 +56,16 @@ datasets_name = np.array(
 
 datasets_color = np.array(
     [
-        "black",  # RGPS
-        "xkcd:dark mauve",  # Control
+        "black",  # RGPS,
+        #"xkcd:teal",  # Background
+        "purple",  # x-dir divergence
+        #"xkcd:magenta", # x-dir convergence
+        "coral",  # SIM
+        #"xkcd:dark mauve",  # Control
         #"xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)
         #"xkcd:kelly green",  # VPd(2,3,30,27.5)
-        "xkcd:light teal",  # VPd(2,5,30,27.5)
+        #"xkcd:light teal",  # VPd(2,5,30,27.5)
         #"xkcd:azure",  # VPd(2,3,2,27.5)
         #"xkcd:pastel blue",  # VPd(2,5,2,27.5)
         #"xkcd:goldenrod",  # VPd(0.7,5,30,27.5)

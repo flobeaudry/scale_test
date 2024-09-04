@@ -251,7 +251,7 @@ class Scale(sel.Data):
 
             # take only boxes that are at least 50% filled
             #du_bool_sum = np.where(
-            #    du_bool_sum < scale_grid_unit ** 2 // 2, np.NaN, du_bool_sum,
+            #    du_bool_sum < scale_grid_unit ** 2 // 2, np.nan, du_bool_sum,
             #)
             du_bool_sum = np.where(
                 du_bool_sum < scale_grid_unit ** 2 // 2, np.nan, du_bool_sum,
@@ -261,8 +261,8 @@ class Scale(sel.Data):
             du_mean = du_sum / du_bool_sum
 
             # delete boxes with mean smaller than 5e-3 and compute the deformation
-            # shear_mean = np.where(shear_mean < 5e-3, np.NaN, shear_mean)
-            # div_mean = np.where(np.abs(div_mean) < 5e-3, np.NaN, div_mean)
+            # shear_mean = np.where(shear_mean < 5e-3, np.nan, shear_mean)
+            # div_mean = np.where(np.abs(div_mean) < 5e-3, np.nan, div_mean)
             shear_mean = self._deformation(du_mean, 1)
             div_mean = self._deformation(du_mean, 2)
             deps_mean = self._deformation(du_mean, 0)

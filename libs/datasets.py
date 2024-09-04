@@ -42,6 +42,34 @@ dataset11 = vis.Arctic(
     trans=trans,
 )
 
+# Random backgroud between 0 and 1 + generally diverging field in x-dir
+dataset12 = vis.Arctic(
+    directory="output12",
+    time=start_time,
+    expno="12",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="12",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+# Random backgroud between 0 and 1 + generally converging field in x-dir
+dataset13 = vis.Arctic(
+    directory="output13",
+    time=start_time,
+    expno="13",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="13",
+    fig_type=fig_type,
+    trans=trans,
+)
+
 dataset10_bad = vis.Arctic(
     directory="output10_2002",
     time=start_time,

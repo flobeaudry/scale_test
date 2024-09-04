@@ -9,7 +9,8 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from libs.constants import *
 
-L_RGPS = [12.5, 25, 50, 100, 200, 400]
+#L_RGPS = [12.5, 25, 50, 100, 200, 400]
+L_RGPS = [5, 10, 25, 50]
 
 dataset_RGPS = vis.Arctic(
     fig_shape="round",
@@ -29,9 +30,9 @@ shear_M = ds_M["Shr"]
 shear_JFM = np.concatenate((shear_J, shear_F, shear_M), axis=-1)
 # swap continents and no data by NaNs
 continents = np.where(
-    np.where(shear_JFM >= 1e20, 1e9, shear_JFM) < 1e10, np.NaN, 1
+    np.where(shear_JFM >= 1e20, 1e9, shear_JFM) < 1e10, np.nan, 1
 )
-shear_JFM = np.where(shear_JFM >= 1e10, np.NaN, shear_JFM)
+shear_JFM = np.where(shear_JFM >= 1e10, np.nan, shear_JFM)
 shear_JFM = np.transpose(shear_JFM[:248, :, :], (1, 0, 2))
 continents = np.transpose(continents[:248, :, :], (1, 0, 2))
 continents = continents[..., 0]
@@ -39,7 +40,7 @@ continents = continents[..., 0]
 shear_bool = ~np.isnan(shear_JFM)
 shear_sum = np.nansum(shear_bool, axis=-1) / shear_JFM.shape[-1]
 mask = np.where(shear_sum < 0, -1, shear_sum)
-mask80 = np.where(mask >= 0.8, 1, np.NaN)
+mask80 = np.where(mask >= 0.8, 1, np.nan)
 
 np.save("RGPS_mask/mask80JFM.npy", mask80)
 

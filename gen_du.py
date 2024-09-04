@@ -4,6 +4,100 @@ import matplotlib.animation as animation
 import os
 from datetime import datetime, timedelta
 
+
+### Background noise and general diverging field in x-dir
+# output 12
+
+# Initialize the grid
+nx, ny = 500, 500  # Number of grid points
+dx, dy = 1.0, 1.0  # Grid spatial resolution
+base_divergence_rate = 1e-6  # Base divergence rate
+noise_amplitude = 0.1  # Amplitude of the random noise
+
+# Function to create a time-evolving diverging velocity field in the x-direction with background noise
+def create_fields(t):
+    # Time-evolving divergence rate
+    divergence_rate = base_divergence_rate * t
+
+    # Linear divergence in the x-direction that evolves with time
+    u = np.linspace(0, divergence_rate * nx, nx+1).reshape(1, nx+1) * np.ones((ny, 1))
+    
+    # Adding a small random noise to the u field
+    u += noise_amplitude * np.random.randn(ny, nx+1)
+    
+    # v field remains as zero but with small random noise added
+    v = noise_amplitude * np.random.randn(ny+1, nx)
+    
+    return u, v
+
+# Time settings
+start_date = datetime(2002, 1, 1)
+end_date = datetime(2002, 1, 31, 18)  # January 31st, 18:00
+time_delta = timedelta(hours=6)
+
+# Directory to save the files
+output_dir = "output12"
+os.makedirs(output_dir, exist_ok=True)
+
+current_time = start_date
+u_fields = []
+v_fields = []
+
+while current_time <= end_date:
+    time_step = int((current_time - start_date).total_seconds() / 3600)  # Convert to hours
+    u, v = create_fields(time_step)
+
+    # Store fields for plotting
+    u_fields.append(u)
+    v_fields.append(v)
+
+    # Formatting filename
+    file_suffix = current_time.strftime("%Y_%m_%d_%H_%M") + ".12"
+    u_filename = os.path.join(output_dir, f"u{file_suffix}")
+    v_filename = os.path.join(output_dir, f"v{file_suffix}")
+
+    # Save the fields with .11 extension
+    np.savetxt(u_filename, u, fmt='%.6f')
+    np.savetxt(v_filename, v, fmt='%.6f')
+
+    # Increment time by 6 hours
+    current_time += time_delta
+
+# Convert lists to arrays for easy slicing
+u_fields = np.array(u_fields)
+v_fields = np.array(v_fields)
+
+# Function to plot the fields at different time steps
+def plot_fields(u_fields, v_fields, time_steps):
+    fig, axes = plt.subplots(len(time_steps), 2, figsize=(12, len(time_steps) * 5))
+
+    for i, t in enumerate(time_steps):
+        u = u_fields[t]
+        v = v_fields[t]
+
+        # Plot u field
+        ax_u = axes[i, 0]
+        c_u = ax_u.imshow(u, cmap='seismic', origin='lower')
+        ax_u.set_title(f'u Field at Time Step {t}')
+        fig.colorbar(c_u, ax=ax_u)
+
+        # Plot v field
+        ax_v = axes[i, 1]
+        c_v = ax_v.imshow(v, cmap='seismic', origin='lower')
+        ax_v.set_title(f'v Field at Time Step {t}')
+        fig.colorbar(c_v, ax=ax_v)
+
+    plt.tight_layout()
+    plt.show()
+
+# Plot the fields at selected time steps
+time_steps_to_plot = [0, len(u_fields)//4, len(u_fields)//2, len(u_fields)-1]  # Start, quarter, half, and end
+plot_fields(u_fields, v_fields, time_steps_to_plot)
+
+"""
+### Only background noise and plates diverging ! -----------------------
+# output11
+
 # Initialize the grid
 nx, ny = 500, 500  # Number of grid points
 dx, dy = 1.0, 1.0    # Grid spatial resolution
@@ -75,13 +169,15 @@ while current_time <= end_date:
     #v.astype(np.float32).tofile(v_filename)
     
     
-    np.savetxt(u_filename, np.random.rand(ny, nx+1), fmt='%.6f')
-    np.savetxt(v_filename, np.random.rand(ny+1, nx), fmt='%.6f')
+    np.savetxt(u_filename, np.random.rand(ny, nx+1)/100, fmt='%.6f')
+    np.savetxt(v_filename, np.random.rand(ny+1, nx)/100, fmt='%.6f')
     #np.savetxt(u_filename, u+np.random.rand(ny, nx+1), fmt='%.6f')
     #np.savetxt(v_filename, v+np.random.rand(ny+1, nx), fmt='%.6f')
 
     # Increment time by 6 hours
     current_time += time_delta
+    
+"""
 
 '''
 
