@@ -119,14 +119,14 @@ dx, dy = 1.0, 1.0    # Grid spatial resolution
 convergence_rate = 0.5  # Convergence rate
 
 start_date = datetime(2002, 1, 1)
-end_date = datetime(2002, 1, 10, 18) # Testing end date
+#end_date = datetime(2002, 1, 10, 18) # Testing end date
 end_date = datetime(2002, 1, 31, 18) # Full end date
 
 time_delta = timedelta(hours=6)
 time_steps = int((end_date - start_date).total_seconds() // 3600 // 6) + 1
 
 # Where to put the files
-output_dir = "output12"
+output_dir = "/aos/home/fbeaudry/git/scale_test/output12"
 os.makedirs(output_dir, exist_ok=True)
 
 # Initialize u, v fields (over time)
@@ -191,6 +191,6 @@ def animate(t):
 ani = animation.FuncAnimation(fig, animate, frames=time_steps, repeat=False)
 
 # Save the animation as a GIF (or another format like MP4 if configured)
-ani.save('Animations/diverging_field_animation_slower_noquiver.gif', writer='Pillow', fps=10)
+#ani.save('Animations/diverging_field_animation_slower_noquiver.gif', writer='Pillow', fps=10)
 
 plt.show()
