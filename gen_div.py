@@ -144,6 +144,17 @@ def create_fields(t):
     
     # Move all points towards the center as time progresses
     for i in range(nx):
+        distance_from_center = i - center_x
+        #u[:, i] = -convergence_rate * t * distance_from_center / nx
+        u[:, i] = convergence_rate * t * distance_from_center / nx
+            
+        # Add random noise (small)
+        u[:, i] += np.random.uniform(-0.01, 0.01)
+        v[:, i] += np.random.uniform(-0.01, 0.01)
+      
+    """      
+    # Move all points towards the center as time progresses
+    for i in range(nx):
         for j in range(ny):
             distance_from_center = i - center_x
             #u[j, i] = -convergence_rate * t * distance_from_center / nx
@@ -152,6 +163,7 @@ def create_fields(t):
             # Add random noise (small)
             u[j, i] += np.random.uniform(-0.01, 0.01)
             v[j, i] += np.random.uniform(-0.01, 0.01)
+    """
     
     return u, v
 
