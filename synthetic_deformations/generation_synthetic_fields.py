@@ -1,44 +1,23 @@
+# ------------------------------------------------------------------------------------
+#   Synthetic data generation of u,v fields according to a deformations field
+# ------------------------------------------------------------------------------------
+#   Its purpose is to create files of velocities etc blablabla
+#      Gotta clean this up
+#
+#
+# ------------------------------------------------------------------------------------
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
 import os
 from datetime import datetime, timedelta
-
 from scipy import sparse
 from scipy.sparse import diags, block_diag, bmat
 from scipy.sparse.linalg import spsolve
 from scipy import optimize
-from scipy.optimize import KrylovJacobian
+from scipy.optimize import KrylovJacobian, BroydenFirst
 
-def compute_div(uv):
-    """
-        Function that computes the diverging field from u and v fields
-        
-        Args:
-            uv (np.ndarray): array of size (ny, nx, 2)
-            
-        Returns:
-            div (np.ndarray): array of size (ny, nx)
-    """
-    # Do some reshaping
-    print(len(uv))
-    N = int(np.sqrt((len(uv))/2))
-    u = uv[:N*N].reshape((N, N))
-    v = uv[N*N:].reshape((N, N))
-    
-    # Compute the gradient components
-    # verif the resolution (spacing between values)
-    dudx = np.gradient(u, axis=1)
-    dudy = np.gradient(u, axis=0)
-    dvdx = np.gradient(v, axis=1)
-    dvdy = np.gradient(v, axis=0)
-
-    # Compute the divergence
-    div = dudx + dvdy
-    return div
-
-# Create the divergence fields
 def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
     """
         Function that computes u, v fields based on the divergence/convergence field given.
@@ -52,6 +31,7 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
             
         Returns:
             u, v (np.ndarray): the velocity fields u (ny, nx+1) and v (ny+1, nx)
+            
     """
 
     # Get matrix shape
@@ -70,7 +50,6 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
     # Define the sparse finite differences matrices (2N, 2N)
     A_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
     B_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy 
-    
     # Get the complete sparse finite differences matrix (2*2N, 2*2N)
     AB_sparse = block_diag([A_sparse, B_sparse])
     
@@ -112,7 +91,8 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
         
     # Optimize the field, and make sure the recomputed and not recomputed ones match    
     UV_opt = optimize.newton_krylov(res_div, UV, method='lgmres', inner_maxiter=20, iter=5000, f_tol=6e-5)
-        
+    
+    # Optimized velocity fields
     U_grid_o = UV_opt[:N2].reshape((N,N))
     V_grid_o = UV_opt[N2:].reshape((N,N))
     
@@ -136,7 +116,6 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
         plt.quiver(U_grid_o, V_grid_o, cmap=cm.viridis)
         plt.title("Optimized speeds fields")
         plt.show() 
-        
 
     
     if div_fig == True:
@@ -160,8 +139,7 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
     return U_grid_o, V_grid_o
 
 
-# Create the shearing fields
-def synthetic_shear(S, dx, dy, vel_fig=False, div_fig=False):
+def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     """
         Function that computes u, v fields based on the shearing field given.
 
@@ -174,27 +152,28 @@ def synthetic_shear(S, dx, dy, vel_fig=False, div_fig=False):
             
         Returns:
             u, v (np.ndarray): the velocity fields u (ny, nx+1) and v (ny+1, nx)
+            
     """
 
     # Get matrix shape
     N = len(S[0,:])
     N2 = N**2
     
-    # Check if all elements of F add up to 0 (if not; it won't solve properly); sould fix this someday
-    if np.sum(S) != 0:
-        raise SystemExit(
-                "Need to have a F field that adds up to 0."
-            )
+    ## Check if all elements of F add up to 0 (if not; it won't solve properly); sould fix this someday
+    #if np.sum(S) != 0:
+    #    raise SystemExit(
+    #            "Need to have a F field that adds up to 0."
+    #        )
         
     # Flatten the F matrix (2*N2, 1)
     S_flat = S.flatten()
+    S_flat = S_flat / np.max(np.abs(S_flat)) 
     
     # Define the sparse finite differences matrices (2N, 2N)
     A_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
     B_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy 
     C_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy
     D_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
-    
     # Get the complete sparse finite differences matrix (2*2N, 2*2N)
     ABCD_sparse = bmat([[A_sparse, -B_sparse], 
                         [C_sparse, D_sparse]])
@@ -208,6 +187,7 @@ def synthetic_shear(S, dx, dy, vel_fig=False, div_fig=False):
     def res_shear(uv):
         """ 
             Function that computes the residual between given F field and computed F field
+            
         """
         
         # Call function that computes the shearing field
@@ -217,35 +197,45 @@ def synthetic_shear(S, dx, dy, vel_fig=False, div_fig=False):
     
         # Compute the gradient components
         # verif the resolution (spacing between values)
-        dudx = np.gradient(u, axis=1)
-        dudy = np.gradient(u, axis=0)
-        dvdx = np.gradient(v, axis=1)
-        dvdy = np.gradient(v, axis=0)
+        dudx = (u[:, 1:] - u[:, :-1]) / dx
+        dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='edge')
+        dudy = (u[1:, :] - u[:-1, :]) / dy
+        dudy = np.pad(dudy, ((1, 0), (0, 0)), mode='edge')
+        dvdx = (v[:, 1:] - v[:, :-1]) / dx
+        dvdx = np.pad(dvdx, ((0, 0), (1, 0)), mode='edge')
+        dvdy = (v[1:, :] - v[:-1, :]) / dy
+        dvdy = np.pad(dvdy, ((1, 0), (0, 0)), mode='edge')
 
         # Compute the shear
         shear = np.sqrt((dudx - dvdy)**2 + (dudy + dudx)**2)
-        print(np.shape(shear))
-        print(np.shape(S))
         
         # This is kinda weird, NEED TO CHECK THE MATH to make sure it's legit (I think it might miss the v-component of the F)
         residual = shear - S[:N, :] 
         residual_flat = residual.flatten()
+        print(np.mean(residual_flat))
         residual_padded = np.hstack([residual_flat, np.zeros_like(residual_flat)])
-        
         return residual_padded
-        
+       
+    # To remove; test with actually correct the fields    
+    #UV = np.array([[1, 1, 1, 1, 1, 1], [-1,-1, -1, -1, -1, -1], [1, 1, 1, 1, 1, 1], [-1,-1, -1, -1, -1, -1],[1, 1, 1, 1, 1, 1], [-1,-1, -1, -1, -1, -1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]]).flatten()
+
     # Optimize the field, and make sure the recomputed and not recomputed ones match    
-    UV_opt = optimize.newton_krylov(res_shear, UV, method='lgmres', inner_maxiter=20, iter=5000, f_tol=6e-5)
+    UV_opt = optimize.newton_krylov(res_shear, UV, method="lgmres", inner_maxiter=50, f_tol=1e-3)
         
     U_grid_o = UV_opt[:N2].reshape((N,N))
     V_grid_o = UV_opt[N2:].reshape((N,N))
     
-    # Compute the final divergence
-    dudx = np.gradient(U_grid_o, axis=1)
-    dudy = np.gradient(U_grid_o, axis=0)
-    dvdx = np.gradient(V_grid_o, axis=1)
-    dvdy = np.gradient(V_grid_o, axis=0)
-    # Compute the shear
+    # Compute the final shear
+    u = U_grid_o
+    v = V_grid_o
+    dudx = (u[:, 1:] - u[:, :-1]) / dx
+    dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='edge')
+    dudy = (u[1:, :] - u[:-1, :]) / dy
+    dudy = np.pad(dudy, ((1, 0), (0, 0)), mode='edge')
+    dvdx = (v[:, 1:] - v[:, :-1]) / dx
+    dvdx = np.pad(dvdx, ((0, 0), (1, 0)), mode='edge')
+    dvdy = (v[1:, :] - v[:-1, :]) / dy
+    dvdy = np.pad(dvdy, ((1, 0), (0, 0)), mode='edge')
     shear = np.sqrt((dudx - dvdy)**2 + (dudy + dudx)**2)
     
     if vel_fig == True:
@@ -260,17 +250,17 @@ def synthetic_shear(S, dx, dy, vel_fig=False, div_fig=False):
         plt.title("Optimized speeds fields")
         plt.show() 
         
-    if div_fig == True:
+    if shear_fig == True:
         # Show the divergence field you prescibed
         plt.figure()
         plt.title("Shear field")
-        plt.pcolormesh(S)
+        plt.pcolormesh(S, vmin=-5, vmax=5)
         plt.colorbar()
         plt.show()
         
         plt.figure()
         plt.title("Recomputed shear field")
-        plt.pcolormesh(shear)
+        plt.pcolormesh(shear, vmin=-5, vmax=5)
         plt.colorbar()
         plt.show()
         
@@ -319,16 +309,51 @@ def save_fields(u, v, out, start_date, end_date):
         current_time += time_delta
     
 
-
 # Construct the full F matrix
-pattern = [-1,0 ,-1 ,1, 1, 1, 1,-1 ,0,-1]
+#pattern = [1,0 ,-1 ,1, 1, 1, 1,-1 ,0,-1]
+#pattern = [3, -3, 3, -3, 3, -3, 3, -3, 3, -3,3,-3,3,-3]
+#pattern = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+pattern = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2,2]
 F_grid = np.tile(pattern, (len(pattern), 1))
+#F_grid = np.array([[-34, 2, 2, 2, 2, 2], [2,2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2], [2, 2, 2, 2,2,-34]])
 N = len(F_grid[0])
 N2 = N**2
 z_grid = np.zeros((N,N))
-F = np.vstack([F_grid, z_grid])
+F = np.vstack([F_grid, F_grid])
 
 #u, v = synthetic_divergence(F, 1, 1, vel_fig=True, div_fig=True)
-u, v = synthetic_shear(F, 1, 1, vel_fig=True, div_fig=True)
+u, v = synthetic_shear(F, 1, 1, vel_fig=True, shear_fig=True)
 
 #save_fields(u, v, "60", start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+
+
+
+#%%
+'''
+u = np.array([[+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1], [+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1],[+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1]])
+v = np.zeros((6,6))
+dx, dy =1,1
+
+plt.figure()
+plt.quiver( u, v, cmap=cm.viridis)
+plt.title("Optimized speeds fields")
+plt.show() 
+
+dudx = (u[:, 1:] - u[:, :-1]) / dx
+dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='edge')
+dudy = (u[1:, :] - u[:-1, :]) / dy
+dudy = np.pad(dudy, ((1, 0), (0, 0)), mode='edge')
+dvdx = (v[:, 1:] - v[:, :-1]) / dx
+dvdx = np.pad(dvdx, ((0, 0), (1, 0)), mode='edge')
+dvdy = (v[1:, :] - v[:-1, :]) / dy
+dvdy = np.pad(dvdy, ((1, 0), (0, 0)), mode='edge')
+
+# Compute the shear
+shear = np.sqrt((dudx - dvdy)**2 + (dudy + dudx)**2)
+
+plt.figure()
+plt.title("Recomputed shear field")
+plt.pcolormesh(shear)
+plt.colorbar()
+plt.show()
+'''
