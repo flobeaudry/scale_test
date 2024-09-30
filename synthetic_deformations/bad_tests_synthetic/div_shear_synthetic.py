@@ -75,7 +75,8 @@ N = len(F_grid[0])
 N2 = N**2
 z_grid = np.zeros((N,N))
 # Stack both F_matrixes for U and V deformations; F_grid, z_grid for U defo and z_grid, F_grid for V defo
-F = np.vstack([F_grid, z_grid, z_grid, F_grid]).flatten()
+#F = np.vstack([F_grid, z_grid, z_grid, F_grid]).flatten()
+F = np.vstack([F_grid, z_grid]).flatten()
 
 # Define the resolution
 dx = 1
@@ -89,10 +90,13 @@ B_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy
 C_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy
 D_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
 
-ABCD_sparse = block_diag([
-    block_diag([A_sparse, -B_sparse]),
-    block_diag([C_sparse, D_sparse])
-])
+ABCD_sparse = bmat([[A_sparse, -B_sparse], 
+                     [C_sparse, D_sparse]])
+
+#ABCD_sparse = block_diag([
+#    block_diag([A_sparse, -B_sparse]),
+#    block_diag([C_sparse, D_sparse])
+#])
 
 # Compute UV
 UV = spsolve(ABCD_sparse, F)
@@ -100,11 +104,11 @@ UV = spsolve(ABCD_sparse, F)
 print('Welcome in the artificial fields generation program! Your velocity fields are of shape:',np.shape(UV))
 # Get the U and V fields
 # Ad
-U_grid = ((UV[:N2].reshape((N,N)))**2 + (UV[2*N2:3*N2].reshape((N,N)))**2)**(1/2)
-#U_grid = (UV[:N2].reshape((N,N)))
+#U_grid = ((UV[:N2].reshape((N,N)))**2 + (UV[2*N2:3*N2].reshape((N,N)))**2)**(1/2)
+U_grid = (UV[:N2].reshape((N,N)))
 U_grid = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
-V_grid = ((UV[N2:N2*2].reshape((N,N)))**2 + (UV[3*N2:].reshape((N,N)))**2)**(1/2)
-#V_grid = (UV[N2:].reshape((N,N)))
+#V_grid = ((UV[N2:N2*2].reshape((N,N)))**2 + (UV[3*N2:].reshape((N,N)))**2)**(1/2)
+V_grid = (UV[N2:].reshape((N,N)))
 V_grid = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
 
 # Show the U, V field in quivers
