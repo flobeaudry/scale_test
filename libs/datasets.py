@@ -70,6 +70,143 @@ dataset13 = vis.Arctic(
     trans=trans,
 )
 
+# Div field with big diverging diagonal
+dataset15 = vis.Arctic(
+    directory="output15",
+    time=start_time,
+    expno="15",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="15",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+# Div field with vertical lines of div (+1, -1, +1, -1, etc)
+dataset16 = vis.Arctic(
+    directory="output16",
+    time=start_time,
+    expno="16",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="16",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+# Div field with vertical lines of div (+1, +1, -1, -1, +1, etc)
+dataset17 = vis.Arctic(
+    directory="output17",
+    time=start_time,
+    expno="17",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="17",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+# -------------------------------------------------------------------------
+# All 0 with one vertical line of div (+1)
+dataset20 = vis.Arctic(
+    directory="output20",
+    time=start_time,
+    expno="20",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="20",
+    fig_type=fig_type,
+    trans=trans,
+)
+# All +1 div
+dataset21 = vis.Arctic(
+    directory="output21",
+    time=start_time,
+    expno="21",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="21",
+    fig_type=fig_type,
+    trans=trans,
+)
+# Lines of div +1 0 +1 0 etc
+dataset22 = vis.Arctic(
+    directory="output22",
+    time=start_time,
+    expno="22",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="22",
+    fig_type=fig_type,
+    trans=trans,
+)
+# Lines of div +1 0 0 +1 0 0 etc
+dataset23 = vis.Arctic(
+    directory="output23",
+    time=start_time,
+    expno="23",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="23",
+    fig_type=fig_type,
+    trans=trans,
+)
+# Lines of div +1 0 +2 0 +1 0 +2 etc
+dataset24 = vis.Arctic(
+    directory="output24",
+    time=start_time,
+    expno="24",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="24",
+    fig_type=fig_type,
+    trans=trans,
+)
+# Lines of div +1 0 0 0 0 0 0 0 +1
+dataset25 = vis.Arctic(
+    directory="output25",
+    time=start_time,
+    expno="25",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="25",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+# Lines of div +1 0 0 0 0 0 0 0 +1
+dataset26 = vis.Arctic(
+    directory="output26",
+    time=start_time,
+    expno="26",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="26",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+
 dataset10_bad = vis.Arctic(
     directory="output10_2002",
     time=start_time,

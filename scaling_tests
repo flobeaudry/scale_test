@@ -1,0 +1,294 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import sparse
+from scipy.sparse import diags, bmat, csc_matrix, csr_matrix, block_diag
+from scipy.sparse.linalg import spsolve, gmres
+import os
+from datetime import datetime, timedelta
+import matplotlib.cm as cm
+from scipy.stats import linregress
+from scipy.optimize import curve_fit
+
+F_grid = ([[-1, 2, -2, 2, -2, 2, -2, 2,-1],[-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1], [-1, 2, -2, 2, -2, 2, -2, 2,-1]])
+#F_grid = np.random.randn(8,8)
+#F_grid = np.diag(np.full(10,-2))+np.diag(np.ones(9),1)+np.diag(np.ones(9),-1)
+#F_grid = np.diag(np.full(512,-2))+np.diag(np.ones(511),1)+np.diag(np.ones(511),-1)
+
+
+# Construct the full F matrix
+N = len(F_grid[0])
+N2 = N**2
+z_grid = np.zeros((N,N))
+#F = np.vstack([F_grid,z_grid]).flatten()
+#F = np.vstack([F_grid, z_grid]).flatten()
+F = np.vstack([F_grid, z_grid]).flatten()
+#print(F)
+#print(np.shape(F))
+
+
+# Define the resolution
+dx = 1
+dy = 1
+
+
+
+# Trying with sparse matrixes to make lighter computationaly to inverse
+A_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
+B_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy
+AB_sparse = block_diag([A_sparse, B_sparse])
+
+# Inverse AB
+#AB_inv = np.linalg.inv(AB)
+
+
+# Compute UV
+#UV = np.dot(AB_inv, F)
+UV = spsolve(AB_sparse, F)
+print('hellooo',np.shape(UV))
+U_grid = UV[:N2].reshape((N,N))
+U_grid = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+V_grid = UV[N2:].reshape((N,N))
+V_grid = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+
+plt.figure()
+plt.quiver( U_grid, V_grid, cmap=cm.viridis)
+plt.title("Speeds field")
+plt.show()
+
+plt.figure()
+plt.title("Divergence field")
+plt.pcolormesh(U_grid)
+plt.colorbar()
+plt.show()
+
+plt.figure()
+plt.title("Divergence field")
+plt.pcolormesh(F_grid)
+plt.colorbar()
+plt.show()
+
+
+
+#nx, ny = 128, 128
+#u = np.random.random((nx, ny))+1
+#v = np.random.random((nx, ny))+1
+
+u = U_grid[:N, :N]
+v = V_grid[:N, :N]
+nx, ny = N,N
+
+x = np.linspace(0, nx-1, nx)+1
+y = np.linspace(0, ny-1, ny)+1
+X, Y = np.meshgrid(x,y)
+
+# Compute all the velocity gradients
+dudx = np.gradient(u, axis=0) / np.gradient(X, axis=1)
+dudy = np.gradient(u, axis=1) / np.gradient(Y, axis=0)
+dvdx = np.gradient(v, axis=0) / np.gradient(X, axis=1)
+dvdy = np.gradient(v, axis=1) / np.gradient(Y, axis=0)
+
+def deformation_rates(dudx_cg, dudy_cg, dvdx_cg, dvdy_cg):
+    
+    epsilon_I = dudx_cg + dvdy_cg
+
+    epsilon_II = np.sqrt((dudx_cg - dvdy_cg)**2 + (dudy_cg + dvdx_cg)**2)
+
+    epsilon_tot = np.sqrt(epsilon_I**2 + epsilon_II**2)
+    
+    return epsilon_I, epsilon_II, epsilon_tot
+
+def coarse_graining_velo_deriv(dudx, dudy, dvdx, dvdy, L):
+    nx, ny = dudx.shape
+    coarse_dudx = np.zeros((nx // L, ny // L))
+    coarse_dudy = np.zeros((nx // L, ny // L))
+    coarse_dvdx = np.zeros((nx // L, ny // L))
+    coarse_dvdy = np.zeros((nx // L, ny // L))
+    
+    for i in range(0, nx, L):
+        for j in range(0, ny, L):
+            subgrid_dudx = dudx[i:min(i+L,nx), j:min(j+L,ny)]
+            coarse_dudx[i//L, j//L] = np.nanmean(subgrid_dudx)
+            
+            subgrid_dudy = dudy[i:min(i+L,nx), j:min(j+L,ny)]
+            coarse_dudy[i//L, j//L] = np.nanmean(subgrid_dudy)
+            
+            subgrid_dvdx = dvdx[i:min(i+L,nx), j:min(j+L,ny)]
+            coarse_dvdx[i//L, j//L] = np.nanmean(subgrid_dvdx)
+            
+            subgrid_dvdy = dvdy[i:min(i+L,nx), j:min(j+L,ny)]
+            coarse_dvdy[i//L, j//L] = np.nanmean(subgrid_dvdy)
+    
+    print(coarse_dudy)
+    coarse_dudx_val = np.nanmean(coarse_dudx)
+    coarse_dudy_val = np.nanmean(coarse_dudy)
+    coarse_dvdx_val = np.nanmean(coarse_dvdx)
+    coarse_dvdy_val = np.nanmean(coarse_dvdy)
+    print(coarse_dudy_val)
+    return coarse_dudx_val, coarse_dudy_val, coarse_dvdx_val, coarse_dvdy_val
+
+scales = [1, 2]
+#scales = [1, 2, 4, 8]
+
+def power_law(x, C, beta):
+    return C * x ** (-beta)
+
+epsilon_I_scaled = np.zeros(len(scales))
+epsilon_II_scaled = np.zeros(len(scales))
+epsilon_tot_scaled = np.zeros(len(scales))
+
+i=0
+for L in scales:
+    # Coarse grain the velocity derivatives depending on the scale, and then compute the mean on each scale
+    dudx_cg, dudy_cg, dvdx_cg, dvdy_cg = coarse_graining_velo_deriv(dudx, dudy, dvdx, dvdy, L)
+    
+    # Compute the deformation rates on each averaged velocity gradient
+    epsilon_I_scaled[i], epsilon_II_scaled[i], epsilon_tot_scaled[i] = deformation_rates(dudx_cg, dudy_cg, dvdx_cg, dvdy_cg)
+    
+    print(epsilon_I_scaled[i])
+    i+=1
+    print(f"Deformation rates computed at scale L = {L}")
+   
+
+plt.figure(figsize=(5,3))
+plt.xlabel("Scale (size of grid box; L)")
+plt.ylabel("Deformation rates") 
+plt.loglog(scales, epsilon_II_scaled, alpha=0.7, c="tab:orange", linewidth=2, label='Shear rate')
+plt.loglog(scales, epsilon_I_scaled,alpha=0.7, c="tab:blue", linewidth=2,label='Divergence rate')
+plt.loglog(scales, epsilon_tot_scaled, alpha=0.7, c="tab:green",linewidth=2, label='Tot deformation rate')
+plt.legend()
+plt.show()
+
+# Define the moments q to be used (mean, variance, etc.)
+qs = [1, 2, 3]  # q = 1 for mean, q = 2 for variance, etc.
+
+# Initialize arrays to store results for each q and scale
+epsilon_tot_q_scaled = np.zeros((len(qs), len(scales)))
+beta_q = np.zeros(len(qs))  # To store the scaling exponent beta(q) for each q
+
+
+i = 0
+for L in scales:
+    # Coarse-grain the velocity derivatives at scale L
+    dudx_cg, dudy_cg, dvdx_cg, dvdy_cg = coarse_graining_velo_deriv(dudx, dudy, dvdx, dvdy, L)
+    
+    # Compute the deformation rates at scale L
+    epsilon_I, epsilon_II, epsilon_tot = deformation_rates(dudx_cg, dudy_cg, dvdx_cg, dvdy_cg)
+
+    # Loop through each moment q
+    for q_idx, q in enumerate(qs):
+        # Compute the q-th moment for total deformation (elevate to the power q and then average)
+        epsilon_tot_q_scaled[q_idx, i] = np.nanmean(epsilon_tot**q)
+    
+    i += 1
+    print(f"Deformation rates computed at scale L = {L}")
+
+# Now we fit the scaling exponent beta(q) for each q
+log_scales = np.log(scales)  # Log-transform of the spatial scales
+
+for q_idx, q in enumerate(qs):
+    log_epsilon_q = np.log(epsilon_tot_q_scaled[q_idx])  # Log-transform of deformation rates
+    # Perform linear regression to get the slope (which is -beta(q))
+    slope, intercept, r_value, p_value, std_err = linregress(log_scales, log_epsilon_q)
+    beta_q[q_idx] = -slope  # The slope is -beta(q)
+
+    # Print the results
+    print(f"Scaling exponent beta({q}) = {beta_q[q_idx]:.4f}, with R^2 = {r_value**2:.4f}")
+
+# Plot the scaling for each q
+plt.figure(figsize=(5,3))
+plt.xlabel("Scale (L)")
+plt.ylabel("Deformation rates") 
+
+for q_idx, q in enumerate(qs):
+    plt.loglog(scales, epsilon_tot_q_scaled[q_idx], alpha=0.7, linewidth=2, label=f'q={q}, beta={beta_q[q_idx]:.2f}')
+
+plt.legend()
+plt.show()
+
+
+popt_I, _ = curve_fit(power_law, scales, epsilon_I_scaled)
+popt_II, _ = curve_fit(power_law, scales, epsilon_II_scaled)
+popt_tot, _ = curve_fit(power_law, scales, epsilon_tot_scaled)
+
+# Extract the scaling exponents (beta)
+beta_I = popt_I[1]
+beta_II = popt_II[1]
+beta_tot = popt_tot[1]
+
+# Now plot the deformation rates and fits
+plt.figure(figsize=(6,4))
+plt.xlabel("Spatial scale [km]")
+plt.ylabel(r'$\langle \dot{\epsilon}_{tot} \rangle \ [day^{-1}]$')
+plt.xscale('log')
+plt.yscale('log')
+
+# Plot the original data points
+plt.plot(scales, epsilon_I_scaled, 'o', label=r'$\epsilon_I$ (Divergence)')
+plt.plot(scales, epsilon_II_scaled, 'o', label=r'$\epsilon_{II}$ (Shear)')
+plt.plot(scales, epsilon_tot_scaled, 'o', label=r'$\epsilon_{tot}$ (Total)')
+
+# Plot the fitted power laws
+plt.plot(scales, power_law(scales, *popt_I), '-', label=r'Fit: $\beta_I$ = {:.2f}'.format(beta_I))
+plt.plot(scales, power_law(scales, *popt_II), '-', label=r'Fit: $\beta_{II}$ = {:.2f}'.format(beta_II))
+plt.plot(scales, power_law(scales, *popt_tot), '-', label=r'Fit: $\beta_{tot}$ = {:.2f}'.format(beta_tot))
+
+plt.legend()
+plt.show()
+
+print(f"Scaling exponents: beta_I = {beta_I}, beta_II = {beta_II}, beta_tot = {beta_tot}")
+
+"""
+def calculate_derivatives(u, v, X, Y):
+    dudx = np.gradient(u, axis=0) / np.gradient(X, axis=1)
+    dudy = np.gradient(u, axis=1) / np.gradient(Y, axis=0)
+    dvdx = np.gradient(v, axis=0) / np.gradient(X, axis=1)
+    dvdy = np.gradient(v, axis=1) / np.gradient(Y, axis=0)
+
+    return dudx, dudy, dvdx, dvdy
+
+def deformation_rates(u, v, X, Y):
+    dudx, dudy, dvdx, dvdy = calculate_derivatives(u, v, X, Y)
+    
+    epsilon_I = dudx + dvdy
+
+    epsilon_II = np.sqrt((dudx - dvdy)**2 + (dudy + dvdx)**2)
+
+    epsilon_tot = np.sqrt(epsilon_I**2 + epsilon_II**2)
+    
+    return epsilon_I, epsilon_II, epsilon_tot
+
+def coarse_graining(epsilon, L):
+    nx, ny = epsilon.shape
+    coarse_epsilon = np.zeros((nx // L, ny // L))
+    
+    for i in range(0, nx, L):
+        for j in range(0, ny, L):
+            subgrid = epsilon[i:min(i+L,nx), j:min(j+L,ny)]
+            coarse_epsilon[i//L, j//L] = np.nanmean(subgrid)
+    
+    coarse_eps_val = np.nanmean(coarse_epsilon)
+    return coarse_eps_val
+
+#scales = [1, 2, 4, 8, 16, 32, 64]
+scales = [1, 2, 4, 8]
+
+epsilon_I_scaled = np.zeros(len(scales))
+epsilon_II_scaled = np.zeros(len(scales))
+epsilon_tot_scaled = np.zeros(len(scales))
+i=0
+for L in scales:
+    epsilon_I, epsilon_II, epsilon_tot = deformation_rates(u, v, X, Y)
+    coarse_epsilon_I = coarse_graining(epsilon_I, L)
+    coarse_epsilon_II = coarse_graining(epsilon_II, L)
+    coarse_epsilon_tot = coarse_graining(epsilon_tot, L)
+    print(coarse_epsilon_II)
+    epsilon_I_scaled[i] = coarse_epsilon_I
+    epsilon_II_scaled[i] = coarse_epsilon_II
+    epsilon_tot_scaled[i] = coarse_epsilon_tot
+    i+=1
+    print(f"Deformation rates computed at scale L = {L}")
+    
+plt.loglog(scales, epsilon_II_scaled)
+"""

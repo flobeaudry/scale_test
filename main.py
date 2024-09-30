@@ -15,9 +15,21 @@ from libs.datasets import *
 datasets = np.array(
     [
         #dataset11,  # Background
-        dataset12,  # divergence in x-dir
+        #dataset12,  # divergence in x-dir
         #dataset13,  # convergence in x-dir
         dataset29,  # SIM control
+        #dataset15,  # Random noise + one line diagonal of deformation
+        #dataset16,  # Vertical thin lines of convergence and divergence (1, -1, 1, -1)
+        dataset11, # just noize
+        #dataset17, # Vertical thicker lines of convergence and divergence (1, 1, -1, -1, 1, 1)
+        dataset20, # One vertical line of div (+1)
+        dataset21, # All div (+1 everywhere)
+        dataset22, # Spaced out vertical div lines (+1, 0, +1, 0)
+        dataset23, # More spaced out vertical div lines (+1, 0, 0, +1)
+        dataset24, # More spaced out vertical div lines (+1, 0, 0, +1)
+        dataset25, 
+        dataset26,
+        #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
         #dataset10Dadv,  # VPd(2,1,30,27.5)
@@ -36,10 +48,22 @@ datasets = np.array(
 datasets_name = np.array(
     [
         "RGPS",
-        "U-div",
+        #"U-div",
         #"U-conv",
         #"Background",
         "SIM",
+        #"div diagonal",
+        #"div-conv lines",
+        "random noise",
+        "0 0 +1 0",
+        "+1 +1 +1 +1",
+        "+1 0 +1 0",
+        "+1 0 0 +1",
+        "+1 0 +2 0",
+        " +1 0000000 +1",
+        "1 000000000000000000000",
+        #
+        #"div-conv thick lines",
         #"VP(0.7)",
         #"VPd(2,1,30,27.5)",
         #"VPd(2,3,30,27.5)",
@@ -58,9 +82,20 @@ datasets_color = np.array(
     [
         "black",  # RGPS,
         #"xkcd:teal",  # Background
-        "purple",  # x-dir divergence
         #"xkcd:magenta", # x-dir convergence
-        "coral",  # SIM
+        "tab:gray",  # SIM
+        #"blue",  # x-dir divergence
+        #"green",  # x-dir divergence
+        "tab:red",
+        'tab:blue', # 20
+        "tab:orange", #21
+        "tab:green", #22
+        "tab:purple", # 23
+        "tab:cyan", # 24
+        "tab:olive", #25
+        "tab:pink",
+        #"xkcd:kelly green",
+        #
         #"xkcd:dark mauve",  # Control
         #"xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)

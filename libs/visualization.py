@@ -881,7 +881,7 @@ class Arctic(sts.Scale):
             ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_ylim(ymin=6e-3, ymax=6e-2)
+            #ax.set_ylim(ymin=6e-3, ymax=6e-2)
             ax.set_xlim(xmin=7, xmax=9e2)
             # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
         if type == 1:  # time
@@ -889,7 +889,7 @@ class Arctic(sts.Scale):
             ax.set_ylabel(r"$\langle\dot\varepsilon_{tot}\rangle$ [day$^{-1}$]")
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_ylim(ymin=6e-3, ymax=6e-2)
+            #ax.set_ylim(ymin=6e-3, ymax=6e-2)
             ax.set_xlim(xmin=2, xmax=4e1)
             # ax.set_title("H = {:.2f}, correlation = {:.2f}".format(coefficients[0], corr))
 
