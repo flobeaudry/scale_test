@@ -18,8 +18,9 @@ from scipy.sparse.linalg import spsolve, eigs, norm
 from scipy import optimize
 from scipy.optimize import KrylovJacobian, BroydenFirst
 import scipy.sparse as sp
+from numpy.linalg import det
 
-def create_sparse_matrix_dx(N):
+def create_sparse_matrix_dy(N):
     # Size of the sparse matrix
     size = N * N
 
@@ -35,7 +36,7 @@ def create_sparse_matrix_dx(N):
     return sparse_matrix
 
 
-def create_sparse_matrix_dy(N):
+def create_sparse_matrix_dx(N):
     block_count=N
     # Create a single NxN block matrix with the specified diagonal pattern
     diagonals = [-np.ones(N), np.zeros(N), np.ones(N)]  # +1, 0, -1
@@ -48,6 +49,56 @@ def create_sparse_matrix_dy(N):
     large_matrix = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)])
 
     return large_matrix
+
+def create_sparse_double_matrix_dydx(N, dx, dy):
+    # Size of the sparse matrix
+    size = N * N
+    
+    # Create the sparse matrix for dy (top-left to bottom-right direction)
+    diagonals_dy = [-(1/dy)*np.ones(size - N), (1/dy)*np.ones(size - N)]
+    offsets_dy = [N, -N]  # N for +1, -N for -1
+    sparse_matrix_dy = diags(diagonals_dy, offsets_dy, shape=(size, size), format='csr')
+
+    # Create the sparse matrix for dx (x-direction, block diagonal matrix)
+    block_count = N
+    diagonals_dx = [-(1/dx)*np.ones(N), np.zeros(N), (1/dx)*np.ones(N)]  # +1, 0, -1
+    offsets_dx = [1, 0, -1]  # +1 on the super diagonal, 0 on the main diagonal, -1 on the sub diagonal
+
+    # Create a single NxN block
+    block = diags(diagonals_dx, offsets_dx, shape=(N, N))
+
+    # Create a larger block matrix made of block_count x block_count blocks
+    sparse_matrix_dx = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)], format='csr')
+
+    # Combine the two sparse matrices by adding them together
+    combined_sparse_matrix = sparse_matrix_dy + sparse_matrix_dx
+
+    return combined_sparse_matrix
+
+def create_sparse_double_matrix_dxdy(N, dx, dy):
+    # Size of the sparse matrix
+    size = N * N
+    
+    # Create the sparse matrix for dy (top-left to bottom-right direction)
+    diagonals_dy = [-(1/dx)*np.ones(size - N), (1/dx)*np.ones(size - N)]
+    offsets_dy = [N, -N]  # N for +1, -N for -1
+    sparse_matrix_dy = diags(diagonals_dy, offsets_dy, shape=(size, size), format='csr')
+
+    # Create the sparse matrix for dx (x-direction, block diagonal matrix)
+    block_count = N
+    diagonals_dx = [-(1/dy)*np.ones(N), np.zeros(N), (1/dy)*np.ones(N)]  # +1, 0, -1
+    offsets_dx = [1, 0, -1]  # +1 on the super diagonal, 0 on the main diagonal, -1 on the sub diagonal
+
+    # Create a single NxN block
+    block = diags(diagonals_dx, offsets_dx, shape=(N, N))
+
+    # Create a larger block matrix made of block_count x block_count blocks
+    sparse_matrix_dx = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)], format='csr')
+
+    # Combine the two sparse matrices by adding them together
+    combined_sparse_matrix = sparse_matrix_dy + sparse_matrix_dx
+
+    return combined_sparse_matrix
 
 
 
@@ -82,16 +133,18 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
     # Flatten the F matrix (2*N2, 1)
     F_flat = F.flatten()
     
-    # Define the sparse finite differences matrices (2N, 2N)
-    A_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dx
-    B_sparse = diags([1, -1], [0, -1], shape=(N2, N2)) / dy 
+    print(F_flat)
     
-    diagonals = np.array([-1, 0,1])  # Coefficients for the left and right differences
-    offsets = np.array([-1, 0,1])     # Offset positions for the diagonals
-    A_sparse = diags(diagonals, offsets, shape=(N2, N2)) / (2 * dx)
-    B_sparse = diags(diagonals, offsets, shape=(N2, N2)) / (2 * dy)
-    # Get the complete sparse finite differences matrix (2*2N, 2*2N)
-    AB_sparse = block_diag([A_sparse, B_sparse])
+    # Define the sparse finite differences matrices (2N, 2N)
+    A_sparse = create_sparse_matrix_dx(N)
+    B_sparse = create_sparse_matrix_dy(N)
+    zero_matrix = csr_matrix((N2, N2)) 
+    AB_sparse = bmat([[A_sparse, zero_matrix], 
+                       [zero_matrix, B_sparse]])
+    
+    A_sparse_csr = A_sparse.tocsr()
+    dense_section = A_sparse_csr[:10, :10].todense()  # Inspect a small section
+    print(dense_section)
     
     # Compute the u and v field by solving the linear system (2*2N, 1)
     UV = spsolve(AB_sparse, F_flat)
@@ -100,68 +153,40 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
 
     print('Your velocities have been computed in a diverging field!')
 
-    # The optimized field is already computed since we have a linear problem
-    UV_opt = UV
-    
-    # Optimized velocity fields
-    U_grid_o = UV_opt[:N2].reshape((N,N))
-    V_grid_o = UV_opt[N2:].reshape((N,N))
-    
-    # Compute the final divergence
-    #dudx = np.gradient(U_grid_o, axis=1)
-    #dudy = np.gradient(U_grid_o, axis=0)
-    #dvdx = np.gradient(V_grid_o, axis=1)
-    #dvdy = np.gradient(V_grid_o, axis=0)
-    u = U_grid_o
-    v = V_grid_o
+    # Centered finite differences
+    u = U_grid
+    v = V_grid
     zeros_j = np.zeros(len(v[0,:])) # boundary conditions
     v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
     v_jm1 = np.append(v[1:,:], zeros_j).reshape(v.shape)
-    
-    zeros_i = np.zeros(len(u[:,0])) # boundary conditions
-    u_ip1 = np.append(zeros_i, u[:-1,:]).reshape(u.shape)
-    u_im1 = np.append(u[1:,:], zeros_i).reshape(u.shape)
-    
+    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
+    u_ip1 = np.hstack((zeros_i,u[:,:-1]))
+    u_im1 = np.hstack((u[:,1:],zeros_i))
     dudx = (u_ip1 - u_im1)/(2*dy)
     dvdy = (v_jp1 - v_jm1)/(2*dx)
-    '''
-    dudx = (u[:, 1:] - u[:, :-1]) / dx
-    dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='edge')
-    dudy = (u[1:, :] - u[:-1, :]) / dy
-    dudy = np.pad(dudy, ((1, 0), (0, 0)), mode='edge')
-    dvdx = (v[:, 1:] - v[:, :-1]) / dx
-    dvdx = np.pad(dvdx, ((0, 0), (1, 0)), mode='edge')
-    dvdy = (v[1:, :] - v[:-1, :]) / dy
-    dvdy = np.pad(dvdy, ((1, 0), (0, 0)), mode='edge')
-    '''
+
     # Compute the divergence
     div = (dudx + dvdy)
     
     if vel_fig == True:
         # Show the U, V field in quivers
         plt.figure()
-        plt.quiver(U_grid_o, V_grid_o, cmap=cm.viridis)
+        plt.quiver(U_grid, V_grid, cmap=cm.viridis)
         plt.title("Optimized speeds fields")
         plt.show() 
 
     
     if div_fig == True:
-        # Show the divergence field you prescibed
-        plt.figure()
-        plt.title("Initial Divergence field")
-        plt.pcolormesh(F)
-        plt.colorbar()
-        plt.show()
         
          # Show the divergence field you prescibed
         plt.figure()
         plt.title("Recomputed Divergence field")
-        plt.pcolormesh(div)
+        plt.pcolormesh(div, cmap=cm.RdBu,vmin=-1, vmax=1)
         plt.colorbar()
         plt.show()
         
-    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid_o]) # so that the shape is (ny, nx+1)
-    V_grid_o = np.vstack([np.zeros((1, N)), V_grid_o]) # so that the shape is (ny+1, nx)
+    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+    V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
 
     return U_grid_o, V_grid_o
 
@@ -185,6 +210,467 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     # Get matrix shape
     N = len(S[0,:])
     N2 = N**2
+
+    # Flatten the F matrix (2*N2, 1)
+    S_flat = S.flatten()
+    
+    # Define the sparse finite differences matrices (2N, 2N)
+    A_sparse = create_sparse_matrix_dy(N)
+    B_sparse = create_sparse_matrix_dx(N)
+    zero_matrix = csr_matrix((N2, N2)) 
+    AB_sparse = bmat([[A_sparse, zero_matrix], 
+                       [zero_matrix, B_sparse]])
+    
+    B_sparse_csr = B_sparse.tocsr()
+    dense_section = B_sparse_csr[:10, :10].todense()  # Inspect a small section
+    print(dense_section)
+    
+    # Compute the u and v field by solving the linear system (2*2N, 1)
+    UV = spsolve(AB_sparse, S_flat)
+    U_grid = UV[:N2].reshape((N,N))
+    V_grid = UV[N2:].reshape((N,N))
+    
+    plt.figure()
+    speed = np.sqrt(U_grid**2 + V_grid**2)
+    #plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
+    plt.quiver( U_grid, V_grid,color='k')
+    plt.colorbar( label="speed")
+    plt.title("Computed speeds fields")
+    plt.show() 
+    
+    print('Your velocities have been computed in a diverging field!')
+    u=U_grid
+    v=V_grid
+    # Centered finite differences
+    zeros_j = np.zeros(len(u[0,:])) # boundary conditions
+    u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
+    u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
+    
+    zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+    v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+    v_im1 = np.hstack((v[:,1:],zeros_i))
+    
+    dudy = (u_jp1 - u_jm1)/(2*dy)
+    dvdx = (v_ip1 - v_im1)/(2*dx)
+
+    shear = dudy + dvdx
+
+    plt.figure()
+    plt.title("Recomputed shear field")
+    plt.pcolormesh(shear, cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.show()
+    
+    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+    V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+        
+    return U_grid_o, V_grid_o
+
+def synthetic_deformations(F, dx, dy, vel_fig=False, shear_fig=False):
+    """
+        Function that computes u, v fields based on the shearing field given.
+
+        Args:
+            S (np.ndarray): array of size (ny, nx, 2) where each ny,nx component represents a divergence (-) or convergence (+), in x (1) and y (2).
+                            shape must be nx = ny
+            dx, dy (str): resolution in x and y
+            vel_fig (bool): =True if you want the velocities (quivers) figure; default False
+            div_fig (bool): =True if you want the divergence figure; default False
+            
+        Returns:
+            u, v (np.ndarray): the velocity fields u (ny, nx+1) and v (ny+1, nx)
+            
+    """
+
+    # Get matrix shape
+    N = len(F[0,:])
+    N2 = N**2
+
+    # Flatten the F matrix (2*N2, 1)
+    F_flat = F.flatten()
+    
+    # Define the sparse finite differences matrices (2N, 2N)
+    dy_sparse = create_sparse_double_matrix_dxdy(N, 1, 1.00001)
+    dx_sparse = create_sparse_double_matrix_dydx(N, 1, 1.00001)
+    zero_matrix = csr_matrix((N2, N2)) 
+    AB_sparse = bmat([[dx_sparse, zero_matrix], 
+                       [zero_matrix, dy_sparse]])
+    
+    # Compute the u and v field by solving the linear system (2*2N, 1)
+    UV = spsolve(AB_sparse, F_flat)
+    U_grid = UV[:N2].reshape((N,N))
+    V_grid = UV[N2:].reshape((N,N))
+    
+    plt.figure()
+    speed = np.sqrt(U_grid**2 + V_grid**2)
+    #plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
+    plt.quiver( U_grid, V_grid,color='k')
+    plt.colorbar( label="speed")
+    plt.title("Computed speeds fields")
+    plt.show() 
+    
+    print('Your velocities have been computed in a diverging field!')
+    u=U_grid
+    v=V_grid
+    # Centered finite differences
+    zeros_j = np.zeros(len(u[0,:])) # boundary conditions
+    u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
+    u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
+    zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+    v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+    v_im1 = np.hstack((v[:,1:],zeros_i))
+    dudy = (u_jp1 - u_jm1)/(2*dy)
+    dvdx = (v_ip1 - v_im1)/(2*dx)
+    
+    zeros_j = np.zeros(len(v[0,:])) # boundary conditions
+    v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
+    v_jm1 = np.append(v[1:,:], zeros_j).reshape(v.shape)
+    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
+    u_ip1 = np.hstack((zeros_i,u[:,:-1]))
+    u_im1 = np.hstack((u[:,1:],zeros_i))
+    dudx = (u_ip1 - u_im1)/(2*dy)
+    dvdy = (v_jp1 - v_jm1)/(2*dx)
+
+    defo = dudx + dvdy+ dudy + dvdx
+
+    plt.figure()
+    plt.title("Recomputed deformations field")
+    plt.pcolormesh(defo, cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.show()
+    
+    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+    V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+        
+    return U_grid_o, V_grid_o
+
+
+def save_fields(u, v, out, start_date, end_date):
+    """
+        Function that saves u, v fields to a given output file (needs to be outputxx; xx between 0 and 99) for specified "fake times".
+        For now, the u and v don't change in time, but need to adapt the function for that
+        
+        Args:
+            u (np.ndarray): u velocity field (ny, nx+1)
+            v (np.ndarray): v velocity field (ny+1, nx)
+            out (int): two number int; the experiment number to be saved, being outputxx     
+            start_date, end_date (datetime): start and end time of the form datetime(yyyy, mm, dd)
+    """
+    
+    time_delta = timedelta(hours=6)
+    time_steps = int((end_date - start_date).total_seconds() // 3600 // 6) + 1
+    
+    # Where to put the files
+    output_dir = f"/aos/home/fbeaudry/git/scale_test/output{out}"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Create and save the fields over time
+    current_time = start_date
+    for t in range(time_steps):
+        # Add a small noize factor
+        u_n = u+0.05*np.random.rand(N,N+1)
+        v_n = v+0.05*np.random.rand(N+1,N)
+    
+        # Filenames gossage
+        file_suffix = f"{current_time.strftime('%Y_%m_%d_%H_%M')}.{out}"
+        u_filename = os.path.join(output_dir, f"u{file_suffix}")
+        v_filename = os.path.join(output_dir, f"v{file_suffix}")
+
+        # Save the u, v files
+        np.savetxt(u_filename, u_n, fmt='%.6f')
+        np.savetxt(v_filename, v_n, fmt='%.6f')
+
+        # Update the time
+        current_time += time_delta
+    
+
+#%%
+# -----------------------Construct deformation matrix-----------------------------------------------------#
+def create_div(u, v, N, dx, dy):
+    
+    # Plot the initial speeds
+    plt.figure()
+    speed = np.sqrt(u**2 + v**2)
+    #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
+    plt.quiver( u, v,color='k')
+    plt.colorbar( label="speed")
+    plt.title("Initial speeds fields")
+    plt.show() 
+
+    # Compute the div
+    zeros_j = np.zeros(len(v[0,:])) # boundary conditions
+    v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
+    v_jm1 = np.append(v[1:,:], zeros_j).reshape(v.shape)
+    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
+    u_ip1 = np.hstack((zeros_i,u[:,:-1]))
+    u_im1 = np.hstack((u[:,1:],zeros_i))
+    dvdy = (v_jp1 - v_jm1)/(2*dy)
+    dudx = (u_ip1 - u_im1)/(2*dx)
+
+    # Plot the initial div
+    div = dudx+dvdy
+    plt.figure()
+    plt.pcolormesh(div, cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.title('Initial Div')
+    plt.show()
+    
+    # To fill the matrix if you only want div in u or v
+    z_grid = np.zeros((N,N))
+    
+    if np.all(u == 0):
+        # For v-div
+        F = np.vstack([z_grid, dvdy])
+        
+    if np.all(v == 0):
+        # For u-div
+        F = np.vstack([dudx, z_grid])
+
+    else:
+        # For u-v div
+        F = np.vstack([dudx, dvdy])
+
+    u, v = synthetic_divergence(F, dx, dy, vel_fig=True, div_fig=True)
+    
+def create_shear(u, v, N, dx, dy):
+    
+    # Plot the initial speeds
+    plt.figure()
+    speed = np.sqrt(u**2 + v**2)
+    #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
+    plt.quiver( u, v,color='k')
+    plt.colorbar( label="speed")
+    plt.title("Initial speeds fields")
+    plt.show() 
+
+    # Compute the shear
+    zeros_j = np.zeros(len(u[0,:])) # boundary conditions
+    u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
+    u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
+    zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+    v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+    v_im1 = np.hstack((v[:,1:],zeros_i))
+    dudy = (u_jp1 - u_jm1)/(2*dy)
+    dvdx = (v_ip1 - v_im1)/(2*dx)
+
+    # Plot the initial shear
+    shear = dudy+dvdx
+    plt.figure()
+    plt.pcolormesh(shear, cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.title('Initial Shear')
+    plt.show()
+    
+    # To fill the matrix if you only want shear in u or v
+    z_grid = np.zeros((N,N))
+    
+    if np.all(u == 0):
+        # For v-shear
+        F = np.vstack([z_grid, dvdx])
+        
+    if np.all(v == 0):
+        # For u-shear
+        F = np.vstack([dudy, z_grid])
+
+    else:
+        # For u-v shear
+        F = np.vstack([dudy, dvdx])
+
+    u, v = synthetic_shear(F, dx, dy, vel_fig=True, shear_fig=True)
+
+
+
+def create_deformations(u, v, N, dx, dy):
+    
+    # Plot the initial speeds
+    plt.figure()
+    speed = np.sqrt(u**2 + v**2)
+    #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
+    plt.quiver( u, v,color='k')
+    plt.colorbar( label="speed")
+    plt.title("Initial speeds fields")
+    plt.show() 
+
+    # Centered finite differences
+    zeros_j = np.zeros(len(u[0,:])) # boundary conditions
+    u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
+    u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
+    zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+    v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+    v_im1 = np.hstack((v[:,1:],zeros_i))
+    dudy = (u_jp1 - u_jm1)/(2*dy)
+    dvdx = (v_ip1 - v_im1)/(2*dx)
+    
+    zeros_j = np.zeros(len(v[0,:])) # boundary conditions
+    v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
+    v_jm1 = np.append(v[1:,:], zeros_j).reshape(v.shape)
+    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
+    u_ip1 = np.hstack((zeros_i,u[:,:-1]))
+    u_im1 = np.hstack((u[:,1:],zeros_i))
+    dudx = (u_ip1 - u_im1)/(2*dy)
+    dvdy = (v_jp1 - v_jm1)/(2*dx)
+
+    defo = dudx + dvdy + dudy + dvdx
+
+    du = dudx+dudy
+    dv = dvdx+dvdy
+
+    # Plot the initial shear
+    plt.figure()
+    plt.pcolormesh(defo, cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.title('Initial Deformations')
+    plt.show()
+    
+    # To fill the matrix if you only want shear in u or v
+    z_grid = np.zeros((N,N))
+    
+    if np.all(u == 0):
+        # For v-shear
+        F = np.vstack([z_grid, dv])
+        
+    if np.all(v == 0):
+        # For u-shear
+        F = np.vstack([du, z_grid])
+
+    else:
+        # For u-v shear
+        F = np.vstack([du, dv])
+
+    u, v = synthetic_deformations(F, dx, dy, vel_fig=True, shear_fig=True)
+
+        
+
+N=10
+dy, dx = 1,1 #to be defined
+
+# u-div example
+v = np.zeros((N,N))
+u = np.ones((N,N))
+u[:, 2:4] = -1
+create_div(u, v, N, dx, dy)
+
+create_deformations(u, v, N, dx, dy)
+
+
+# v-u-div example
+u = np.ones((N,N))
+v = np.ones((N,N))
+v[10:11, :] = -1
+u[:, 10:20] = -1
+v = np.zeros((N,N))
+#create_div(u, v, N, dx, dy)
+
+# v-shear example
+u = np.zeros((N,N))
+v = np.ones((N,N))
+v[:, 10:11] = -1
+#create_shear(u, v, N, dx, dy)
+
+# u-shear example
+u=np.ones((N,N))
+u[10:20, :] = -1
+u[30:40, :] = -1
+u[50:60, :] = -1
+u[70:80, :] = -1
+u[90:100, :] = -1
+v=np.zeros((N,N))
+#create_shear(u, v, N, dx, dy)
+
+#%%
+dy_sparse = create_sparse_double_matrix_dydx(4, 1, 1)
+
+# Convert the sparse matrix to a dense matrix for visualization
+dense_matrix = dy_sparse.toarray()
+
+determinant = det(dense_matrix)
+print(f"Determinant: {determinant}")
+
+# Create a color map: 1 -> blue, -1 -> red, 0 -> white
+colors = np.zeros(dense_matrix.shape)
+colors[dense_matrix == 1] = 1  # Mark 1's as blue
+colors[dense_matrix == -1] = -1  # Mark -1's as red
+
+# Plot the matrix using imshow
+plt.figure(figsize=(6, 6))
+plt.imshow(colors, cmap='bwr', origin='upper', interpolation='nearest')
+plt.colorbar(label="Value")
+plt.title(f"Visualization of 1's (blue) and -1's (red) in the Matrix (N={N})")
+plt.show()
+
+
+#%%
+
+'''
+# Construct the full F matrix
+#pattern = [-1,0 ,-1 ,1, 1, 1, 1,-1 ,0,-1]
+#pattern = [1, -1, 1, -1, 1, -1, 1, -1]
+#pattern = [-1, -1, -1, 6, -1, -1, -1]
+#pattern = [-1, 2, -2, 2, -2, 2, -2, 2, -1]
+#pattern = [0, 3, -3, 3, -3, 3, -3, 3, -3, 3, -3, 0]
+#pattern = [0,3, 3, 3, 3, 3, 3, 3, 3, 3, 3,0]
+#pattern = [2, 2, 2, 2, 2, 2]
+#F_grid = np.tile(pattern, (len(pattern), 1))
+pattern= (-1)*np.array([[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],[2,2,2,2,2,2,2,2,2,2],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[2,2,2,2,2,2,2,2,2,2],[-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]])
+#pattern= (-1)*np.array([[0,0,0,0,0,0,0,0,0,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]])
+#F_grid = (1/2)*(np.array([[2,2,2,2,2,2], [2,2,2,2,2,2], [2,2,2,2,2,2], [-2,-2,-2,-2,-2,-2], [-2,-2,-2,-2,-2,-2], [-2,-2,-2,-2,-2,-2]]))
+#F_grid = np.array([[2, 2, 2, 2, 2, 2], [-2,-2, -2, -2, -2, -2], [2, 2, 2, 2, 2, 2], [-2, -2, -2, -2, -2, -2], [2, 2, 2, 2, 2, 2], [-2, -2, -2, -2,-2,-2]])
+
+
+N = len(F_grid[0])
+N = 30
+N2 = N**2
+
+F_grid = np.tile(pattern, (N // pattern.shape[0], N // pattern.shape[1]))
+
+
+
+N = 100  # Grid size (500x500)
+Lx = 5.0  # Domain length in x-direction
+Ly = 5.0  # Domain length in y-direction
+dx = Lx / (N-1)
+dy = Ly / (N-1)
+
+# Create a shear field (S) with a sharp horizontal shear line in the middle
+F_grid = np.zeros((N, N))  # Initialize shear field
+mid = N // 2  # Midpoint of the grid
+F_grid[mid-10:mid+10, :] = -5  # Sharp negative shear band
+F_grid[mid+10:mid+20, :] = 5   
+F_grid[mid-20:mid-30, :] = -5  # Sharp negative shear band
+F_grid[mid+10:mid+20, :] = 5   
+z_grid = np.zeros((N,N))
+F = np.vstack([z_grid, F_grid])
+u, v = synthetic_shear(F, 1, 1, vel_fig=True, shear_fig=True)
+
+pattern = [0, -1, -1,0,0, -2, -2, 0,0,1, 1, 0]
+F_grid = np.tile(pattern, (len(pattern), 1))
+N = len(F_grid[0])
+N2 = N**2
+z_grid = np.zeros((N,N))
+F = np.vstack([F_grid, z_grid])
+#u, v = synthetic_divergence(F, 1, 1, vel_fig=True, div_fig=True)
+'''
+
+"""
+def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
+
+        Function that computes u, v fields based on the shearing field given.
+
+        Args:
+            S (np.ndarray): array of size (ny, nx, 2) where each ny,nx component represents a divergence (-) or convergence (+), in x (1) and y (2).
+                            shape must be nx = ny
+            dx, dy (str): resolution in x and y
+            vel_fig (bool): =True if you want the velocities (quivers) figure; default False
+            div_fig (bool): =True if you want the divergence figure; default False
+            
+        Returns:
+            u, v (np.ndarray): the velocity fields u (ny, nx+1) and v (ny+1, nx)
+            
+    
+
+    # Get matrix shape
+    N = len(S[0,:])
+    N2 = N**2
     Lx=5.0
     Ly=5.0
     dx = Lx / (N-1)
@@ -194,8 +680,8 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     S_flat = S.flatten()
     
     # Define the sparse finite differences matrices (2N, 2N)
-    A_sparse = create_sparse_matrix_dx(N)
-    B_sparse = create_sparse_matrix_dy(N)
+    A_sparse = create_sparse_matrix_dy(N)
+    B_sparse = create_sparse_matrix_dx(N)
     zero_matrix = csr_matrix((N2, N2)) 
     AB_sparse = bmat([[A_sparse, zero_matrix], 
                        [zero_matrix, B_sparse]])
@@ -244,7 +730,7 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     plt.colorbar()
     plt.show()
     
-    """
+    
     def res_shear(uv):
         
             #Function that computes the residual between given F field and computed F field
@@ -341,160 +827,12 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
         plt.show()
     U_grid_o = np.hstack([np.zeros((N, 1)), U_grid_o]) # so that the shape is (ny, nx+1)
     V_grid_o = np.vstack([np.zeros((1, N)), V_grid_o]) # so that the shape is (ny+1, nx)
-    """
+    
     U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
     V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
         
     return U_grid_o, V_grid_o
-
-
-def save_fields(u, v, out, start_date, end_date):
-    """
-        Function that saves u, v fields to a given output file (needs to be outputxx; xx between 0 and 99) for specified "fake times".
-        For now, the u and v don't change in time, but need to adapt the function for that
-        
-        Args:
-            u (np.ndarray): u velocity field (ny, nx+1)
-            v (np.ndarray): v velocity field (ny+1, nx)
-            out (int): two number int; the experiment number to be saved, being outputxx     
-            start_date, end_date (datetime): start and end time of the form datetime(yyyy, mm, dd)
-    """
-    
-    time_delta = timedelta(hours=6)
-    time_steps = int((end_date - start_date).total_seconds() // 3600 // 6) + 1
-    
-    # Where to put the files
-    output_dir = f"/aos/home/fbeaudry/git/scale_test/output{out}"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Create and save the fields over time
-    current_time = start_date
-    for t in range(time_steps):
-        # Add a small noize factor
-        u_n = u+0.05*np.random.rand(N,N+1)
-        v_n = v+0.05*np.random.rand(N+1,N)
-    
-        # Filenames gossage
-        file_suffix = f"{current_time.strftime('%Y_%m_%d_%H_%M')}.{out}"
-        u_filename = os.path.join(output_dir, f"u{file_suffix}")
-        v_filename = os.path.join(output_dir, f"v{file_suffix}")
-
-        # Save the u, v files
-        np.savetxt(u_filename, u_n, fmt='%.6f')
-        np.savetxt(v_filename, v_n, fmt='%.6f')
-
-        # Update the time
-        current_time += time_delta
-    
-
-#%%
-# -----------------------Construct deformation matrix-----------------------------------------------------#
-
-#save_fields(u, v, "60", start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
-
-N=50
-
-#u = np.zeros((N,N))
-v = np.ones((N,N))
-v[:, 10:10] = -1
-print(v)
-
-
-u=np.ones((N,N))
-u[10:20, :] = -1
-#u[30:40, :] = -1
-#u[50:60, :] = -1
-#u[70:80, :] = -1
-#u[90:100, :] = -1
-#v=np.zeros((N,N))
-
-
-# Plot the initial speeds
-plt.figure()
-speed = np.sqrt(u**2 + v**2)
-#plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
-plt.quiver( u, v,color='k')
-plt.colorbar( label="speed")
-plt.title("Initial speeds fields")
-plt.show() 
-
-zeros_j = np.zeros(len(u[0,:])) # boundary conditions
-u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
-u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
-    
-zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
-v_ip1 = np.hstack((zeros_i,v[:,:-1]))
-v_im1 = np.hstack((v[:,1:],zeros_i))
-    
-dy, dx = 1,1 #to be defined
-dudy = (u_jp1 - u_jm1)/(2*dy)
-dvdx = (v_ip1 - v_im1)/(2*dx)
-
-# Plot the initial shear
-shear = dudy+dvdx
-plt.figure()
-plt.pcolormesh(shear)
-plt.colorbar()
-plt.title('Initial Shear')
-plt.show()
-
-# To fill the matrix if you only want shear in u or v
-z_grid = np.zeros((N,N))
-
-F = np.vstack([dudy, dvdx])
-u, v = synthetic_shear(F, 1, 1, vel_fig=True, shear_fig=True)
-
-#%%
-
-'''
-# Construct the full F matrix
-#pattern = [-1,0 ,-1 ,1, 1, 1, 1,-1 ,0,-1]
-#pattern = [1, -1, 1, -1, 1, -1, 1, -1]
-#pattern = [-1, -1, -1, 6, -1, -1, -1]
-#pattern = [-1, 2, -2, 2, -2, 2, -2, 2, -1]
-#pattern = [0, 3, -3, 3, -3, 3, -3, 3, -3, 3, -3, 0]
-#pattern = [0,3, 3, 3, 3, 3, 3, 3, 3, 3, 3,0]
-#pattern = [2, 2, 2, 2, 2, 2]
-#F_grid = np.tile(pattern, (len(pattern), 1))
-pattern= (-1)*np.array([[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],[2,2,2,2,2,2,2,2,2,2],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[2,2,2,2,2,2,2,2,2,2],[-2,-2,-2,-2,-2,-2,-2,-2,-2,-2],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]])
-#pattern= (-1)*np.array([[0,0,0,0,0,0,0,0,0,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1,1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,-1,-1,-1,-1,-1,-1,-1,-1,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]])
-#F_grid = (1/2)*(np.array([[2,2,2,2,2,2], [2,2,2,2,2,2], [2,2,2,2,2,2], [-2,-2,-2,-2,-2,-2], [-2,-2,-2,-2,-2,-2], [-2,-2,-2,-2,-2,-2]]))
-#F_grid = np.array([[2, 2, 2, 2, 2, 2], [-2,-2, -2, -2, -2, -2], [2, 2, 2, 2, 2, 2], [-2, -2, -2, -2, -2, -2], [2, 2, 2, 2, 2, 2], [-2, -2, -2, -2,-2,-2]])
-
-
-N = len(F_grid[0])
-N = 30
-N2 = N**2
-
-F_grid = np.tile(pattern, (N // pattern.shape[0], N // pattern.shape[1]))
-
-
-
-N = 100  # Grid size (500x500)
-Lx = 5.0  # Domain length in x-direction
-Ly = 5.0  # Domain length in y-direction
-dx = Lx / (N-1)
-dy = Ly / (N-1)
-
-# Create a shear field (S) with a sharp horizontal shear line in the middle
-F_grid = np.zeros((N, N))  # Initialize shear field
-mid = N // 2  # Midpoint of the grid
-F_grid[mid-10:mid+10, :] = -5  # Sharp negative shear band
-F_grid[mid+10:mid+20, :] = 5   
-F_grid[mid-20:mid-30, :] = -5  # Sharp negative shear band
-F_grid[mid+10:mid+20, :] = 5   
-z_grid = np.zeros((N,N))
-F = np.vstack([z_grid, F_grid])
-u, v = synthetic_shear(F, 1, 1, vel_fig=True, shear_fig=True)
-
-pattern = [0, -1, -1,0,0, -2, -2, 0,0,1, 1, 0]
-F_grid = np.tile(pattern, (len(pattern), 1))
-N = len(F_grid[0])
-N2 = N**2
-z_grid = np.zeros((N,N))
-F = np.vstack([F_grid, z_grid])
-#u, v = synthetic_divergence(F, 1, 1, vel_fig=True, div_fig=True)
-'''
+"""
 
 '''
 u = np.array([[+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1], [+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1],[+1, +1, +1, +1, +1, +1],[-1, -1, -1, -1, -1, -1]])
