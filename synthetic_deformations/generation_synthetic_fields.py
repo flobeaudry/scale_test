@@ -19,7 +19,7 @@ from scipy import optimize
 from scipy.optimize import KrylovJacobian, BroydenFirst
 import scipy.sparse as sp
 
-def create_sparse_matrix_u_j(N):
+def create_sparse_matrix_dx(N):
     # Size of the sparse matrix
     size = N * N
 
@@ -35,7 +35,7 @@ def create_sparse_matrix_u_j(N):
     return sparse_matrix
 
 
-def create_sparse_matrix_v_i(N):
+def create_sparse_matrix_dy(N):
     block_count=N
     # Create a single NxN block matrix with the specified diagonal pattern
     diagonals = [-np.ones(N), np.zeros(N), np.ones(N)]  # +1, 0, -1
@@ -194,8 +194,8 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     S_flat = S.flatten()
     
     # Define the sparse finite differences matrices (2N, 2N)
-    A_sparse = create_sparse_matrix_u_j(N)
-    B_sparse = create_sparse_matrix_v_i(N)
+    A_sparse = create_sparse_matrix_dx(N)
+    B_sparse = create_sparse_matrix_dy(N)
     zero_matrix = csr_matrix((N2, N2)) 
     AB_sparse = bmat([[A_sparse, zero_matrix], 
                        [zero_matrix, B_sparse]])
@@ -229,36 +229,13 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
     u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
     
-    zeros_i = np.zeros(len(v[:,0])) # boundary conditions
-    v_ip1 = np.append(zeros_i, v[:-1,:]).reshape(v.shape)
-    v_im1 = np.append(v[1:,:], zeros_i).reshape(v.shape)
+    zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+    v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+    v_im1 = np.hstack((v[:,1:],zeros_i))
     
     dudy = (u_jp1 - u_jm1)/(2*dy)
     dvdx = (v_ip1 - v_im1)/(2*dx)
-    '''
-    dudx = (u[:, 1:] - u[:, :-1]) / dx
-    dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='edge')
-    dudy = (u[1:, :] - u[:-1, :]) / dy
-    dudy = np.pad(dudy, ((1, 0), (0, 0)), mode='edge')
-    dvdx = (v[:, 1:] - v[:, :-1]) / dx
-    dvdx = np.pad(dvdx, ((0, 0), (1, 0)), mode='edge')
-    dvdy = (v[1:, :] - v[:-1, :]) / dy
-    dvdy = np.pad(dvdy, ((1, 0), (0, 0)), mode='edge')
 
-    dudx = (u[:, 2:] - u[:, :-2]) / (2 * dx)  # Central difference in x
-    dudx = np.pad(dudx, ((0, 0), (1, 1)), mode='edge')  # Pad edges to maintain shape
-    dudy = (u[:-2, :] - u[2:, :] ) / (2 * dy)  # Central difference in y
-    print(u[2:, :])
-    print( u[:-2, :])
-    dudy = np.pad(dudy, ((1, 1), (0, 0)), mode='edge')  # Pad edges to maintain shape
-    # Calculate central differences for v
-    dvdx = (v[:, 2:] - v[:, :-2]) / (2 * dx)  # Central difference in x
-    dvdx = np.pad(dvdx, ((0, 0), (1, 1)), mode='edge')  # Pad edges to maintain shape
-    dvdy = (v[2:, :] - v[:-2, :]) / (2 * dy)  # Central difference in y
-    dvdy = np.pad(dvdy, ((1, 1), (0, 0)), mode='edge')  # Pad edges to maintain shape
-    #shear = np.sqrt((dudx - dvdy)**2 + (dudy + dudx)**2)
-    #shear = (shear - np.min(shear)) / (np.max(shear) - np.min(shear))
-    '''
     shear = dudy + dvdx
 
     plt.figure()
@@ -415,15 +392,24 @@ def save_fields(u, v, out, start_date, end_date):
 
 #save_fields(u, v, "60", start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 
-N=30
+N=50
+
+#u = np.zeros((N,N))
+v = np.ones((N,N))
+v[:, 10:10] = -1
+print(v)
+
+
 u=np.ones((N,N))
 u[10:20, :] = -1
 #u[30:40, :] = -1
 #u[50:60, :] = -1
 #u[70:80, :] = -1
 #u[90:100, :] = -1
-v=np.zeros((N,N))
+#v=np.zeros((N,N))
 
+
+# Plot the initial speeds
 plt.figure()
 speed = np.sqrt(u**2 + v**2)
 #plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
@@ -436,22 +422,26 @@ zeros_j = np.zeros(len(u[0,:])) # boundary conditions
 u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
 u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
     
-zeros_i = np.zeros(len(v[:,0])) # boundary conditions
-v_ip1 = np.append(zeros_i, v[:-1,:]).reshape(v.shape)
-v_im1 = np.append(v[1:,:], zeros_i).reshape(v.shape)
+zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
+v_ip1 = np.hstack((zeros_i,v[:,:-1]))
+v_im1 = np.hstack((v[:,1:],zeros_i))
     
+dy, dx = 1,1 #to be defined
 dudy = (u_jp1 - u_jm1)/(2*dy)
 dvdx = (v_ip1 - v_im1)/(2*dx)
 
-shear = dudy
+# Plot the initial shear
+shear = dudy+dvdx
 plt.figure()
 plt.pcolormesh(shear)
 plt.colorbar()
 plt.title('Initial Shear')
 plt.show()
 
+# To fill the matrix if you only want shear in u or v
 z_grid = np.zeros((N,N))
-F = np.vstack([shear, z_grid])
+
+F = np.vstack([dudy, dvdx])
 u, v = synthetic_shear(F, 1, 1, vel_fig=True, shear_fig=True)
 
 #%%
