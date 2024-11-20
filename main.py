@@ -22,13 +22,15 @@ datasets = np.array(
         #dataset16,  # Vertical thin lines of convergence and divergence (1, -1, 1, -1)
         dataset11, # just noize
         #dataset17, # Vertical thicker lines of convergence and divergence (1, 1, -1, -1, 1, 1)
-        dataset20, # One vertical line of div (+1)
-        dataset21, # All div (+1 everywhere)
-        dataset22, # Spaced out vertical div lines (+1, 0, +1, 0)
-        dataset23, # More spaced out vertical div lines (+1, 0, 0, +1)
-        dataset24, # More spaced out vertical div lines (+1, 0, 0, +1)
-        dataset25, 
-        dataset26,
+        #dataset20, # One vertical line of div (+1)
+        #dataset21, # All div (+1 everywhere)
+        #dataset22, # Spaced out vertical div lines (+1, 0, +1, 0)
+        #dataset23, # More spaced out vertical div lines (+1, 0, 0, +1)
+        #dataset24, # More spaced out vertical div lines (+1, 0, 0, +1)
+        #dataset25, 
+        #dataset26,
+        #
+        dataset60,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -55,13 +57,15 @@ datasets_name = np.array(
         #"div diagonal",
         #"div-conv lines",
         "random noise",
-        "0 0 +1 0",
-        "+1 +1 +1 +1",
-        "+1 0 +1 0",
-        "+1 0 0 +1",
-        "+1 0 +2 0",
-        " +1 0000000 +1",
-        "1 000000000000000000000",
+        #"0 0 +1 0",
+        #"+1 +1 +1 +1",
+        #"+1 0 +1 0",
+        #"+1 0 0 +1",
+        #"+1 0 +2 0",
+        #" +1 0000000 +1",
+        #"1 000000000000000000000",
+        #
+        'test',
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -88,12 +92,12 @@ datasets_color = np.array(
         #"green",  # x-dir divergence
         "tab:red",
         'tab:blue', # 20
-        "tab:orange", #21
-        "tab:green", #22
-        "tab:purple", # 23
-        "tab:cyan", # 24
-        "tab:olive", #25
-        "tab:pink",
+        #"tab:orange", #21
+        #"tab:green", #22
+        #"tab:purple", # 23
+        #"tab:cyan", # 24
+        #"tab:olive", #25
+        #"tab:pink",
         #"xkcd:kelly green",
         #
         #"xkcd:dark mauve",  # Control

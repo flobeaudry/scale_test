@@ -206,6 +206,20 @@ dataset26 = vis.Arctic(
     trans=trans,
 )
 
+# test
+dataset60 = vis.Arctic(
+    directory="output60",
+    time=start_time,
+    expno="60",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="60",
+    fig_type=fig_type,
+    trans=trans,
+)
+
 
 dataset10_bad = vis.Arctic(
     directory="output10_2002",

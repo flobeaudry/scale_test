@@ -268,7 +268,7 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
 
 def synthetic_deformations(F, dx, dy, vel_fig=False, shear_fig=False):
     """
-        Function that computes u, v fields based on the shearing field given.
+        Function that computes u, v fields based on the deformations (div/conv + shear) field given.
 
         Args:
             S (np.ndarray): array of size (ny, nx, 2) where each ny,nx component represents a divergence (-) or convergence (+), in x (1) and y (2).
@@ -363,6 +363,9 @@ def save_fields(u, v, out, start_date, end_date):
     # Where to put the files
     output_dir = f"/aos/home/fbeaudry/git/scale_test/output{out}"
     os.makedirs(output_dir, exist_ok=True)
+
+    u = np.pad(u, pad_width=((0, 0), (0, 1)), mode='constant', constant_values=0)
+    v = np.pad(v, pad_width=((0, 1), (0, 0)), mode='constant', constant_values=0)
     
     # Create and save the fields over time
     current_time = start_date
@@ -541,16 +544,13 @@ def create_deformations(u, v, N, dx, dy):
 
         
 
-N=10
+N= 10
 dy, dx = 1,1 #to be defined
 
 # u-div example
 v = np.zeros((N,N))
 u = np.ones((N,N))
 u[:, 2:4] = -1
-create_div(u, v, N, dx, dy)
-
-create_deformations(u, v, N, dx, dy)
 
 
 # v-u-div example
@@ -565,19 +565,190 @@ v = np.zeros((N,N))
 u = np.zeros((N,N))
 v = np.ones((N,N))
 v[:, 10:11] = -1
+
+
+# u-v shear+div example
+# Initialize velocity components
+u = np.zeros((N, N))
+v = np.ones((N, N))
+# Introduce shear: horizontal shearing line
+v[:, 10:11] = -1  # Shearing line in the middle
+# Add divergence: radial flow pattern
+x = np.linspace(-N/2, N/2, N) * dx
+y = np.linspace(-N/2, N/2, N) * dy
+X, Y = np.meshgrid(x, y)
+u += 0.1 * X / (np.sqrt(X**2 + Y**2) + 1e-3)  # Radial u component
+v += 0.1 * Y / (np.sqrt(X**2 + Y**2) + 1e-3)  # Radial v component
+# Add nonlinearities: sinusoidal and quadratic variations
+u += 0.05 * np.sin(2 * np.pi * Y / N)
+v += 0.05 * (X / N)**2
+
+
+
+x = np.linspace(-N/2, N/2, N) * dx
+y = np.linspace(-N/2, N/2, N) * dy
+X, Y = np.meshgrid(x, y)
+r = np.sqrt(X**2 + Y**2) + 1e-3  # Avoid division by zero
+theta = np.arctan2(Y, X)
+# 1. Vortex structure
+u_vortex = -Y / r
+v_vortex = X / r
+# 2. Divergence (radial expansion with sinusoidal modulation)
+u_div = 0.1 * X * (1 + 0.5 * np.sin(2 * np.pi * Y / N))
+v_div = 0.1 * Y * (1 + 0.5 * np.cos(2 * np.pi * X / N))
+# 3. Random perturbations
+np.random.seed(42)  # For reproducibility
+u_noise = 0.05 * np.random.randn(N, N)
+v_noise = 0.05 * np.random.randn(N, N)
+# 4. Localized Gaussian anomalies
+u_gaussian = 0.2 * np.exp(-((X - N/4)**2 + (Y - N/4)**2) / (2 * (N/10)**2))
+v_gaussian = -0.2 * np.exp(-((X + N/4)**2 + (Y + N/4)**2) / (2 * (N/10)**2))
+# Combine components
+u = u_vortex + u_div + u_noise + u_gaussian
+v = v_vortex + v_div + v_noise + v_gaussian
+
+
+
+v = np.zeros((N,N))
+u = np.ones((N,N))
+u[:, 2:4] = -1
+
+#save_fields(u, v, '60', datetime(2002, 1, 1), datetime(2002, 1, 31, 18))
+create_div(u, v, N, dx, dy)
+
+print("NEXT ---------------------------")
+#create_shear(u, v, N, dx, dy)
+print("NEXT ---------------------------")
+
+
+
+#create_deformations(u, v, N, dx, dy)
+
 #create_shear(u, v, N, dx, dy)
 
 # u-shear example
-u=np.ones((N,N))
-u[10:20, :] = -1
-u[30:40, :] = -1
-u[50:60, :] = -1
-u[70:80, :] = -1
-u[90:100, :] = -1
-v=np.zeros((N,N))
+#u=np.ones((N,N))
+#u[10:20, :] = -1
+#u[30:40, :] = -1
+#u[50:60, :] = -1
+#u[70:80, :] = -1
+#u[90:100, :] = -1
+#v=np.zeros((N,N))
 #create_shear(u, v, N, dx, dy)
 
+
 #%%
+# SCALING TEST
+dx, dy = 1, 1
+u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
+v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
+
+du_dx = (u_center[:, 1:] - u_center[:, :-1])[1:-1,:] / dx  # Gradient of u in x-direction
+du_dy = (u_center[1:, :] - u_center[:-1, :])[1:,1:] / dy  # Gradient of u in y-direction
+dv_dx = (v_center[:, 1:] - v_center[:, :-1])[1:,1:] / dx  # Gradient of v in x-direction
+dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-direction
+
+print(du_dx)
+
+L = 2  # Example: coarse-graining factor
+L_values = [2, 4, 8, 16, 32, 64]
+L_values = [ 4, 8, 16, 32, 64]
+deformation_means = []
+
+N = np.shape(du_dx)[0]
+deformations_L = []
+
+for v in range(len(L_values)):
+    L = L_values[v]
+    coarse_defos = []
+    counter=0
+    du_dx_moy, du_dy_moy, dv_dx_moy, dv_dy_moy = 0, 0, 0, 0
+    for i in range(np.shape(du_dx)[0]):
+        for j in range(np.shape(du_dx)[1]):
+            if ((i)%(L/2) == 0) and ((j)%(L/2) == 0):
+                coarse_du_dx = du_dx[i:i+L, j:j+L]
+                if np.shape(coarse_du_dx)==(L,L):
+                    counter+=1
+                    print(coarse_du_dx)
+                    du_dx_sum = np.nansum(coarse_du_dx)
+                    du_dx_bool_sum = np.nansum(np.array(coarse_du_dx, dtype=bool))
+                    if du_dx_bool_sum != 0:
+                        #print('sum', du_dx_sum)
+                        #print('bool sum',du_dx_bool_sum)
+                        du_dx_moy = du_dx_sum/du_dx_bool_sum
+                        #print('moy', du_dx_moy)
+                
+                coarse_du_dy = du_dy[i:i+L, j:j+L]
+                du_dy_sum = np.nansum(coarse_du_dy)
+                du_dy_bool_sum = np.nansum(np.array(coarse_du_dy, dtype=bool))
+                if du_dy_bool_sum != 0:
+                    print('bool sum',du_dy_bool_sum)
+                    du_dy_moy = du_dy_sum/du_dy_bool_sum
+                
+                coarse_dv_dx = dv_dx[i:i+L, j:j+L]
+                dv_dx_sum = np.nansum(coarse_dv_dx)
+                dv_dx_bool_sum = np.nansum(np.array(coarse_dv_dx, dtype=bool))
+                if dv_dx_bool_sum != 0:
+                    print('bool sum', dv_dx_bool_sum)
+                    dv_dx_moy = dv_dx_sum/dv_dx_bool_sum
+                
+                coarse_dv_dy = dv_dy[i:i+L, j:j+L]
+                dv_dy_sum = np.nansum(coarse_dv_dy)
+                dv_dy_bool_sum = np.nansum(np.array(coarse_dv_dy, dtype=bool))
+                if dv_dy_bool_sum != 0:
+                    print('bool sum', dv_dy_bool_sum)
+                    dv_dy_moy = dv_dy_sum/dv_dy_bool_sum
+                    #print('hi', dv_dy_moy)
+                
+                
+                divergence = du_dx_moy + dv_dy_moy
+                shear = du_dy_moy - dv_dx_moy
+                deformation = np.sqrt(divergence**2 + shear**2)
+                coarse_defos = np.append(coarse_defos, deformation)
+    
+    
+    print(v)
+    print("count", counter)
+    #print(coarse_defos)
+    print(np.nanmean(coarse_defos))
+    deformations_L= np.append(deformations_L, np.nanmean(coarse_defos))
+    print(deformations_L)
+
+"""
+for v in range(len(L_values)):
+    L = L_values[v]
+    coarse_du_dx = []
+    coarse_du_dy = []
+    coarse_dv_dx = []
+    coarse_dv_dy = []
+    
+    for i in range(np.shape(du_dx)[0]):
+        for j in range(np.shape(du_dx)[1]):
+            coarse_du_dx = np.append(du_dx[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_du_dx)
+            coarse_du_dy = np.append(du_dy[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_du_dy)
+            coarse_dv_dx = np.append(dv_dx[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_dv_dx)
+            coarse_dv_dy = np.append(dv_dy[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_dv_dy)
+
+
+        divergence = coarse_du_dx + coarse_dv_dy
+        shear = coarse_du_dy - coarse_dv_dx
+        deformation = np.sqrt(divergence**2 + shear**2)
+
+    deformation_mean = deformation.mean()
+    
+    deformation_means = np.append(deformation_means,deformation_mean)
+    print(deformation_mean)
+    print(deformation_means[v])
+"""
+    
+fig, ax = plt.subplots(figsize = (7, 5))
+ax.scatter(L_values, deformations_L, s=60, alpha=0.7, edgecolors="k")
+# Set logarithmic scale on the x variable
+ax.set_xscale("log")
+ax.set_yscale("log")
+#plt.loglog(L_values, deformation_means)
+#%%
+"""
 dy_sparse = create_sparse_double_matrix_dydx(4, 1, 1)
 
 # Convert the sparse matrix to a dense matrix for visualization
@@ -597,7 +768,7 @@ plt.imshow(colors, cmap='bwr', origin='upper', interpolation='nearest')
 plt.colorbar(label="Value")
 plt.title(f"Visualization of 1's (blue) and -1's (red) in the Matrix (N={N})")
 plt.show()
-
+"""
 
 #%%
 
