@@ -31,6 +31,7 @@ datasets = np.array(
         #dataset26,
         #
         dataset60,
+        dataset61,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -66,6 +67,7 @@ datasets_name = np.array(
         #"1 000000000000000000000",
         #
         'test',
+        'test2',
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -92,7 +94,7 @@ datasets_color = np.array(
         #"green",  # x-dir divergence
         "tab:red",
         'tab:blue', # 20
-        #"tab:orange", #21
+        "tab:orange", #21
         #"tab:green", #22
         #"tab:purple", # 23
         #"tab:cyan", # 24

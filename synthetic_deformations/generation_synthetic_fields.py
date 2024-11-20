@@ -19,6 +19,10 @@ from scipy import optimize
 from scipy.optimize import KrylovJacobian, BroydenFirst
 import scipy.sparse as sp
 from numpy.linalg import det
+#from matplotlib import rc
+import scienceplots
+from matplotlib import rcParams
+
 
 def create_sparse_matrix_dy(N):
     # Size of the sparse matrix
@@ -371,8 +375,11 @@ def save_fields(u, v, out, start_date, end_date):
     current_time = start_date
     for t in range(time_steps):
         # Add a small noize factor
-        u_n = u+0.05*np.random.rand(N,N+1)
-        v_n = v+0.05*np.random.rand(N+1,N)
+        #u_n = u+0.05*np.random.rand(N,N+1)
+        #v_n = v+0.05*np.random.rand(N+1,N)
+        
+        u_n = u
+        v_n = v
     
         # Filenames gossage
         file_suffix = f"{current_time.strftime('%Y_%m_%d_%H_%M')}.{out}"
@@ -544,7 +551,7 @@ def create_deformations(u, v, N, dx, dy):
 
         
 
-N= 10
+N= 130
 dy, dx = 1,1 #to be defined
 
 # u-div example
@@ -566,7 +573,17 @@ u = np.zeros((N,N))
 v = np.ones((N,N))
 v[:, 10:11] = -1
 
+mean = 0
+std = 0.1
+u = u + np.random.normal(mean, std, u.shape)
+v = v + np.random.normal(mean, std, v.shape)
+#save_fields(u, v, '61', datetime(2002, 1, 1), datetime(2002, 1, 31, 18))
+#create_div(u, v, N, dx, dy)
+#print("NEXT ---------------------------")
+#create_shear(u, v, N, dx, dy)
+#print("NEXT ---------------------------")
 
+"""
 # u-v shear+div example
 # Initialize velocity components
 u = np.zeros((N, N))
@@ -607,14 +624,15 @@ v_gaussian = -0.2 * np.exp(-((X + N/4)**2 + (Y + N/4)**2) / (2 * (N/10)**2))
 u = u_vortex + u_div + u_noise + u_gaussian
 v = v_vortex + v_div + v_noise + v_gaussian
 
+"""
 
+#v = np.zeros((N,N))
+#u = np.ones((N,N))
+#u[:, 2:4] = -1
 
-v = np.zeros((N,N))
-u = np.ones((N,N))
-u[:, 2:4] = -1
 
 #save_fields(u, v, '60', datetime(2002, 1, 1), datetime(2002, 1, 31, 18))
-create_div(u, v, N, dx, dy)
+#create_div(u, v, N, dx, dy)
 
 print("NEXT ---------------------------")
 #create_shear(u, v, N, dx, dy)
@@ -652,7 +670,7 @@ print(du_dx)
 
 L = 2  # Example: coarse-graining factor
 L_values = [2, 4, 8, 16, 32, 64]
-L_values = [ 4, 8, 16, 32, 64]
+L_values = [2, 4, 8, 16, 32, 64]
 deformation_means = []
 
 N = np.shape(du_dx)[0]
@@ -673,10 +691,10 @@ for v in range(len(L_values)):
                     du_dx_sum = np.nansum(coarse_du_dx)
                     du_dx_bool_sum = np.nansum(np.array(coarse_du_dx, dtype=bool))
                     if du_dx_bool_sum != 0:
-                        #print('sum', du_dx_sum)
-                        #print('bool sum',du_dx_bool_sum)
+                        print('sum', du_dx_sum)
+                        print('bool sum',du_dx_bool_sum)
                         du_dx_moy = du_dx_sum/du_dx_bool_sum
-                        #print('moy', du_dx_moy)
+                        print('moy', du_dx_moy)
                 
                 coarse_du_dy = du_dy[i:i+L, j:j+L]
                 du_dy_sum = np.nansum(coarse_du_dy)
@@ -713,39 +731,19 @@ for v in range(len(L_values)):
     print(np.nanmean(coarse_defos))
     deformations_L= np.append(deformations_L, np.nanmean(coarse_defos))
     print(deformations_L)
-
-"""
-for v in range(len(L_values)):
-    L = L_values[v]
-    coarse_du_dx = []
-    coarse_du_dy = []
-    coarse_dv_dx = []
-    coarse_dv_dy = []
     
-    for i in range(np.shape(du_dx)[0]):
-        for j in range(np.shape(du_dx)[1]):
-            coarse_du_dx = np.append(du_dx[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_du_dx)
-            coarse_du_dy = np.append(du_dy[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_du_dy)
-            coarse_dv_dx = np.append(dv_dx[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_dv_dx)
-            coarse_dv_dy = np.append(dv_dy[int(L/2*i):int(L/2*i+L), int(L/2*j):int(L/2*j+L)], coarse_dv_dy)
-
-
-        divergence = coarse_du_dx + coarse_dv_dy
-        shear = coarse_du_dy - coarse_dv_dx
-        deformation = np.sqrt(divergence**2 + shear**2)
-
-    deformation_mean = deformation.mean()
-    
-    deformation_means = np.append(deformation_means,deformation_mean)
-    print(deformation_mean)
-    print(deformation_means[v])
-"""
-    
-fig, ax = plt.subplots(figsize = (7, 5))
-ax.scatter(L_values, deformations_L, s=60, alpha=0.7, edgecolors="k")
-# Set logarithmic scale on the x variable
-ax.set_xscale("log")
-ax.set_yscale("log")
+plt.rcParams.update({'font.size': 16})
+with plt.style.context(['science', 'no-latex']):
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.set_title('Spatial scaling')
+    ax.grid(True, which='both')
+    ax.scatter(L_values, deformations_L, c='tab:orange',s=60, alpha=1, edgecolors="k", zorder=1000)
+    ax.set_xlabel('Spatial scale (nu)')
+    ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+    ax.set_xscale("log")  # Set logarithmic scale on the x-axis
+    ax.set_yscale("log")  # Set logarithmic scale on the y-axis
+    fig.savefig("Spatial_Scaling2.png")  # Save the figure
+    plt.close()
 #plt.loglog(L_values, deformation_means)
 #%%
 """
