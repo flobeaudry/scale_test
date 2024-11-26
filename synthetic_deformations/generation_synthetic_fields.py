@@ -910,8 +910,8 @@ v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
 experiments = [
     {'name': 'Div0', 'u': u_div0, 'v': v_div0, 'color': 'black'},
     {'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
-    #{'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
-    #{'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
+    {'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
+    {'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
     {'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
     {'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
     {'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'},
@@ -959,7 +959,7 @@ with plt.style.context(['science', 'no-latex']):
 
         # Scatter plot and regression line
         ax.scatter(L_values, deformations_L, c=exp['color'], s=60, alpha=1, edgecolors="k", zorder=1000)
-        ax.plot(L_values, np.exp(intercept) * L_values**slope, c=exp['color'], linestyle='--', zorder=500)
+        ax.plot(L_values, np.exp(intercept) * L_values**slope, c=exp['color'], linewidth=1.5,linestyle='-', zorder=500)
 
         # Add slope value to the legend
         legend_elements.append((f'{slope:.2f}', exp['color']))
@@ -970,9 +970,9 @@ with plt.style.context(['science', 'no-latex']):
     legend_title = '$\\beta$'
 
     # Add text outside the plot as the legend
-    ax.text(1.05, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='bold')
+    ax.text(1.05, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
     for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
-        ax.text(1.05, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color)
+        ax.text(1.05, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold')
 
     # Finalize plot
     ax.set_xlabel('Spatial scale (nu)')
