@@ -34,6 +34,7 @@ datasets = np.array(
         dataset31,
         dataset33,
         dataset34,
+        dataset35,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -71,7 +72,8 @@ datasets_name = np.array(
         'Div0',
         'Div1',
         'Div3',
-        'Div4'
+        'Div4',
+        'Div5',
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -100,6 +102,7 @@ datasets_color = np.array(
         'tab:blue', # 20
         "tab:orange", #21
         'tab:pink',
+        'tab:purple',
         #"tab:green", #22
         #"tab:purple", # 23
         #"tab:cyan", # 24

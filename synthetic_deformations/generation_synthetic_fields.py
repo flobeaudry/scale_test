@@ -711,16 +711,16 @@ def scale_and_coarse(u, v, L_values, dx, dy):
     dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-direction
     
     # Initialise things
-    #deformation_means = []
-    #N = np.shape(du_dx)[0]
     deformations_L = []
     
     #"""
     # Remove boundary effects
-    du_dx = du_dx[1:-1, :]
-    du_dy = du_dy[:, 1:-1]
-    dv_dx = dv_dx[:, 1:-1]
-    dv_dy = dv_dy[1:-1, :]
+    #du_dx = du_dx[1:-1, :]
+    #du_dy = du_dy[:, 1:-1]
+    #dv_dx = dv_dx[:, 1:-1]
+    #dv_dy = dv_dy[1:-1, :]
+    
+    # Main loop
     for L in L_values:
         step = L // 2
         coarse_defos = []
@@ -821,7 +821,7 @@ def scaling_fig(deformations_L, L_values, color, name):
     
 #%% -----------------   Cell to run the deformation creation ---------------------
 
-N= 150
+N= 200
 dy, dx = 1,1
 
 mean = 0
@@ -882,11 +882,22 @@ spacing = 4
 thickness = 2 
 v_div5 = np.zeros((N,N))
 u_div5 = 10*np.ones((N,N))
-for col in range(1, N, spacing):
+for col in range(0, N, spacing):
     u_div5[:, col:col + thickness] = -10
 #u_div[:, 2:4] = -10
 u_div5 = u_div5 + np.random.normal(mean, 10*std, u_div5.shape)
 v_div5 = v_div5 + np.random.normal(mean, 10*std, v_div5.shape)
+
+# div6
+spacing = 6
+thickness = 3 
+v_div6 = np.zeros((N,N))
+u_div6 = 10*np.ones((N,N))
+for col in range(0, N, spacing):
+    u_div6[:, col:col + thickness] = -10
+#u_div[:, 2:4] = -10
+u_div6 = u_div6 + np.random.normal(mean, 10*std, u_div6.shape)
+v_div6 = v_div6 + np.random.normal(mean, 10*std, v_div6.shape)
 
 # v-shear
 u_shear = np.zeros((N,N))
@@ -898,12 +909,13 @@ v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
 # Experiments definition
 experiments = [
     {'name': 'Div0', 'u': u_div0, 'v': v_div0, 'color': 'black'},
-    #{'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
+    {'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
     #{'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
     #{'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
-    #{'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
-    #{'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
-    #{'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'}
+    {'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
+    {'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
+    {'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'},
+    {'name': 'Div6', 'u': u_div6, 'v': v_div6, 'color': 'tab:brown'}
 ]
 
 print('Experiments created')
@@ -923,8 +935,57 @@ print('Experiments created')
 #save_fields(u_div, v_div, 31, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #save_fields(u_div3, v_div3, 33, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #save_fields(u_div4, v_div4, 34, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div5, v_div5, 35, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #print('Experiments saved')
 #%% ------------ Cell to run the spatial scaling -------------------------------
+
+plt.rcParams.update({'font.size': 16})
+with plt.style.context(['science', 'no-latex']):
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.set_title('Spatial scaling')
+    ax.grid(True, which='both')
+
+    # Collect slope information for the legend
+    legend_elements = []
+    
+    for exp in experiments:
+        # Perform scaling
+        deformations_L = scale_and_coarse(exp['u'], exp['v'], L_values=L_values, dx=dx, dy=dy)
+
+        # Perform linear regression in log-log space
+        log_L_values = np.log(L_values)
+        log_deformations = np.log(deformations_L)
+        slope, intercept, _, _, _ = linregress(log_L_values, log_deformations)
+
+        # Scatter plot and regression line
+        ax.scatter(L_values, deformations_L, c=exp['color'], s=60, alpha=1, edgecolors="k", zorder=1000)
+        ax.plot(L_values, np.exp(intercept) * L_values**slope, c=exp['color'], linestyle='--', zorder=500)
+
+        # Add slope value to the legend
+        legend_elements.append((f'{slope:.2f}', exp['color']))
+
+    # Custom legend with only colored numbers
+    legend_labels = [f'{text}' for text, _ in legend_elements]
+    legend_colors = [color for _, color in legend_elements]
+    legend_title = '$\\beta$'
+
+    # Add text outside the plot as the legend
+    ax.text(1.05, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='bold')
+    for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
+        ax.text(1.05, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color)
+
+    # Finalize plot
+    ax.set_xlabel('Spatial scale (nu)')
+    ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    # Save and show plot
+    file_name = "Spatial_scaling_with_regression.png"
+    fig.savefig(file_name, bbox_inches='tight')  # Adjust bounding box for custom annotations
+    plt.show()
+    
+'''
 plt.rcParams.update({'font.size': 16})
 with plt.style.context(['science', 'no-latex']):
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -957,28 +1018,8 @@ with plt.style.context(['science', 'no-latex']):
     file_name = "Spatial_scaling_with_regression.png"
     fig.savefig(file_name)
     plt.show()
+'''
 
-plt.rcParams.update({'font.size': 16})
-with plt.style.context(['science', 'no-latex']):
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.set_title('Spatial scaling')
-    ax.grid(True, which='both')
-
-    # Loop through each experiment and plot
-    for exp in experiments:
-        # Perform scaling
-        deformations_L = scale_and_coarse(exp['u'], exp['v'], L_values=L_values, dx=dx, dy=dy)
-
-        # Scatter plot and regression line
-        ax.scatter(L_values, deformations_L, c=exp['color'], s=60, alpha=1, edgecolors="k", zorder=1000)
-
-    #ax.set_xscale("log")
-    #ax.set_yscale("log")
-
-    # Save and show plot
-    file_name = "Spatial_scaling_no_log.png"
-    fig.savefig(file_name)
-    plt.show()
 #%%
 '''
 deformations_L_div = scale_and_coarse(u_div, v_div,L_values=L_values, dx=1, dy=1)
