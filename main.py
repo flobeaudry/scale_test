@@ -20,7 +20,7 @@ datasets = np.array(
         dataset29,  # SIM control
         #dataset15,  # Random noise + one line diagonal of deformation
         #dataset16,  # Vertical thin lines of convergence and divergence (1, -1, 1, -1)
-        dataset11, # just noize
+        #dataset11, # just noize
         #dataset17, # Vertical thicker lines of convergence and divergence (1, 1, -1, -1, 1, 1)
         #dataset20, # One vertical line of div (+1)
         #dataset21, # All div (+1 everywhere)
@@ -30,8 +30,10 @@ datasets = np.array(
         #dataset25, 
         #dataset26,
         #
-        dataset60,
-        dataset61,
+        dataset30,
+        dataset31,
+        dataset33,
+        dataset34,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -57,7 +59,7 @@ datasets_name = np.array(
         "SIM",
         #"div diagonal",
         #"div-conv lines",
-        "random noise",
+        #"random noise",
         #"0 0 +1 0",
         #"+1 +1 +1 +1",
         #"+1 0 +1 0",
@@ -66,8 +68,10 @@ datasets_name = np.array(
         #" +1 0000000 +1",
         #"1 000000000000000000000",
         #
-        'test',
-        'test2',
+        'Div0',
+        'Div1',
+        'Div3',
+        'Div4'
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -95,6 +99,7 @@ datasets_color = np.array(
         "tab:red",
         'tab:blue', # 20
         "tab:orange", #21
+        'tab:pink',
         #"tab:green", #22
         #"tab:purple", # 23
         #"tab:cyan", # 24

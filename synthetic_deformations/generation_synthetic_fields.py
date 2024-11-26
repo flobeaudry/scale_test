@@ -22,6 +22,7 @@ from numpy.linalg import det
 #from matplotlib import rc
 import scienceplots
 from matplotlib import rcParams
+from scipy.stats import linregress
 
 
 def create_sparse_matrix_dy(N):
@@ -401,11 +402,29 @@ def create_div(u, v, N, dx, dy):
     # Plot the initial speeds
     plt.figure()
     speed = np.sqrt(u**2 + v**2)
-    #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
-    plt.quiver( u, v,color='k')
+    plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
+    plt.quiver( u, v,color='k', scale=10)
     plt.colorbar( label="speed")
     plt.title("Initial speeds fields")
     plt.show() 
+    
+    plt.figure(figsize=(8, 6))
+    # Compute speed (magnitude of the velocity)
+    speed = u+v
+    # Generate a grid for pcolormesh to align with the quiver plot
+    x = np.arange(u.shape[1])
+    y = np.arange(u.shape[0])
+    X, Y = np.meshgrid(x, y)
+    # Plot the intensity as a background using pcolormesh
+    mesh = plt.pcolormesh(X, Y, speed, cmap='bwr', shading='auto')
+    # Overlay the velocity field using quiver
+    plt.quiver(X, Y, u, v, color='k')  # Adjust scale as needed for better visualization
+    # Add colorbar for intensity
+    plt.colorbar(mesh, label="Speed (intensity)")
+    # Add title and labels
+    plt.title("Speed Fields")
+    # Show the plot
+    plt.show()
 
     # Compute the div
     zeros_j = np.zeros(len(v[0,:])) # boundary conditions
@@ -550,38 +569,52 @@ def create_deformations(u, v, N, dx, dy):
     u, v = synthetic_deformations(F, dx, dy, vel_fig=True, shear_fig=True)
 
         
-
-N= 130
+'''
 dy, dx = 1,1 #to be defined
 
-# u-div example
-v = np.zeros((N,N))
-u = np.ones((N,N))
-u[:, 2:4] = -1
-
-
-# v-u-div example
-u = np.ones((N,N))
-v = np.ones((N,N))
-v[10:11, :] = -1
-u[:, 10:20] = -1
-v = np.zeros((N,N))
-#create_div(u, v, N, dx, dy)
-
-# v-shear example
-u = np.zeros((N,N))
-v = np.ones((N,N))
-v[:, 10:11] = -1
-
+N= 10
 mean = 0
 std = 0.1
-u = u + np.random.normal(mean, std, u.shape)
-v = v + np.random.normal(mean, std, v.shape)
+
+# div
+v_div = np.zeros((N,N))
+u_div = 10*np.ones((N,N))
+u_div[:, 2:4] = -10
+u_div = u_div + np.random.normal(mean, 10*std, u_div.shape)
+v_div = v_div + np.random.normal(mean, 10*std, v_div.shape)
+
+# div2
+v_div2 = np.zeros((N,N))
+u_div2 = np.ones((N,N))
+u_div2[:, 2:4] = -1
+u_div2 = u_div2 + np.random.normal(mean, std, u_div2.shape)
+v_div2 = v_div2 + np.random.normal(mean, std, v_div2.shape)
+
+# div3
+spacing = 2
+v_div2 = np.zeros((N, N))
+u_div2 = 10 * np.ones((N, N))    
+# Add vertical lines of -10 with the specified spacing
+for col in range(0, N, spacing):
+    u_div2[:, col:col + 1] = -10
+u_div2 = u_div2 + np.random.normal(mean, 10 * std, u_div2.shape)
+v_div2 = v_div2 + np.random.normal(mean, 10 * std, v_div2.shape)
+
+# v-shear
+u_shear = np.zeros((N,N))
+v_shear = np.ones((N,N))
+v_shear[:, 10:11] = -1
+u_shear = u_shear + np.random.normal(mean, std, u_shear.shape)
+v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
+
+
 #save_fields(u, v, '61', datetime(2002, 1, 1), datetime(2002, 1, 31, 18))
-#create_div(u, v, N, dx, dy)
+create_div(u_div, v_div, N, dx, dy)
+create_div(u_div2, v_div2, N, dx, dy)
 #print("NEXT ---------------------------")
-#create_shear(u, v, N, dx, dy)
+#create_shear(u_shear, v_shear, N, dx, dy)
 #print("NEXT ---------------------------")
+'''
 
 """
 # u-v shear+div example
@@ -634,9 +667,9 @@ v = v_vortex + v_div + v_noise + v_gaussian
 #save_fields(u, v, '60', datetime(2002, 1, 1), datetime(2002, 1, 31, 18))
 #create_div(u, v, N, dx, dy)
 
-print("NEXT ---------------------------")
+#print("NEXT ---------------------------")
 #create_shear(u, v, N, dx, dy)
-print("NEXT ---------------------------")
+#print("NEXT ---------------------------")
 
 
 
@@ -656,8 +689,353 @@ print("NEXT ---------------------------")
 
 
 #%%
-# SCALING TEST
-dx, dy = 1, 1
+# SCALING and COARSE GRAINING
+
+def scale_and_coarse(u, v, L_values, dx, dy):
+    """
+    If on an Arakawa C-grid, need to obtain the velocities at the center of each cell
+                ____o____
+                |q_{i,j}|
+        u_{i,j} o   o   o       where q is A, h, T, p
+                |       |
+                ----o----
+                 v_{i,j}
+    """
+    u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
+    v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
+    
+    # Compute the velocity gradients based on a centered-difference scheme
+    du_dx = (u_center[:, 1:] - u_center[:, :-1])[1:-1,:] / dx  # Gradient of u in x-direction
+    du_dy = (u_center[1:, :] - u_center[:-1, :])[1:,1:] / dy  # Gradient of u in y-direction
+    dv_dx = (v_center[:, 1:] - v_center[:, :-1])[1:,1:] / dx  # Gradient of v in x-direction
+    dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-direction
+    
+    # Initialise things
+    #deformation_means = []
+    #N = np.shape(du_dx)[0]
+    deformations_L = []
+    
+    #"""
+    # Remove boundary effects
+    du_dx = du_dx[1:-1, :]
+    du_dy = du_dy[:, 1:-1]
+    dv_dx = dv_dx[:, 1:-1]
+    dv_dy = dv_dy[1:-1, :]
+    for L in L_values:
+        step = L // 2
+        coarse_defos = []
+        
+        for i in range(0, du_dx.shape[0]- L + 1, step):
+            for j in range(0, du_dx.shape[1] - L + 1, step):
+                block_du_dx = du_dx[i:i + L, j:j + L]
+                block_du_dy = du_dy[i:i + L, j:j + L]
+                block_dv_dx = dv_dx[i:i + L, j:j + L]
+                block_dv_dy = dv_dy[i:i + L, j:j + L]
+                
+                du_dx_moy = np.nanmean(block_du_dx)
+                du_dy_moy = np.nanmean(block_du_dy)
+                dv_dx_moy = np.nanmean(block_dv_dx)
+                dv_dy_moy = np.nanmean(block_dv_dy)
+                
+                divergence = du_dx_moy + dv_dy_moy
+                shear = du_dy_moy - dv_dx_moy
+                deformation = np.sqrt(divergence**2 + shear**2)
+                
+                coarse_defos.append(deformation)
+                
+        deformations_L.append(np.nanmean(coarse_defos))
+    #"""
+    """
+    # Main loop
+    for v in range(len(L_values)):
+        L = L_values[v]
+        coarse_defos = []
+        #counter=0
+        du_dx_moy, du_dy_moy, dv_dx_moy, dv_dy_moy = 0, 0, 0, 0
+        for i in range(np.shape(du_dx)[0]):
+            for j in range(np.shape(du_dx)[1]):
+                if ((i)%(L/2) == 0) and ((j)%(L/2) == 0):
+                    coarse_du_dx = du_dx[i:i+L, j:j+L]
+                    if np.shape(coarse_du_dx)==(L,L):
+                        du_dx_sum = np.nansum(coarse_du_dx)
+                        du_dx_bool_sum = np.nansum(np.array(coarse_du_dx, dtype=bool))
+                        if du_dx_bool_sum != 0:
+                            du_dx_moy = du_dx_sum/du_dx_bool_sum
+                
+                    coarse_du_dy = du_dy[i:i+L, j:j+L]
+                    if np.shape(coarse_du_dy) == (L,L):
+                        du_dy_sum = np.nansum(coarse_du_dy)
+                        du_dy_bool_sum = np.nansum(np.array(coarse_du_dy, dtype=bool))
+                        if du_dy_bool_sum != 0:
+                            du_dy_moy = du_dy_sum/du_dy_bool_sum
+                
+                    coarse_dv_dx = dv_dx[i:i+L, j:j+L]
+                    if np.shape(coarse_dv_dx) == (L,L):
+                        dv_dx_sum = np.nansum(coarse_dv_dx)
+                        dv_dx_bool_sum = np.nansum(np.array(coarse_dv_dx, dtype=bool))
+                        if dv_dx_bool_sum != 0:
+                            dv_dx_moy = dv_dx_sum/dv_dx_bool_sum
+                
+                    coarse_dv_dy = dv_dy[i:i+L, j:j+L]
+                    if np.shape(coarse_dv_dy) == (L,L):
+                        dv_dy_sum = np.nansum(coarse_dv_dy)
+                        dv_dy_bool_sum = np.nansum(np.array(coarse_dv_dy, dtype=bool))
+                        if dv_dy_bool_sum != 0:
+                            dv_dy_moy = dv_dy_sum/dv_dy_bool_sum
+
+                
+                
+                    divergence = du_dx_moy + dv_dy_moy
+                    shear = du_dy_moy - dv_dx_moy
+                    deformation = np.sqrt(divergence**2 + shear**2)
+                    coarse_defos = np.append(coarse_defos, deformation)
+    
+    
+        print(v)
+        #print(coarse_defos)
+        #print(np.nanmean(coarse_defos))
+        deformations_L= np.append(deformations_L, np.nanmean(coarse_defos))
+        print(deformations_L)
+        """
+        
+    return deformations_L
+
+
+
+def scaling_fig(deformations_L, L_values, color, name):
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        fig, ax = plt.subplots(figsize=(7, 5))
+        ax.set_title('Spatial scaling')
+        ax.grid(True, which='both')
+        ax.scatter(L_values, deformations_L, c=color,s=60, alpha=1, edgecolors="k", zorder=1000)
+        ax.set_xlabel('Spatial scale (nu)')
+        ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+        ax.set_xscale("log")  # Set logarithmic scale on the x-axis
+        ax.set_yscale("log")  # Set logarithmic scale on the y-axis
+        file_name = f"{name}_spatial_scaling.png"
+        fig.savefig(file_name)
+        plt.close()
+    return
+    
+    
+#%% -----------------   Cell to run the deformation creation ---------------------
+
+N= 150
+dy, dx = 1,1
+
+mean = 0
+std = 0.1
+
+# Coarse graining factors
+L_values = [2, 4, 8, 16, 32, 64]
+
+# div0
+v_div0 = np.zeros((N,N))
+u_div0 = np.zeros((N,N))
+u_div0 = u_div0 + np.random.normal(mean, 10*std, u_div0.shape)
+v_div0 = v_div0 + np.random.normal(mean, 10*std, v_div0.shape)
+
+# div
+v_div = np.zeros((N,N))
+u_div = 10*np.ones((N,N))
+u_div[:, 2:4] = -10
+u_div = u_div + np.random.normal(mean, 10*std, u_div.shape)
+v_div = v_div + np.random.normal(mean, 10*std, v_div.shape)
+
+# div2
+v_div2 = np.zeros((N,N))
+u_div2 = np.ones((N,N))
+u_div2[:, 2:4] = -1
+u_div2 = u_div2 + np.random.normal(mean, std, u_div2.shape)
+v_div2 = v_div2 + np.random.normal(mean, std, v_div2.shape)
+
+# div2.2
+v_div22 = np.zeros((N,N))
+u_div22 = np.ones((N,N))
+u_div22[:, 2:4] = -1
+u_div22 = u_div22 + np.random.normal(mean, 10*std, u_div22.shape)
+v_div22 = v_div22 + np.random.normal(mean, 10*std, v_div22.shape)
+
+# div3
+spacing = 3
+v_div3 = np.zeros((N, N))
+u_div3 = 10 * np.ones((N, N))    
+# Add vertical lines of -10 with the specified spacing
+for col in range(0, N, spacing):
+    u_div3[:, col:col + 1] = -10
+u_div3 = u_div3 + np.random.normal(mean, 10 * std, u_div3.shape)
+v_div3 = v_div3 + np.random.normal(mean, 10 * std, v_div3.shape)
+
+# div4
+spacing = 2
+v_div4 = np.zeros((N, N))
+u_div4 = 10 * np.ones((N, N))    
+# Add vertical lines of -10 with the specified spacing
+for col in range(0, N, spacing):
+    u_div4[:, col:col + 1] = -10
+u_div4 = u_div4 + np.random.normal(mean, 10 * std, u_div4.shape)
+v_div4 = v_div4 + np.random.normal(mean, 10 * std, v_div4.shape)
+
+# div5
+spacing = 4
+thickness = 2 
+v_div5 = np.zeros((N,N))
+u_div5 = 10*np.ones((N,N))
+for col in range(1, N, spacing):
+    u_div5[:, col:col + thickness] = -10
+#u_div[:, 2:4] = -10
+u_div5 = u_div5 + np.random.normal(mean, 10*std, u_div5.shape)
+v_div5 = v_div5 + np.random.normal(mean, 10*std, v_div5.shape)
+
+# v-shear
+u_shear = np.zeros((N,N))
+v_shear = np.ones((N,N))
+v_shear[:, 10:11] = -1
+u_shear = u_shear + np.random.normal(mean, std, u_shear.shape)
+v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
+
+# Experiments definition
+experiments = [
+    {'name': 'Div0', 'u': u_div0, 'v': v_div0, 'color': 'black'},
+    #{'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
+    #{'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
+    #{'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
+    #{'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
+    #{'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
+    #{'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'}
+]
+
+print('Experiments created')
+
+# Show the fields or not
+#create_div(u_div0, v_div0, N, dx, dy)
+#create_div(u_div, v_div, N, dx, dy)
+#create_div(u_div2, v_div2, N, dx, dy)
+#create_div(u_div3, v_div3, N, dx, dy)
+#create_div(u_div4, v_div4, N, dx, dy)
+#create_div(u_div5, v_div5, N, dx, dy)
+
+#create_shear(u_shear, v_shear, N, dx, dy)
+
+# Save the fields or not
+#save_fields(u_div0, v_div0, 30, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div, v_div, 31, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div3, v_div3, 33, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div4, v_div4, 34, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#print('Experiments saved')
+#%% ------------ Cell to run the spatial scaling -------------------------------
+plt.rcParams.update({'font.size': 16})
+with plt.style.context(['science', 'no-latex']):
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.set_title('Spatial scaling')
+    ax.grid(True, which='both')
+
+    # Loop through each experiment and plot
+    for exp in experiments:
+        # Perform scaling
+        deformations_L = scale_and_coarse(exp['u'], exp['v'], L_values=L_values, dx=dx, dy=dy)
+
+        # Perform linear regression in log-log space
+        log_L_values = np.log(L_values)
+        log_deformations = np.log(deformations_L)
+        slope, intercept, _, _, _ = linregress(log_L_values, log_deformations)
+
+        # Scatter plot and regression line
+        ax.scatter(L_values, deformations_L, c=exp['color'], s=60, alpha=1, edgecolors="k", zorder=1000, 
+                   label=f'{exp["name"]} ($\\beta$ = {slope:.2f})')
+        ax.plot(L_values, np.exp(intercept) * L_values**slope, c=exp['color'], linestyle='--', zorder=500)
+
+    # Finalize plot
+    ax.legend()
+    ax.set_xlabel('Spatial scale (nu)')
+    ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    # Save and show plot
+    file_name = "Spatial_scaling_with_regression.png"
+    fig.savefig(file_name)
+    plt.show()
+
+plt.rcParams.update({'font.size': 16})
+with plt.style.context(['science', 'no-latex']):
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.set_title('Spatial scaling')
+    ax.grid(True, which='both')
+
+    # Loop through each experiment and plot
+    for exp in experiments:
+        # Perform scaling
+        deformations_L = scale_and_coarse(exp['u'], exp['v'], L_values=L_values, dx=dx, dy=dy)
+
+        # Scatter plot and regression line
+        ax.scatter(L_values, deformations_L, c=exp['color'], s=60, alpha=1, edgecolors="k", zorder=1000)
+
+    #ax.set_xscale("log")
+    #ax.set_yscale("log")
+
+    # Save and show plot
+    file_name = "Spatial_scaling_no_log.png"
+    fig.savefig(file_name)
+    plt.show()
+#%%
+'''
+deformations_L_div = scale_and_coarse(u_div, v_div,L_values=L_values, dx=1, dy=1)
+deformations_L_div2 = scale_and_coarse(u_div2, v_div2,L_values=L_values, dx=1, dy=1)
+#scaling_fig(deformations_L=deformations_L, L_values=L_values, color="tab:blue", name = 'Test div')
+
+deformations_L_shear = scale_and_coarse(u_shear, v_shear,L_values=L_values, dx=1, dy=1)
+#scaling_fig(deformations_L=deformations_L, L_values=L_values, color="tab:orange", name = 'Test shear')
+
+
+# Perform linear regression in log-log space
+log_L_values = np.log(L_values)
+log_deformations_div = np.log(deformations_L_div)
+log_deformations_div2 = np.log(deformations_L_div2)
+
+# Regression for first dataset
+slope_div, intercept_div, _, _, _ = linregress(log_L_values, log_deformations_div)
+
+# Regression for second dataset
+slope_div2, intercept_div2, _, _, _ = linregress(log_L_values, log_deformations_div2)
+
+plt.rcParams.update({'font.size': 16})
+plt.rcParams.update({
+    "text.usetex": True,  # Use LaTeX for all text rendering
+    "text.latex.preamble": r"\\usepackage{xcolor}"  # Enable xcolor for colored text
+})
+
+with plt.style.context(['science', 'no-latex']):
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.set_title('Spatial scaling')
+    ax.grid(True, which='both')
+    
+    # Scatter plots
+    ax.scatter(L_values, deformations_L_div, c='tab:blue', s=60, alpha=1, edgecolors="k", zorder=1000, 
+               label=f'Div ($\\beta$ = {slope_div:.2f})')
+    ax.scatter(L_values, deformations_L_div2, c='tab:orange', s=60, alpha=1, edgecolors="k", zorder=1000, 
+               label=f'Div3 ($\\beta$ = {slope_div2:.2f})')    # Regression lines
+    ax.plot(L_values, np.exp(intercept_div) * L_values**slope_div, c='tab:blue', linestyle='--', zorder=500)
+    ax.plot(L_values, np.exp(intercept_div2) * L_values**slope_div2, c='tab:orange', linestyle='--', zorder=500)
+    
+    # Legend
+    ax.legend()
+    
+    # Labels and scales
+    ax.set_xlabel('Spatial scale (nu)')
+    ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+    ax.set_xscale("log")  # Set logarithmic scale on the x-axis
+    ax.set_yscale("log")  # Set logarithmic scale on the y-axis
+    
+    # Save and close
+    file_name = "Div2_Spatial_scaling_with_regression.png"
+    fig.savefig(file_name)
+    plt.close()
+'''
+
+'''
+
 u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
 v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
 
@@ -668,8 +1046,7 @@ dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-
 
 print(du_dx)
 
-L = 2  # Example: coarse-graining factor
-L_values = [2, 4, 8, 16, 32, 64]
+# Coarse graining factors
 L_values = [2, 4, 8, 16, 32, 64]
 deformation_means = []
 
@@ -745,6 +1122,7 @@ with plt.style.context(['science', 'no-latex']):
     fig.savefig("Spatial_Scaling2.png")  # Save the figure
     plt.close()
 #plt.loglog(L_values, deformation_means)
+'''
 #%%
 """
 dy_sparse = create_sparse_double_matrix_dydx(4, 1, 1)
