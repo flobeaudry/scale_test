@@ -429,6 +429,45 @@ dataset35 = vis.Arctic(
     trans=trans,
 )
 
+dataset53 = vis.Arctic(
+    directory="output53",
+    time=start_time,
+    expno="53",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="53",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+dataset52 = vis.Arctic(
+    directory="output52",
+    time=start_time,
+    expno="52",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="52",
+    fig_type=fig_type,
+    trans=trans,
+)
+
+dataset50 = vis.Arctic(
+    directory="output50",
+    time=start_time,
+    expno="50",
+    datatype=datatype,
+    save=save,
+    resolution=10,
+    fig_shape=fig_shape,
+    fig_name_supp="50",
+    fig_type=fig_type,
+    trans=trans,
+)
+
 dataset65 = vis.Arctic(
     directory="output65",
     time=start_time,

@@ -30,11 +30,15 @@ datasets = np.array(
         #dataset25, 
         #dataset26,
         #
-        dataset30,
-        dataset31,
-        dataset33,
-        dataset34,
-        dataset35,
+        #dataset30,
+        #dataset31,
+        #dataset33,
+        #dataset34,
+        #dataset35,
+        #
+        dataset53,
+        dataset52,
+        dataset50,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -69,11 +73,15 @@ datasets_name = np.array(
         #" +1 0000000 +1",
         #"1 000000000000000000000",
         #
-        'Div0',
-        'Div1',
-        'Div3',
-        'Div4',
-        'Div5',
+        #'Div0',
+        #'Div1',
+        #'Div3',
+        #'Div4',
+        #'Div5',
+        #
+        'Div 513',
+        'Div 512',
+        'Div 510',
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -98,11 +106,11 @@ datasets_color = np.array(
         "tab:gray",  # SIM
         #"blue",  # x-dir divergence
         #"green",  # x-dir divergence
-        "tab:red",
-        'tab:blue', # 20
-        "tab:orange", #21
-        'tab:pink',
-        'tab:purple',
+        #"tab:red",
+        #'tab:blue', # 20
+        #"tab:orange", #21
+        #'tab:pink',
+        #'tab:purple',
         #"tab:green", #22
         #"tab:purple", # 23
         #"tab:cyan", # 24
@@ -110,6 +118,9 @@ datasets_color = np.array(
         #"tab:pink",
         #"xkcd:kelly green",
         #
+        'xkcd:magenta',
+        'xkcd:olive',
+        'xkcd:periwinkle',
         #"xkcd:dark mauve",  # Control
         #"xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)

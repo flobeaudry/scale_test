@@ -107,7 +107,7 @@ def create_sparse_double_matrix_dxdy(N, dx, dy):
 
 
 
-def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
+def synthetic_divergence(F, dx, dy, vel_fig=True, div_fig=True):
     """
         Function that computes u, v fields based on the divergence/convergence field given.
 
@@ -190,13 +190,82 @@ def synthetic_divergence(F, dx, dy, vel_fig=False, div_fig=False):
         plt.colorbar()
         plt.show()
         
-    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
-    V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+    #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+    #V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+    
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, axs = plt.subplots(
+            1, 2, 
+            figsize=(14, 6), 
+            gridspec_kw={'width_ratios': [1, 1]}  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+        ax1 = axs[1]
+        im1 = ax1.pcolormesh(div, cmap=cm.BrBG, vmin=-1, vmax=1)
+        fig.colorbar(im1, ax=ax1, orientation='vertical', label="Deformation")
+        ax1.set_title("(b) Divergence/Convergence")
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        
+        # Panel 2: Speed field with vectors
+        ax2 = axs[0]
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+
+        im2 = ax2.pcolormesh(X, Y, speed, cmap=cm.RdBu, shading='auto', alpha=0.6, vmin=-2, vmax=2)
+        quiver = ax2.quiver(X, Y, U_grid, V_grid, color='k', width=0.004)  # Adjust scale as needed
+        fig.colorbar(im2, ax=ax2, orientation='vertical', label="Speed")
+        ax2.set_title("(a) Divergence/Convergence Velocities")
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
+        
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, ax = plt.subplots(
+            figsize=(8, 6)  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+        im1 = ax.pcolormesh(div, cmap=cm.RdBu, vmin=-1, vmax=1, alpha=0.7)
+        quiver = ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.003)  # Adjust scale as needed
+        fig.colorbar(im1, ax=ax, orientation='vertical', label="Deformation")
+        ax.set_title("(a) Divergence/Convergence")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)  # Adjust the border thickness if needed
+        
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
+    
+    U_grid_o = U_grid
+    V_grid_o = V_grid
 
     return U_grid_o, V_grid_o
 
 
-def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
+def synthetic_shear(S, dx, dy, vel_fig=True, shear_fig=True):
     """
         Function that computes u, v fields based on the shearing field given.
 
@@ -211,6 +280,7 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
             u, v (np.ndarray): the velocity fields u (ny, nx+1) and v (ny+1, nx)
             
     """
+    
 
     # Get matrix shape
     N = len(S[0,:])
@@ -218,6 +288,12 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
 
     # Flatten the F matrix (2*N2, 1)
     S_flat = S.flatten()
+    
+    plt.figure()
+    plt.title("Given shear field")
+    plt.pcolormesh(S_flat[N2:].reshape((N,N)), cmap=cm.RdBu, vmin=-1, vmax=1)
+    plt.colorbar()
+    plt.show()
     
     # Define the sparse finite differences matrices (2N, 2N)
     A_sparse = create_sparse_matrix_dy(N)
@@ -235,22 +311,25 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
     U_grid = UV[:N2].reshape((N,N))
     V_grid = UV[N2:].reshape((N,N))
     
-    plt.figure()
-    speed = np.sqrt(U_grid**2 + V_grid**2)
-    #plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
-    plt.quiver( U_grid, V_grid,color='k')
-    plt.colorbar( label="speed")
-    plt.title("Computed speeds fields")
-    plt.show() 
+    #plt.figure()
+    #speed = np.sqrt(U_grid**2 + V_grid**2)
+    ##plt.pcolormesh(speed, cmap=cm.viridis, shading='auto')
+    #plt.quiver( U_grid, V_grid,color='k')
+    #plt.colorbar( label="speed")
+    #plt.title("Computed speeds fields")
+    #plt.show() 
     
     print('Your velocities have been computed in a diverging field!')
     u=U_grid
     v=V_grid
     # Centered finite differences
     zeros_j = np.zeros(len(u[0,:])) # boundary conditions
+    #zeros_j = np.ones(len(u[0,:])) # boundary conditions
+    #zeros_j = np.ones((v.shape[0], 1))
     u_jp1 = np.append(zeros_j, u[:-1,:]).reshape(u.shape)
     u_jm1 = np.append(u[1:,:], zeros_j).reshape(u.shape)
     
+    #zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
     zeros_i = np.zeros((v.shape[0], 1)) # boundary conditions
     v_ip1 = np.hstack((zeros_i,v[:,:-1]))
     v_im1 = np.hstack((v[:,1:],zeros_i))
@@ -260,14 +339,95 @@ def synthetic_shear(S, dx, dy, vel_fig=False, shear_fig=False):
 
     shear = dudy + dvdx
 
+    '''
     plt.figure()
     plt.title("Recomputed shear field")
     plt.pcolormesh(shear, cmap=cm.RdBu, vmin=-1, vmax=1)
     plt.colorbar()
     plt.show()
     
-    U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
-    V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+    plt.figure(figsize=(8, 6))
+    speed = U_grid+V_grid
+    x = np.arange(U_grid.shape[1])
+    y = np.arange(V_grid.shape[0])
+    X, Y = np.meshgrid(x, y)
+    mesh = plt.pcolormesh(X, Y, speed, cmap='bwr', shading='auto')
+    plt.quiver(X, Y, U_grid, V_grid, color='k')  # Adjust scale as needed for better visualization
+    plt.colorbar(mesh, label="Speed (intensity)")
+    plt.title("Speed Fields")
+    plt.show()
+    '''
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, axs = plt.subplots(
+            1, 2, 
+            figsize=(14, 6), 
+            gridspec_kw={'width_ratios': [1, 1]}  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+        ax1 = axs[1]
+        im1 = ax1.pcolormesh(shear, cmap=cm.BrBG, vmin=-1, vmax=1)
+        fig.colorbar(im1, ax=ax1, orientation='vertical', label="Deformation")
+        ax1.set_title("(d) Shear")
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        
+        # Panel 2: Speed field with vectors
+        ax2 = axs[0]
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+
+        im2 = ax2.pcolormesh(X, Y, speed, cmap=cm.RdBu, shading='auto', alpha=0.6, vmin=-2, vmax=2)
+        quiver = ax2.quiver(X, Y, U_grid, V_grid, color='k', width=0.004)  # Adjust scale as needed
+        fig.colorbar(im2, ax=ax2, orientation='vertical', label="Speed")
+        ax2.set_title("(c) Shear Velocities")
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
+    
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, ax = plt.subplots(
+            figsize=(8, 6)  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+        im1 = ax.pcolormesh(shear, cmap=cm.RdBu, vmin=-1, vmax=1, alpha=0.7)
+        quiver = ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.003)  # Adjust scale as needed
+        fig.colorbar(im1, ax=ax, orientation='vertical', label="Deformation")
+        ax.set_title("(b) Shear")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)  # Adjust the border thickness if needed        
+        
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
+    
+    #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
+    #V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
+    
+    U_grid_o = U_grid
+    V_grid_o = V_grid
         
     return U_grid_o, V_grid_o
 
@@ -338,11 +498,72 @@ def synthetic_deformations(F, dx, dy, vel_fig=False, shear_fig=False):
 
     defo = dudx + dvdy+ dudy + dvdx
 
-    plt.figure()
-    plt.title("Recomputed deformations field")
-    plt.pcolormesh(defo, cmap=cm.RdBu, vmin=-1, vmax=1)
-    plt.colorbar()
-    plt.show()
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, axs = plt.subplots(
+            1, 2, 
+            figsize=(14, 6), 
+            gridspec_kw={'width_ratios': [1, 1]}  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+        ax1 = axs[1]
+        im1 = ax1.pcolormesh(defo, cmap=cm.BrBG, vmin=-1, vmax=1)
+        fig.colorbar(im1, ax=ax1, orientation='vertical', label="Deformation")
+        ax1.set_title("(f) Divergence/Convergence + Shear")
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        
+        # Panel 2: Speed field with vectors
+        ax2 = axs[0]
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+
+        im2 = ax2.pcolormesh(X, Y, speed, cmap=cm.RdBu, shading='auto', alpha=0.6, vmin=-2, vmax=2)
+        quiver = ax2.quiver(X, Y, U_grid, V_grid, color='k', width=0.002)  # Adjust scale as needed
+        fig.colorbar(im2, ax=ax2, orientation='vertical', label="Speed")
+        ax2.set_title("(e) Divergence/Convergence + Shear Velocities")
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
+        
+    
+    plt.rcParams.update({'font.size': 16})
+    with plt.style.context(['science', 'no-latex']):
+        
+        # Create a single figure with two panels
+        fig, ax = plt.subplots(
+            figsize=(8, 6)  # Equal width for both panels
+        )
+
+        # Panel 1: Recomputed shear field
+
+        speed = U_grid + V_grid  # Replace with actual calculation
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X , Y = np.meshgrid(x, y)
+
+        im1 = ax.pcolormesh(defo, cmap=cm.RdBu, vmin=-1, vmax=1, alpha=0.7)
+        quiver = ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.004)  # Adjust scale as needed
+        fig.colorbar(im1, ax=ax, orientation='vertical', label="Deformation")
+        ax.set_title("(c) Divergence/Convergence + Shear")
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)  # Adjust the border thickness if needed
+                    
+        # Adjust layout for clarity
+        plt.tight_layout()
+        plt.show()
     
     U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
     V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
@@ -395,18 +616,87 @@ def save_fields(u, v, out, start_date, end_date):
         current_time += time_delta
     
 
+# Official tests for paper figure
+
+N = 28
+dx, dy = 1, 1
+
+# Case 1:
+F_shear_u = np.zeros((N,N))
+F_shear_u[:, 5:6] = -1
+F_shear_u[:, 10:11] = -1
+F_shear_u[:, 15:16] = -1
+F_shear_u[:, 20:21] = -1
+F_shear_u[:, :1] =  1
+F_shear_u[:, -1:] =  1
+# Case 2:
+F_shear_u = np.zeros((N,N))
+F_shear_u[:, 14:16] = -2
+F_shear_u[:, :1] =  1
+F_shear_u[:, -1:] =  1
+
+F_shear_v = np.zeros((N,N))
+#F = np.vstack([F_shear_u, F_shear_v])
+F_shear = np.vstack([F_shear_v, F_shear_u])
+u_shear, v_shear = synthetic_shear(F_shear, dx, dy)
+
+# Case 1: 
+F_div_u = np.zeros((N,N))
+F_div_u[:, 5:6] = -1
+F_div_u[:, 10:11] = -1
+F_div_u[:, 15:16] = -1
+F_div_u[:, 20:21] = -1
+F_div_u[:, :1] =  1
+F_div_u[:, -1:] =  1
+# Case 2:
+F_div_u = np.zeros((N,N))
+F_div_u[:, 14:16] = -2
+F_div_u[:, :1] =  1
+F_div_u[:, -1:] =  1
+F_div_v = np.zeros((N,N))
+#F = np.vstack([F_shear_u, F_shear_v])
+F_div = np.vstack([F_div_u, F_div_v])
+u_div, v_div = synthetic_divergence(F_div, dx, dy)
+
+
+# Case 1:
+F_defo = np.sqrt(F_shear**2 + F_div**2)
+F_defo = F_shear + F_div
+u_defo, v_defo = synthetic_deformations(F_defo, dx, dy)
+
+'''
+plt.figure(figsize=(8, 6))
+#u_shear = u_shear[:,:-1]
+#v_shear = u_shear[:-1,:]
+# Compute speed (magnitude of the velocity)
+speed = u_shear+v_shear
+# Generate a grid for pcolormesh to align with the quiver plot
+x = np.arange(u_shear.shape[1])
+y = np.arange(u_shear.shape[0])
+X, Y = np.meshgrid(x, y)
+# Plot the intensity as a background using pcolormesh
+mesh = plt.pcolormesh(X, Y, speed, cmap='bwr', shading='auto')
+# Overlay the velocity field using quiver
+plt.quiver(X, Y, u_shear, v_shear, color='k')  # Adjust scale as needed for better visualization
+# Add colorbar for intensity
+plt.colorbar(mesh, label="Speed (intensity)")
+# Add title and labels
+plt.title("Speed Fields")
+# Show the plot
+plt.show()
+'''
 #%%
 # -----------------------Construct deformation matrix-----------------------------------------------------#
 def create_div(u, v, N, dx, dy):
     
     # Plot the initial speeds
-    plt.figure()
-    speed = np.sqrt(u**2 + v**2)
-    plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
-    plt.quiver( u, v,color='k', scale=10)
-    plt.colorbar( label="speed")
-    plt.title("Initial speeds fields")
-    plt.show() 
+    #plt.figure()
+    #speed = np.sqrt(u**2 + v**2)
+    #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
+    #plt.quiver( u, v,color='k', scale=10)
+    #plt.colorbar( label="speed")
+    #plt.title("Initial speeds fields")
+    #plt.show() 
     
     plt.figure(figsize=(8, 6))
     # Compute speed (magnitude of the velocity)
@@ -464,13 +754,32 @@ def create_div(u, v, N, dx, dy):
 def create_shear(u, v, N, dx, dy):
     
     # Plot the initial speeds
-    plt.figure()
-    speed = np.sqrt(u**2 + v**2)
+    #plt.figure()
+    #speed = np.sqrt(u**2 + v**2)
     #plt.pcolormesh(speed, cmap=cm.seismic, shading='auto')
-    plt.quiver( u, v,color='k')
-    plt.colorbar( label="speed")
-    plt.title("Initial speeds fields")
-    plt.show() 
+    #plt.quiver( u, v,color='k')
+    #plt.colorbar( label="speed")
+    #plt.title("Initial speeds fields")
+    #plt.show() 
+    
+    plt.figure(figsize=(8, 6))
+    # Compute speed (magnitude of the velocity)
+    speed = u+v
+    # Generate a grid for pcolormesh to align with the quiver plot
+    x = np.arange(u.shape[1])
+    y = np.arange(u.shape[0])
+    X, Y = np.meshgrid(x, y)
+    # Plot the intensity as a background using pcolormesh
+    mesh = plt.pcolormesh(X, Y, speed, cmap='bwr', shading='auto')
+    # Overlay the velocity field using quiver
+    plt.quiver(X, Y, u, v, color='k')  # Adjust scale as needed for better visualization
+    # Add colorbar for intensity
+    plt.colorbar(mesh, label="Speed (intensity)")
+    # Add title and labels
+    plt.title("Speed Fields")
+    # Show the plot
+    plt.show()
+
 
     # Compute the shear
     zeros_j = np.zeros(len(u[0,:])) # boundary conditions
@@ -701,6 +1010,7 @@ def scale_and_coarse(u, v, L_values, dx, dy):
                 ----o----
                  v_{i,j}
     """
+    print(np.shape(u))
     u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
     v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
     
@@ -719,6 +1029,8 @@ def scale_and_coarse(u, v, L_values, dx, dy):
     #du_dy = du_dy[:, 1:-1]
     #dv_dx = dv_dx[:, 1:-1]
     #dv_dy = dv_dy[1:-1, :]
+    
+    print(np.shape(du_dx))
     
     # Main loop
     for L in L_values:
@@ -821,7 +1133,8 @@ def scaling_fig(deformations_L, L_values, color, name):
     
 #%% -----------------   Cell to run the deformation creation ---------------------
 
-N= 200
+# N must be you desired grid size + 2
+N= 20
 dy, dx = 1,1
 
 mean = 0
@@ -899,23 +1212,71 @@ for col in range(0, N, spacing):
 u_div6 = u_div6 + np.random.normal(mean, 10*std, u_div6.shape)
 v_div6 = v_div6 + np.random.normal(mean, 10*std, v_div6.shape)
 
+
+
+# ---------- For these experiments I want the same noize -------------------
+
+# div_control (grid size of 512x512)
+N_512 = 514
+#N_512 = 194
+spacing = 3
+thickness = 1
+v_div_512 = np.zeros((N_512,N_512))
+u_div_512 = 10*np.ones((N_512,N_512))
+for col in range(0, N_512, spacing):
+    u_div_512[:, col:col + thickness] = -10
+u_div_512[:, -2:] = -20
+u_div_512 = u_div_512 + np.random.normal(mean, 10*std, u_div_512.shape)
+v_div_512 = v_div_512 + np.random.normal(mean, 10*std, v_div_512.shape)
+
+# div_511 
+N_511 = 513
+#N_511 = 193
+spacing = 3
+thickness = 1
+v_div_511 = np.zeros((N_511,N_511))
+u_div_511 = 10*np.ones((N_511,N_511))
+for col in range(0, N_511, spacing):
+    u_div_511[:, col:col + thickness] = -10
+u_div_511[:, -3:-1] = -20
+#u_div_511[:, -1:] = 0
+u_div_511 = u_div_511 + np.random.normal(mean, 10*std, u_div_511.shape)
+v_div_511 = v_div_511 + np.random.normal(mean, 10*std, v_div_511.shape)
+
+# div_500
+N_500 = 512
+#N_500 = 50
+spacing = 3
+thickness = 1
+v_div_500 = np.zeros((N_500,N_500))
+u_div_500 = 10*np.ones((N_500,N_500))
+for col in range(0, N_500, spacing):
+    u_div_500[:, col:col + thickness] = -10
+u_div_500[:, -4:-2] = -20
+#u_div_500[:, -2:] = 0
+u_div_500 = u_div_500 + np.random.normal(mean, 10*std, u_div_500.shape)
+v_div_500 = v_div_500 + np.random.normal(mean, 10*std, v_div_500.shape)
+
 # v-shear
 u_shear = np.zeros((N,N))
 v_shear = np.ones((N,N))
-v_shear[:, 10:11] = -1
-u_shear = u_shear + np.random.normal(mean, std, u_shear.shape)
-v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
+v_shear[:, 10:] = -1
+#u_shear = u_shear + np.random.normal(mean, std, u_shear.shape)
+#v_shear = v_shear + np.random.normal(mean, std, v_shear.shape)
 
 # Experiments definition
 experiments = [
-    {'name': 'Div0', 'u': u_div0, 'v': v_div0, 'color': 'black'},
-    {'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
-    {'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
-    {'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
-    {'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
-    {'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
-    {'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'},
-    {'name': 'Div6', 'u': u_div6, 'v': v_div6, 'color': 'tab:brown'}
+    #{'name': 'Div0', 'u': u_div0, 'v': v_div0, 'color': 'black'},
+    #{'name': 'Div1', 'u': u_div, 'v': v_div, 'color': 'tab:blue'},
+    #{'name': 'Div2', 'u': u_div2, 'v': v_div2, 'color': 'tab:green'},
+    #{'name': 'Div2.2', 'u': u_div22, 'v': v_div22, 'color': 'tab:cyan'},
+    #{'name': 'Div3', 'u': u_div3, 'v': v_div3, 'color': 'tab:orange'},
+    #{'name': 'Div4', 'u': u_div4, 'v': v_div4, 'color': 'tab:pink'},
+    #{'name': 'Div5', 'u': u_div5, 'v': v_div5, 'color': 'tab:purple'},
+    #{'name': 'Div6', 'u': u_div6, 'v': v_div6, 'color': 'tab:brown'},
+    #{'name': 'Div 513', 'u': u_div_512, 'v': v_div_512, 'color': 'xkcd:magenta'},
+    #{'name': 'Div 512', 'u': u_div_511, 'v': v_div_511, 'color': 'xkcd:olive'},
+    #{'name': 'Div 510', 'u': u_div_500, 'v': v_div_500, 'color': 'xkcd:periwinkle'},
 ]
 
 print('Experiments created')
@@ -927,6 +1288,11 @@ print('Experiments created')
 #create_div(u_div3, v_div3, N, dx, dy)
 #create_div(u_div4, v_div4, N, dx, dy)
 #create_div(u_div5, v_div5, N, dx, dy)
+#create_div(u_div_500, v_div_500, N_500, dx, dy)
+
+#create_shear(u_shear, v_shear, N, dx, dy)
+
+#create_div(u_shear, v_shear, N, dx, dy)
 
 #create_shear(u_shear, v_shear, N, dx, dy)
 
@@ -936,6 +1302,9 @@ print('Experiments created')
 #save_fields(u_div3, v_div3, 33, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #save_fields(u_div4, v_div4, 34, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #save_fields(u_div5, v_div5, 35, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div_512, v_div_512, 53, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div_511, v_div_511, 52, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
+#save_fields(u_div_500, v_div_500, 50, start_date = datetime(2002, 1, 1), end_date = datetime(2002, 1, 31, 18))
 #print('Experiments saved')
 #%% ------------ Cell to run the spatial scaling -------------------------------
 
@@ -962,7 +1331,8 @@ with plt.style.context(['science', 'no-latex']):
         ax.plot(L_values, np.exp(intercept) * L_values**slope, c=exp['color'], linewidth=1.5,linestyle='-', zorder=500)
 
         # Add slope value to the legend
-        legend_elements.append((f'{slope:.2f}', exp['color']))
+        #legend_elements.append((f'{slope:.2f}', exp['color']))
+        legend_elements.append((exp['name'] + f': {slope:.2f}', exp['color']))
 
     # Custom legend with only colored numbers
     legend_labels = [f'{text}' for text, _ in legend_elements]
@@ -970,9 +1340,9 @@ with plt.style.context(['science', 'no-latex']):
     legend_title = '$\\beta$'
 
     # Add text outside the plot as the legend
-    ax.text(1.05, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
+    ax.text(1.15, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
     for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
-        ax.text(1.05, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold')
+        ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold')
 
     # Finalize plot
     ax.set_xlabel('Spatial scale (nu)')
