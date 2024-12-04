@@ -143,10 +143,12 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
             spine.set_linewidth(2)  # Adjust the border thickness if needed
         
         plt.tight_layout()
-        combined_filename = os.path.join("synthetic_deformations/project/figures", f"{name}_div_velocity.png")
+        combined_filename = os.path.join("SIMS/project/figures", f"{name}_div_velocity.png")
         plt.savefig(combined_filename)
         plt.close(fig)
 
+        print(f"Divergence figure saved: {name}")
+        
     return U_grid, V_grid
 
 
@@ -270,10 +272,11 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
             spine.set_linewidth(2)  # Adjust the border thickness if needed        
         
         plt.tight_layout()
-        combined_filename = os.path.join("synthetic_deformations/project/figures", f"{name}_shear_velocity.png")
+        combined_filename = os.path.join("SIMS/project/figures", f"{name}_shear_velocity.png")
         plt.savefig(combined_filename)
         plt.close(fig)
     
+    print(f"Shear figure saved: {name}")
     #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
     #V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
     
@@ -404,9 +407,11 @@ def synthetic_deformations(F, name, dx=1, dy=1, vel_fig=False, shear_fig=False):
                     
         # Adjust layout for clarity
         plt.tight_layout()
-        combined_filename = os.path.join("synthetic_deformations/project/figures", f"{name}_both_velocity.png")
+        combined_filename = os.path.join("SIMS/project/figures", f"{name}_both_velocity.png")
         plt.savefig(combined_filename)
         plt.close()
+        
+        print(f"Deformations figure saved: {name}")
     
     #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
     #V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)

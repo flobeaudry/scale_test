@@ -22,6 +22,15 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Divergence0", "color": "tab:blue"}
+    
+    if name == "Divergence1":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, 14:17] = -2
+        F_div_u[:, :1] = 1
+        F_div_u[:, -1:] = 1
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Divergence1", "color": "tab:brown"}
 
     if name == "DivShear0":
         F_shear_u = np.zeros((N, N))

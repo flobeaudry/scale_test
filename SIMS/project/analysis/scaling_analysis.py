@@ -98,7 +98,7 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         ax.set_yscale("log")
 
         # Save and show plot
-        file_name = "synthetic_deformations/project/figures/Spatial_scaling_with_regression.png"
+        file_name = "SIMS/project/figures/Spatial_scaling_with_regression.png"
         fig.savefig(file_name, bbox_inches='tight')  # Adjust bounding box for custom annotations
         plt.close()
 
