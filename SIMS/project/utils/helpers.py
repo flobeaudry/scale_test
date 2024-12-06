@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.sparse import diags, bmat
+from scipy.sparse import diags, bmat, csc_matrix
 
 
-def create_sparse_matrix_dx(N):
+def create_sparse_matrix_dx_og_works(N):
     block_count=N
     # Create a single NxN block matrix with the specified diagonal pattern
     diagonals = [-np.ones(N), np.zeros(N), np.ones(N)]  # +1, 0, -1
@@ -15,6 +15,56 @@ def create_sparse_matrix_dx(N):
     large_matrix = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)])
 
     return large_matrix
+
+
+def create_sparse_matrix_dx_oldok(N):
+    dx, dy = 1, 1
+    block_count=N
+    # Create a single NxN block matrix with the specified diagonal pattern
+    diagonals = [np.ones(N)/(2*dx), np.zeros(N), -np.ones(N)/(2*dx)]  # +1, 0, -1
+    offsets = [1, 0, -1]  # +1 on the super diagonal, 0 on the main diagonal, -1 on the sub diagonal
+    
+
+    # Create the NxN block matrix
+    block = diags(diagonals, offsets, shape=(N, N))
+
+    # Convert to a format that allows element modification (csc_matrix allows assignment)
+    block = csc_matrix(block)
+
+    # Modify the top-left element directly
+    #block[0, 0] = -1/dx
+    #block[0, 1] = 1/dx
+    #block[N-1, N-2] = -1/dx
+    #block[N-1, N-1] = 1/dx
+
+    # If you want to convert back to a dia_matrix, you can do so:
+    block = block.todia()
+
+    # Create a larger block matrix made of block_count x block_count blocks
+    large_matrix = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)])
+
+    return large_matrix
+
+def create_sparse_matrix_dx(N):
+    dx, dy = 1, 1
+    block_count=N
+    # Create a single NxN block matrix with the specified diagonal pattern
+    diagonals = [np.ones(N)/(dx), -np.ones(N)/(dx)]  # +1, 0, -1
+    offsets = [1, 0]  # +1 on the super diagonal, 0 on the main diagonal, -1 on the sub diagonal
+    
+    # Create the NxN block matrix
+    block = diags(diagonals, offsets, shape=(N, N))
+
+    # Convert to a format that allows element modification (csc_matrix allows assignment)
+    block = csc_matrix(block)
+    # If you want to convert back to a dia_matrix, you can do so:
+    block = block.todia()
+
+    # Create a larger block matrix made of block_count x block_count blocks
+    large_matrix = bmat([[block if i == j else np.zeros((N, N)) for j in range(block_count)] for i in range(block_count)])
+
+    return large_matrix
+
 
 
 def create_sparse_matrix_dy(N):
