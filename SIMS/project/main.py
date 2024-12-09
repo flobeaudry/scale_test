@@ -4,9 +4,15 @@ from analysis.scaling_analysis import scale_and_coarse, scaling_parameters, scal
 
 # Define experiments
 experiment_names = [
-    "Divergence0",
+    #"Divergence0",
     #"Divergence1",
-    #"Shear0",
+    #"Divergence2"
+    #"Divergence1_1",
+    #"Divergence1_2",
+    "Shear0",
+    #"Shear1",
+    #"Shear1_2",
+    #"Shear1_1",
     #"DivShear0"
     ]
 
