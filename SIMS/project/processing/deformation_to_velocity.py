@@ -5,15 +5,15 @@ import matplotlib.cm as cm
 import os
 import scienceplots
 from scipy.optimize import newton_krylov
-from scipy.sparse import diags, block_diag, bmat,csr_matrix
+from scipy.sparse import diags, block_diag, bmat,csr_matrix, lil_matrix, csc_matrix
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
-from utils.helpers import create_sparse_matrix_dx, create_sparse_matrix_dy, create_sparse_double_matrix_dydx, create_sparse_double_matrix_dxdy
+from utils.helpers import create_sparse_matrix_dx, create_sparse_matrix_dy, create_sparse_double_matrix_dydx, create_sparse_double_matrix_dxdy, create_sparse_matrix_dudy,create_sparse_matrix_dvdx
 
-def compute_velocity_fields(F, exp_type, name):
+def compute_velocity_fields(F, exp_type, name, color='k'):
     
     if exp_type == "div":
-        u, v = synthetic_divergence(F, name)
+        u, v = synthetic_divergence(F, name, color)
         
     elif exp_type == "shear":
         u, v = synthetic_shear(F, name)
@@ -27,7 +27,7 @@ def compute_velocity_fields(F, exp_type, name):
     return (u, v)
         
         
-def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
+def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True):
     """
         Function that computes u, v fields based on the divergence/convergence field given.
 
@@ -51,33 +51,29 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
     F_flat = F.flatten()
     
     # Define the sparse finite differences matrices (2N, 2N)
-    A_sparse = create_sparse_matrix_dx(N)
-    B_sparse = create_sparse_matrix_dy(N)
-    zero_matrix = csr_matrix((N2, N2)) 
-    AB_sparse = bmat([[A_sparse, zero_matrix], 
-                       [zero_matrix, B_sparse]])
+    #A_sparse = create_sparse_matrix_dx(N)
+    #B_sparse = create_sparse_matrix_dy(N)
+    #zero_matrix = csr_matrix((N2, N2)) 
+    #AB_sparse = bmat([[A_sparse, zero_matrix], 
+    #                   [zero_matrix, B_sparse]])
     
-    A_sparse_csr = A_sparse.tocsr()
-    #dense_section = A_sparse_csr[:10, :10].todense()  # Inspect a small section
-    A_dense = A_sparse_csr.toarray()
-    print("Dense Representation of the Matrix:")
-    print(np.round(A_dense, 2))  # Rounded for clarity
     
-    det = np.linalg.det(A_dense)
-    print('DET', det)
-    
-    AB_sparse_csr = AB_sparse.tocsr()
-    AB_dense = AB_sparse_csr.toarray()
-    rank = np.linalg.matrix_rank(AB_dense)
-    print('RANK AB', rank)
-    print('N: ', N)
-    
-    det = np.linalg.det(AB_dense)
-    print('DET', det)
-    
+    print("before matrix")
+    zero_matrix = lil_matrix((N2, N2))
+    print("zero matrix done")
+    A_sparse = create_sparse_matrix_dx(N).tolil()  # Efficient construction
+    print('A matrix done')
+    B_sparse = create_sparse_matrix_dy(N).tolil()
+    print('B matrix done')
+    AB_sparse = bmat([[A_sparse, zero_matrix], [zero_matrix, B_sparse]], format="lil")
+    print("before sparse")
     AB_sparse = AB_sparse.tocsr()
+    
+    print("created matrices")
+    #AB_sparse = AB_sparse.tocsr()
     # Compute the u and v field by solving the linear system (2*2N, 1)
     UV = spsolve(AB_sparse, F_flat)
+    print("solved system")
     U_grid = UV[:N2].reshape((N,N))
     V_grid = UV[N2:].reshape((N,N))
 
@@ -207,6 +203,12 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
         x = np.arange(U_grid.shape[1])
         y = np.arange(V_grid.shape[0])
         X , Y = np.meshgrid(x, y)
+        X_shifted = X 
+        
+        #div_shifted = np.roll(div, shift=-1, axis=1)
+        #div_shifted[:, -1] = div[:, -1]
+        #div = div_shifted
+        
 
         # Add conditions for divergence and shear
         div_pos = (div > 0).astype(int)
@@ -223,7 +225,7 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
         ):
             # Simulate hatches using colored contour lines
             ax.contour(
-                X, Y, condition,
+                X_shifted, Y, condition,
                 levels=[0.5],  # Single-level contour
                 colors='none',  # Set the desired hatch color
                 linestyles='solid',
@@ -239,7 +241,7 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
             #)
             # Add dense hatching patterns using contourf
             ax.contourf(
-                X, Y, condition,
+                X_shifted, Y, condition,
                 levels=[0.5, 1.5],
                 colors=[line_color], 
                 hatches=[hatch],
@@ -247,7 +249,7 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
             )
             
         # Add quivers for vector field
-        ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.004, scale=30, alpha=1)
+        ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.005, scale=20, alpha=1)
     
         # Add legend for hatching patterns
         legend_elements = [
@@ -265,7 +267,7 @@ def synthetic_divergence(F, name, dx=1, dy=1, vel_fig=True, div_fig=True):
         )
         legend = ax.legend(handles=legend_elements, loc="upper left",bbox_to_anchor=(1, 1), fontsize=14, title="Deformations", frameon=True, facecolor='white', edgecolor='k', framealpha=0.9)
     
-        ax.set_title("(a) Divergence/Convergence")
+        ax.set_title(f"{name}", fontweight ="bold", color=color)
         ax.set_xticks([])
         ax.set_yticks([])
 
@@ -309,7 +311,10 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
     
     # Define the sparse finite differences matrices (2N, 2N)
     A_sparse = create_sparse_matrix_dy(N)
+    #A_sparse = create_sparse_matrix_dudy(N)
     B_sparse = create_sparse_matrix_dx(N)
+    #B_sparse = create_sparse_matrix_dvdx(N)
+    
     zero_matrix = csr_matrix((N2, N2)) 
     AB_sparse = bmat([[A_sparse, zero_matrix], 
                        [zero_matrix, B_sparse]])
@@ -321,6 +326,20 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
     UV = spsolve(AB_sparse, S_flat)
     U_grid = UV[:N2].reshape((N,N))
     V_grid = UV[N2:].reshape((N,N))
+    
+    # Test to reshape the u and v values on the grid!!
+    Ny, Nx = U_grid.shape
+    # Redistribute U: Average in x-direction for interior points, preserve edges
+    U_corrected = 0.5 * (U_grid[:, :-1] + U_grid[:, 1:])  # Average adjacent x values
+    U_corrected = np.hstack((U_grid[:, 0:1], U_corrected, U_grid[:, -1:]))  # Preserve edges
+    # Redistribute V: Average in y-direction for interior points, preserve edges
+    V_corrected = 0.5 * (V_grid[:-1, :] + V_grid[1:, :])  # Average adjacent y values
+    V_corrected = np.vstack((V_grid[0:1, :], V_corrected, V_grid[-1:, :]))  # Preserve edges
+    # To ensure consistent dimensions with the C-grid:
+    U_corrected = U_corrected[:, :-1]  # Drop the extra row at the bottom
+    V_corrected = V_corrected[:-1, :]  # Drop the extra column on the right
+    #U_grid = U_corrected
+    #V_grid = V_corrected
     
     u=U_grid
     v=V_grid
@@ -340,6 +359,10 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
     dudy = (u_jp1 - u_jm1)/(2*dy)
     dvdx = (v_ip1 - v_im1)/(2*dx)
     """
+    
+    
+    """
+    # WORKED ON DEC 9th !!
     v_i = v[:, :-1]
     v_ip1 = v[:, 1:]
     dvdx = (v_ip1 - v_i)/dx
@@ -353,8 +376,30 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
     # Pad with zeros to match
     zeros_j = np.zeros(len(u[0,:]))
     dudy = np.vstack((zeros_j, dudy))
+    """
+    
+    # Get the shape of the input array
+    Ny, Nx = u.shape
 
+    # Initialize dudy with zeros
+    dudy = np.zeros_like(u)
+
+    # Loop over the interior points (avoid boundaries)
+    for i in range(Ny - 1):  # Loop over rows (i, i+1)
+        for j in range(1, Nx - 1):  # Loop over columns (j-1, j+1)
+            # Apply the scheme
+            dudy[i, j] = (
+                u[i+1, j] + u[i+1, j+1]  # ui,j+1 and ui+1,j+1
+                - u[i-1, j] - u[i-1, j+1]  # ui,j-1 and ui+1,j-1
+            ) / (4 * dy)
+            print(dudy[i, j])
+            
+    dvdx = np.zeros_like(dudy)
     shear = dudy + dvdx
+    print(u)
+    print(shear)
+    #shear = (S[N:,:] + S[:N, :])/2
+
     div = np.zeros((N,N))
 
     # This is to plot velocities and deformations on two different pannels
@@ -477,7 +522,7 @@ def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):
             )
             
         # Add quivers for vector field
-        ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.004, scale=30, alpha=1)
+        ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.005, scale=20, alpha=1)
     
         legend_elements = [
             Patch(edgecolor='black', facecolor='darkseagreen', hatch='',alpha=0.5, label='Divergence'),
@@ -797,7 +842,7 @@ def synthetic_deformations(F, name, dx=1, dy=1, vel_fig=False, shear_fig=False):
         
         # Create a single figure with two panels
         fig, ax = plt.subplots(
-            figsize=(7, 6)  # Equal width for both panels
+            figsize=(9, 6)  # Equal width for both panels
         )
 
         speed = U_grid + V_grid  # Replace with actual calculation
@@ -815,7 +860,7 @@ def synthetic_deformations(F, name, dx=1, dy=1, vel_fig=False, shear_fig=False):
         for condition, hatch, line_color, label in zip(
             [div_pos, div_neg, shear_pos, shear_neg],
             ['', '', '', ''],  # Hatching styles
-            ['mediumaqdarkseagreenuamarine', 'steelblue', 'darksalmon', 'darkorange'],  # Colors for hatching lines
+            ['darkseagreen', 'steelblue', 'darksalmon', 'darkorange'],  # Colors for hatching lines
             ['Convergence', 'Divergence', 'Shear +', 'Shear -']  # Labels
         ):
             # Simulate hatches using colored contour lines
@@ -851,9 +896,16 @@ def synthetic_deformations(F, name, dx=1, dy=1, vel_fig=False, shear_fig=False):
             Patch(edgecolor='black', facecolor='darkseagreen', hatch='',alpha=0.5, label='Divergence'),
             Patch(edgecolor='black', facecolor='steelblue', hatch='',alpha=0.5, label='Convergence'),
             Patch(edgecolor='k', facecolor='darksalmon', hatch='',alpha=0.5, label='Shear +'),
-            Patch(edgecolor='k', facecolor='darkorange', hatch='',alpha=0.5, label='Shear -')
+            Patch(edgecolor='k', facecolor='darkorange', hatch='',alpha=0.5, label='Shear -'),
+            Patch(edgecolor='white', facecolor='white', label=''),
+            Line2D([0], [0], color='k', lw=2, label='Velocities', marker='>', markersize=8)
+            
         ]
-        ax.legend(handles=legend_elements, loc='upper right', fontsize=14, title="Deformations", frameon=True, facecolor='white', edgecolor='k', framealpha=0.7)
+        
+        quiver_key = ax.quiverkey(
+            quiver, X=0.8, Y=1.05, U=1, label='Velocities', labelpos='E', coordinates='axes'
+        )
+        legend = ax.legend(handles=legend_elements, loc="upper left",bbox_to_anchor=(1, 1), fontsize=14, title="Deformations", frameon=True, facecolor='white', edgecolor='k', framealpha=0.9)
     
         ax.set_title("(c) Divergence/Convergence + Shear")
         ax.set_xticks([])

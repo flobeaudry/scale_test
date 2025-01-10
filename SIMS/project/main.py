@@ -4,12 +4,29 @@ from analysis.scaling_analysis import scale_and_coarse, scaling_parameters, scal
 
 # Define experiments
 experiment_names = [
-    #"Divergence0",
+    "Divergence_control",
+    #"Divergence_reversed",
+    #"Divergence_uneven",
+    #"Divergence_uneven_noise",
+    #"Divergence_smallangle",
+    #"Divergence_control_noise",
+    #"Divergence_control_noise_plus",
+    "Divergence_SNR_1",
+    "Divergence_SNR_10",
+    "Divergence_SNR_100",
+    #"Divergence_intensity",
+    #"Divergence_width",
+    #"Divergence_divergence",
+    
+    
+    #"Divergence_angle",
+    #"Divergence_density",
+    #"Divergence_intensity",
     #"Divergence1",
     #"Divergence2"
     #"Divergence1_1",
     #"Divergence1_2",
-    "Shear0",
+    #"Shear0",
     #"Shear1",
     #"Shear1_2",
     #"Shear1_1",
@@ -30,11 +47,13 @@ for name in experiment_names:
     F, exp_type, name, color = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"]
 
     # Step 2: Compute velocity fields
-    u, v = compute_velocity_fields(F, exp_type, name)
+    u, v = compute_velocity_fields(F, exp_type, name, color)
+    print("Velocity fields computed")
 
     # Step 3: Perform scaling analysis
     deformations_L = scale_and_coarse(u, v, L_values, dx=dx, dy=dy)
     deformations_tot.append(deformations_L)
+    print("Scaling analysis done")
 
     # Step 4: Generate scaling figure
     intercept, slope = scaling_parameters(deformations_L, L_values)

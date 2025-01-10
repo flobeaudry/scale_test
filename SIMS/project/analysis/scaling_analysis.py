@@ -13,14 +13,20 @@ def scale_and_coarse(u, v, L_values, dx, dy):
                  v_{i,j}
     """
 
-    u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
-    v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
+    #u_center = 0.5 * (u[:, :-1] + u[:, 1:])  # Average along x
+    #v_center = 0.5 * (v[:-1, :] + v[1:, :])  # Average along y
+
+    # Compute the velocity gradients based on a centered-difference scheme
+    du_dx = (u[:, 1:] - u[:, :-1]) / dx  # Gradient of u in x-direction
+    du_dy = (u[1:, :] - u[:-1, :]) / dy  # Gradient of u in y-direction
+    dv_dx = (v[:, 1:] - v[:, :-1])/ dx  # Gradient of v in x-direction
+    dv_dy = (v[1:, :] - v[:-1, :])/ dy  # Gradient of v in y-direction
     
     # Compute the velocity gradients based on a centered-difference scheme
-    du_dx = (u_center[:, 1:] - u_center[:, :-1])[1:-1,:] / dx  # Gradient of u in x-direction
-    du_dy = (u_center[1:, :] - u_center[:-1, :])[1:,1:] / dy  # Gradient of u in y-direction
-    dv_dx = (v_center[:, 1:] - v_center[:, :-1])[1:,1:] / dx  # Gradient of v in x-direction
-    dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-direction
+    #du_dx = (u_center[:, 1:] - u_center[:, :-1])[1:-1,:] / dx  # Gradient of u in x-direction
+    #du_dy = (u_center[1:, :] - u_center[:-1, :])[1:,1:] / dy  # Gradient of u in y-direction
+    #dv_dx = (v_center[:, 1:] - v_center[:, :-1])[1:,1:] / dx  # Gradient of v in x-direction
+    #dv_dy = (v_center[1:, :] - v_center[:-1, :])[:,1:-1] / dy  # Gradient of v in y-direction
     
     # Initialise things
     deformations_L = []
