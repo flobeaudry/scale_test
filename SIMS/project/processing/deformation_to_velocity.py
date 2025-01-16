@@ -58,18 +58,18 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     #                   [zero_matrix, B_sparse]])
     
     
-    print("before matrix")
+    #print("before matrix")
     zero_matrix = lil_matrix((N2, N2))
-    print("zero matrix done")
+    #print("zero matrix done")
     A_sparse = create_sparse_matrix_dx(N).tolil()  # Efficient construction
-    print('A matrix done')
+    #print('A matrix done')
     B_sparse = create_sparse_matrix_dy(N).tolil()
-    print('B matrix done')
+    #print('B matrix done')
     AB_sparse = bmat([[A_sparse, zero_matrix], [zero_matrix, B_sparse]], format="lil")
-    print("before sparse")
+    #print("before sparse")
     AB_sparse = AB_sparse.tocsr()
     
-    print("created matrices")
+    #print("created matrices")
     #AB_sparse = AB_sparse.tocsr()
     # Compute the u and v field by solving the linear system (2*2N, 1)
     UV = spsolve(AB_sparse, F_flat)
@@ -77,9 +77,12 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     U_grid = UV[:N2].reshape((N,N))
     V_grid = UV[N2:].reshape((N,N))
 
+    print("reshaped")
+    
     # Centered finite differences
     u = U_grid
     v = V_grid
+    
     '''
     zeros_j = np.zeros(len(v[0,:])) # boundary conditions
     v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
@@ -124,164 +127,216 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)
     #V_grid_o = np.vstack([np.zeros((1, N)), V_grid]) # so that the shape is (ny+1, nx)
     
-    # This is to plot velocities and deformations on two different pannels
-    plt.rcParams.update({'font.size': 16})
-    with plt.style.context(['science', 'no-latex']):
-        
-        # Create a single figure with two panels
-        fig, axs = plt.subplots(
-            1, 2, 
-            figsize=(14, 6), 
-            gridspec_kw={'width_ratios': [1, 1]}  # Equal width for both panels
-        )
-
-        # Panel 1: Recomputed shear field
-        ax1 = axs[1]
-        im1 = ax1.pcolormesh(div, cmap=cm.BrBG, vmin=-1, vmax=1)
-        fig.colorbar(im1, ax=ax1, orientation='vertical', label="Deformation")
-        ax1.set_title("(b) Divergence/Convergence")
-        ax1.set_xticks([])
-        ax1.set_yticks([])
-        
-        # Panel 2: Speed field with vectors
-        ax2 = axs[0]
-        speed = U_grid + V_grid  # Replace with actual calculation
-        x = np.arange(U_grid.shape[1])
-        y = np.arange(V_grid.shape[0])
-        X , Y = np.meshgrid(x, y)
-
-
-        im2 = ax2.pcolormesh(X, Y, speed, cmap=cm.RdBu, shading='auto', alpha=0.6, vmin=-2, vmax=2)
-        quiver = ax2.quiver(X, Y, U_grid, V_grid, color='k', width=0.004)  # Adjust scale as needed
-        fig.colorbar(im2, ax=ax2, orientation='vertical', label="Speed")
-        ax2.set_title("(a) Divergence/Convergence Velocities")
-        ax2.set_xticks([])
-        ax2.set_yticks([])
-        # Adjust layout for clarity
-        plt.tight_layout()
-        plt.show()
+    ## This is to plot velocities and deformations on two different pannels
+    #plt.rcParams.update({'font.size': 16})
+    #with plt.style.context(['science', 'no-latex']):
+    #    
+    #    # Create a single figure with two panels
+    #    fig, axs = plt.subplots(
+    #        1, 2, 
+    #        figsize=(14, 6), 
+    #        gridspec_kw={'width_ratios': [1, 1]}  # Equal width for both panels
+    #    )
+    #
+    #    # Panel 1: Recomputed shear field
+    #    ax1 = axs[1]
+    #    im1 = ax1.pcolormesh(div, cmap=cm.BrBG, vmin=-1, vmax=1)
+    #    fig.colorbar(im1, ax=ax1, orientation='vertical', label="Deformation")
+    #    ax1.set_title("(b) Divergence/Convergence")
+    #    ax1.set_xticks([])
+    #    ax1.set_yticks([])
+    #    
+    #    # Panel 2: Speed field with vectors
+    #    ax2 = axs[0]
+    #    speed = U_grid + V_grid  # Replace with actual calculation
+    #    x = np.arange(U_grid.shape[1])
+    #    y = np.arange(V_grid.shape[0])
+    #    X , Y = np.meshgrid(x, y)
+    #
+    #
+    #    im2 = ax2.pcolormesh(X, Y, speed, cmap=cm.RdBu, shading='auto', alpha=0.6, vmin=-2, vmax=2)
+    #    quiver = ax2.quiver(X, Y, U_grid, V_grid, color='k', width=0.004)  # Adjust scale as needed
+    #    fig.colorbar(im2, ax=ax2, orientation='vertical', label="Speed")
+    #    ax2.set_title("(a) Divergence/Convergence Velocities")
+    #    ax2.set_xticks([])
+    #    ax2.set_yticks([])
+    #    # Adjust layout for clarity
+    #    plt.tight_layout()
+    #    plt.show()
      
     # Main fig that gets saved!  
-    plt.rcParams.update({'font.size': 16})
-    with plt.style.context(['science', 'no-latex']):
+    #plt.rcParams.update({'font.size': 16})
+    #with plt.style.context(['science', 'no-latex']):
+    #    
+    #    fig, ax = plt.subplots(
+    #        figsize=(8, 6)
+    #    )
+    #
+    #    speed = U_grid + V_grid
+    #    x = np.arange(U_grid.shape[1])
+    #    y = np.arange(V_grid.shape[0])
+    #    X , Y = np.meshgrid(x, y)
+    #
+    #    im1 = ax.pcolormesh(div, cmap=cm.RdBu, vmin=-1, vmax=1, alpha=0.7)
+    #    quiver = ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.004, scale = 30)  # Adjust scale as needed
+    #    fig.colorbar(im1, ax=ax, orientation='vertical', label="Deformation")
+    #    ax.set_title("(a) Divergence/Convergence")
+    #    ax.set_xticks([])
+    #    ax.set_yticks([])
+    #    
+    #    for spine in ax.spines.values():
+    #        spine.set_edgecolor('black')
+    #        spine.set_linewidth(2)  # Adjust the border thickness if needed
+    #    
+    #    plt.tight_layout()
+    #    combined_filename = os.path.join("SIMS/project/figures", f"{name}_div_velocity.png")
+    #    plt.savefig(combined_filename)
+    #    plt.close(fig)
         
-        fig, ax = plt.subplots(
-            figsize=(8, 6)
-        )
+    #plt.rcParams.update({'font.size': 16})
+    #plt.rcParams['hatch.linewidth'] = 1
+    #with plt.style.context(['science', 'no-latex']):
+    #    
+    #    # Create a single figure with two panels
+    #    fig, ax = plt.subplots(
+    #        figsize=(9, 6)  # Equal width for both panels
+    #    )
+    #
+    #    speed = U_grid + V_grid  # Replace with actual calculation
+    #    x = np.arange(U_grid.shape[1])
+    #    y = np.arange(V_grid.shape[0])
+    #    X , Y = np.meshgrid(x, y)
+    #    X_shifted = X 
+    #    
+    #    #div_shifted = np.roll(div, shift=-1, axis=1)
+    #    #div_shifted[:, -1] = div[:, -1]
+    #    #div = div_shifted
+    #    
+    #
+    #
+    #    # Add conditions for divergence and shear
+    #    div_pos = (div > 0).astype(int)
+    #    div_neg = (div < 0).astype(int)
+    #    shear_pos = (shear > 0).astype(int)
+    #    shear_neg = (shear < 0).astype(int)
+    #
+    #    # Apply hatching patterns for each condition
+    #    for condition, hatch, line_color, label in zip(
+    #        [div_pos, div_neg, shear_pos, shear_neg],
+    #        ['', '', '', ''],  # Hatching styles
+    #        ['darkseagreen', 'steelblue', 'darksalmon', 'darkorange'],  # Colors for hatching lines
+    #        ['Convergence', 'Divergence', 'Shear +', 'Shear -']  # Labels
+    #    ):
+    #        # Simulate hatches using colored contour lines
+    #        #ax.contour(
+    #        #    X_shifted, Y, condition,
+    #        #    levels=[0.5],  # Single-level contour
+    #        #    colors='none',  # Set the desired hatch color
+    #        #    linestyles='solid',
+    #        #    linewidths=1.5,  # Adjust thickness for better visibility
+    #        #    alpha=0.8
+    #        #)
+    #        
+    #        
+    #        ## Add background fill color for the selected condition
+    #        #ax.contourf(
+    #        #    X, Y, condition,
+    #        #    levels=[0.5, 1.5],
+    #        #    colors=[line_color],  # Background fill color (blue/red)
+    #        #    alpha=0.6  # Adjust transparency
+    #        #)
+    #        # Add dense hatching patterns using contourf
+    #        ax.contourf(
+    #            X_shifted, Y, condition,
+    #            levels=[0.5, 1.5],
+    #            colors=[line_color], 
+    #            hatches=[hatch],
+    #            alpha=0.5
+    #        )
+    #        
+    #    # Add quivers for vector field
+    #    ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.005, scale=20, alpha=1)
+    
+    #    # Add legend for hatching patterns
+    #    legend_elements = [
+    #        Patch(edgecolor='black', facecolor='darkseagreen', hatch='',alpha=0.5, label='Divergence'),
+    #        Patch(edgecolor='black', facecolor='steelblue', hatch='',alpha=0.5, label='Convergence'),
+    #        Patch(edgecolor='k', facecolor='darksalmon', hatch='',alpha=0.5, label='Shear +'),
+    #        Patch(edgecolor='k', facecolor='darkorange', hatch='',alpha=0.5, label='Shear -'),
+    #        Patch(edgecolor='white', facecolor='white', label=''),
+    #        Line2D([0], [0], color='k', lw=2, label='Velocities', marker='>', markersize=8)
+    #        
+    #    ]
+    #    
+    #    quiver_key = ax.quiverkey(
+    #        quiver, X=0.8, Y=1.05, U=1, label='Velocities', labelpos='E', coordinates='axes'
+    #    )
+    #    legend = ax.legend(handles=legend_elements, loc="upper left",bbox_to_anchor=(1, 1), fontsize=14, title="Deformations", frameon=True, facecolor='white', edgecolor='k', framealpha=0.9)
+    #
+    #    ax.set_title(f"{name}", fontweight ="bold", color=color)
+    #    ax.set_xticks([])
+    #    ax.set_yticks([])
 
-        speed = U_grid + V_grid
+    #    for spine in ax.spines.values():
+    #        spine.set_edgecolor('black')
+    #        spine.set_linewidth(2)  # Adjust the border thickness if needed
+    #                
+    #    # Adjust layout for clarity
+    #    plt.tight_layout()
+    #    combined_filename = os.path.join("SIMS/project/figures", f"Separated_{name}_div_velocity.png")
+    #    plt.savefig(combined_filename)
+    #    plt.close(fig)
+    #
+    #    print(f"Divergence figure saved: {name}")
+        
+        
+    with plt.style.context(['science', 'no-latex']):
+        # Create a single figure with one panel
+        fig, ax = plt.subplots(figsize=(9, 10))
+
+        # Create a mesh grid for the vector field
         x = np.arange(U_grid.shape[1])
         y = np.arange(V_grid.shape[0])
-        X , Y = np.meshgrid(x, y)
+        X, Y = np.meshgrid(x, y)
 
-        im1 = ax.pcolormesh(div, cmap=cm.RdBu, vmin=-1, vmax=1, alpha=0.7)
-        quiver = ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.004, scale = 30)  # Adjust scale as needed
-        fig.colorbar(im1, ax=ax, orientation='vertical', label="Deformation")
-        ax.set_title("(a) Divergence/Convergence")
+        # Calculate speed for better visualization (optional, if needed)
+        speed = np.sqrt(U_grid**2 + V_grid**2)
+
+        # Use pcolormesh for background color representation
+        ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -1, vmax = 1)
+    
+        # Plot quivers for velocity field
+        ax.quiver(X, Y, U_grid, V_grid, color='k', linewidth=5,width=0.1, scale=10, scale_units='xy',alpha=0.8)
+
+        # Add a color bar for the pcolormesh
+        cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -1, vmax = 1), ax=ax, orientation='horizontal')
+        cbar.set_label('Divergence', fontsize=18)
+
+        # Set plot title and remove ticks
+        #ax.set_title(f"{name}", fontweight="bold", color="black")
+        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif')
         ax.set_xticks([])
         ax.set_yticks([])
-        
-        for spine in ax.spines.values():
-            spine.set_edgecolor('black')
-            spine.set_linewidth(2)  # Adjust the border thickness if needed
-        
-        plt.tight_layout()
-        combined_filename = os.path.join("SIMS/project/figures", f"{name}_div_velocity.png")
-        plt.savefig(combined_filename)
-        plt.close(fig)
-        
-    plt.rcParams.update({'font.size': 16})
-    plt.rcParams['hatch.linewidth'] = 1
-    with plt.style.context(['science', 'no-latex']):
-        
-        # Create a single figure with two panels
-        fig, ax = plt.subplots(
-            figsize=(9, 6)  # Equal width for both panels
-        )
 
-        speed = U_grid + V_grid  # Replace with actual calculation
-        x = np.arange(U_grid.shape[1])
-        y = np.arange(V_grid.shape[0])
-        X , Y = np.meshgrid(x, y)
-        X_shifted = X 
-        
-        #div_shifted = np.roll(div, shift=-1, axis=1)
-        #div_shifted[:, -1] = div[:, -1]
-        #div = div_shifted
-        
-
-        # Add conditions for divergence and shear
-        div_pos = (div > 0).astype(int)
-        div_neg = (div < 0).astype(int)
-        shear_pos = (shear > 0).astype(int)
-        shear_neg = (shear < 0).astype(int)
-
-        # Apply hatching patterns for each condition
-        for condition, hatch, line_color, label in zip(
-            [div_pos, div_neg, shear_pos, shear_neg],
-            ['', '', '', ''],  # Hatching styles
-            ['darkseagreen', 'steelblue', 'darksalmon', 'darkorange'],  # Colors for hatching lines
-            ['Convergence', 'Divergence', 'Shear +', 'Shear -']  # Labels
-        ):
-            # Simulate hatches using colored contour lines
-            ax.contour(
-                X_shifted, Y, condition,
-                levels=[0.5],  # Single-level contour
-                colors='none',  # Set the desired hatch color
-                linestyles='solid',
-                linewidths=1.5,  # Adjust thickness for better visibility
-                alpha=0.8
-            )
-            ## Add background fill color for the selected condition
-            #ax.contourf(
-            #    X, Y, condition,
-            #    levels=[0.5, 1.5],
-            #    colors=[line_color],  # Background fill color (blue/red)
-            #    alpha=0.6  # Adjust transparency
-            #)
-            # Add dense hatching patterns using contourf
-            ax.contourf(
-                X_shifted, Y, condition,
-                levels=[0.5, 1.5],
-                colors=[line_color], 
-                hatches=[hatch],
-                alpha=0.5
-            )
-            
-        # Add quivers for vector field
-        ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.005, scale=20, alpha=1)
-    
-        # Add legend for hatching patterns
-        legend_elements = [
-            Patch(edgecolor='black', facecolor='darkseagreen', hatch='',alpha=0.5, label='Divergence'),
-            Patch(edgecolor='black', facecolor='steelblue', hatch='',alpha=0.5, label='Convergence'),
-            Patch(edgecolor='k', facecolor='darksalmon', hatch='',alpha=0.5, label='Shear +'),
-            Patch(edgecolor='k', facecolor='darkorange', hatch='',alpha=0.5, label='Shear -'),
-            Patch(edgecolor='white', facecolor='white', label=''),
-            Line2D([0], [0], color='k', lw=2, label='Velocities', marker='>', markersize=8)
-            
-        ]
-        
+        # Add a legend for the quivers
         quiver_key = ax.quiverkey(
-            quiver, X=0.8, Y=1.05, U=1, label='Velocities', labelpos='E', coordinates='axes'
+            ax.quiver(X, Y, U_grid, V_grid, color='k', width=0.003, scale=40, alpha=1),
+            X=0.85, Y=1.025, U=1, label='Velocities',labelpos='E', coordinates='axes' , fontproperties={'size': 18}
         )
-        legend = ax.legend(handles=legend_elements, loc="upper left",bbox_to_anchor=(1, 1), fontsize=14, title="Deformations", frameon=True, facecolor='white', edgecolor='k', framealpha=0.9)
-    
-        ax.set_title(f"{name}", fontweight ="bold", color=color)
-        ax.set_xticks([])
-        ax.set_yticks([])
 
+
+        # Adjust spines
         for spine in ax.spines.values():
             spine.set_edgecolor('black')
-            spine.set_linewidth(2)  # Adjust the border thickness if needed
-                    
-        # Adjust layout for clarity
+            spine.set_linewidth(2)
+
+        # Save the figure
         plt.tight_layout()
-        combined_filename = os.path.join("SIMS/project/figures", f"Separated_{name}_div_velocity.png")
+        combined_filename = os.path.join("SIMS/project/figures", f"2Separated_{name}_div_velocity.png")
         plt.savefig(combined_filename)
         plt.close(fig)
 
-        print(f"Divergence figure saved: {name}")
+    print(f"Divergence figure saved: {name}")
         
     return U_grid, V_grid
 

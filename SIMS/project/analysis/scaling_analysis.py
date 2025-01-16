@@ -84,6 +84,7 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
             ax.scatter(L_values, deformations[i], c=colors[i], s=60, alpha=1, edgecolors="k", zorder=1000)
             ax.plot(L_values, np.exp(intercepts[i]) * L_values**slopes[i], c=colors[i], linewidth=1.5,linestyle='-', zorder=500)
 
+            #slopes_print = -1*slopes
             # Add slope value to the legend
             legend_elements.append((names[i] + f': {slopes[i]:.2f}',colors[i]))
 
@@ -95,7 +96,7 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         # Add text outside the plot as the legend
         ax.text(1.15, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
         for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
-            ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold')
+            ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=12, ha='center', va='center', color=color, weight='bold', family='sans-serif')
 
         # Finalize plot
         ax.set_xlabel('Spatial scale (nu)')
@@ -147,7 +148,7 @@ def scaling_fig(experiments, L_values):
         # Add text outside the plot as the legend
         ax.text(1.15, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
         for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
-            ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold')
+            ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=14, ha='center', va='center', color=color, weight='bold', family='sans-serif')
 
         # Finalize plot
         ax.set_xlabel('Spatial scale (nu)')

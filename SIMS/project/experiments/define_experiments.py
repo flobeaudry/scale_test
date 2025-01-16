@@ -1,7 +1,9 @@
 import numpy as np
+from scipy.ndimage import rotate
 
 def get_experiment(name):
-    N = 1024 # Grid size
+    #N = 1024 # Grid size
+    N = 30
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
@@ -22,6 +24,44 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Div control", "color": "tab:blue"}
+    
+    if name == "Divergence_alternate":
+        F_div_u = np.zeros((N, N))
+        
+        indices = np.arange(0, F_div_u.shape[1], 8)
+
+        # Use a condition to alternate between -1 and +1
+        F_div_u[:, indices[::2]] = 1      # Set +1 on even indices
+        F_div_u[:, indices[1::2]] = -1     # Set -1 on odd indices
+        
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div alternate", "color": "tab:red"}
+    
+    
+    if name == "Divergence_random":
+        F_div_u = np.zeros((N, N))
+        
+        num_changes = F_div_u.shape[1] // 8
+
+        # Create the pattern (+1 and -1, alternating)
+        pattern = np.ones(num_changes)  # Start with +1
+        pattern[1::2] = -1  # Assign -1 to every second position
+
+        # Shuffle the pattern to randomly distribute +1 and -1
+        np.random.shuffle(pattern)
+
+        # Randomly select the indices in the second dimension
+        indices = np.random.choice(F_div_u.shape[1], size=num_changes, replace=False)
+
+        # Apply the pattern to the selected indices
+        F_div_u[:, indices] = pattern
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div random", "color": "tab:purple"}
+    
     
     if name == "Divergence_control_noise":
         F_div_u = np.zeros((N, N))
@@ -132,31 +172,133 @@ def get_experiment(name):
     
     if name == "Divergence_smallangle":
         F_div_u = np.zeros((N, N))
-        
-        #spacing = 8
-        #for i in range(N):
-        #    for j in range(i % spacing, N, spacing):
-        #        F_div_u[i, j] = -1 
-        
-        #F_div_v = np.zeros((N, N))
-        #for i in range(N):
-        #    for j in range((i+2) % spacing, N, spacing):
-        #        F_div_v[i, j] = -1 
                 
-                
-        spacing = 8
-        start_row = 2  # Start the pattern at this row
+        spacing = int(10*np.sqrt(2))
 
         for i in range(N):
-            for j in range((N - 1 - i + start_row) % spacing, N, spacing):
-                F_div_u[i, j] = -1
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                F_div_u[i, j] = -np.sqrt(1/2)
+                #if j + 1 < N:  # Ensure we do not go out of bounds
+                #    F_div_u[i, j + 1] = -np.sqrt(1/2)
+                #if j + 2 < N:  # Ensure we do not go out of bounds
+                #    F_div_u[i, j + 2] = -np.sqrt(1/2)
 
         F_div_v = np.zeros((N, N))
         for i in range(N):
-            for j in range((N - 1 - i + start_row) % spacing, N, spacing):
-                F_div_v[i, j] = -1
-                F = np.vstack([F_div_u, F_div_v])
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                F_div_v[i, j] = -np.sqrt(1/2)
+                #if j + 1 < N:  # Ensure we do not go out of bounds
+                #    F_div_v[i, j + 1] = -np.sqrt(1/2)
+                #if j + 2 < N:  # Ensure we do not go out of bounds
+                #    F_div_v[i, j + 2] = -np.sqrt(1/2)
+                
+        F_div_u[:, -1] += -np.sqrt(1/2)
+        #F_div_u[-1, :]  = -np.sqrt(1/2)
+        #F_div_v[:, -1] = -np.sqrt(1/2)
+        F_div_v[-1, :]  += -np.sqrt(1/2) 
+        F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Div angle", "color": "tab:green"}
+    
+    
+    if name == "divergence_with_angle_no_weighted":
+        
+        angle = 90
+        boundary_value=-1
+        spacing = 8
+
+        F_base_u = np.zeros((N, N))
+        F_base_u[:, ::spacing] = -1  # Vertical lines with spacing
+    
+        # Rotate the matrix to the specified angle
+        F_rotated_u = rotate(F_base_u, angle, reshape=False, order=1, mode='nearest')
+    
+        # Fill gaps due to rotation by thresholding
+        F_rotated_u = np.where(F_rotated_u < -0.5, -1, 0)  # Threshold to ensure discrete values
+        
+        F_base_v = np.zeros((N, N))
+        F_base_v[:, 1::spacing] = -1  # Vertical lines with spacing
+    
+        # Rotate the matrix to the specified angle
+        F_rotated_v = rotate(F_base_v, angle, reshape=False, order=1, mode='nearest')
+    
+        # Fill gaps due to rotation by thresholding
+        F_rotated_v = np.where(F_rotated_v < -0.5, -1, 0)  # Threshold to ensure discrete values
+    
+        # Create separate divergence fields for u and v
+        F_div_u = F_rotated_u.copy()
+        F_div_v = F_rotated_v.copy()
+        
+        F_div_u = np.zeros((N, N))
+        print(F_div_u)
+        print(F_div_v)
+    
+        # Set the boundary values
+        #F_div_u[:, -1] = boundary_value
+        #F_div_u[-1, :] = boundary_value
+        #F_div_v[:, -1] = boundary_value
+        #F_div_v[-1, :] = boundary_value
+    
+        # Adjust the total sum of F_div_u and F_div_v to -1
+        total_sum = np.sum(F_div_u) + np.sum(F_div_v)
+        adjustment_factor = -1 / total_sum
+        #F_div_u *= adjustment_factor
+        #F_div_v *= adjustment_factor
+    
+        # Combine the fields
+        F = np.vstack([F_div_u, F_div_v])
+    
+        return {"F": F, "exp_type": "div", "name": f"Div angle {angle}°", "color": "tab:green"}
+   
+   
+    if name == "divergence_with_angle":
+        
+        angle = 45
+        boundary_value=-1
+        # Create a base vertical-line matrix
+        spacing = 8  # Adjustable spacing for the pattern
+        F_base_u = np.zeros((N, N))
+        F_base_u[:, ::spacing] = -1  # Vertical lines with spacing
+    
+        # Rotate the matrix to the specified angle
+        F_rotated_u = rotate(F_base_u, angle, reshape=False, order=1, mode='nearest')
+    
+        # Fill gaps due to rotation by thresholding
+        F_rotated_u = np.where(F_rotated_u < -0.5, -1, 0)  # Threshold to ensure discrete values
+    
+        F_base_v = np.zeros((N, N))
+        F_base_v[:, 1::spacing] = -1  # Vertical lines with spacing
+    
+        # Rotate the matrix to the specified angle
+        F_rotated_v = rotate(F_base_v, angle, reshape=False, order=1, mode='nearest')
+    
+        # Fill gaps due to rotation by thresholding
+        F_rotated_v = np.where(F_rotated_v < -0.5, -1, 0)  # Threshold to ensure discrete values
+
+        # Calculate weights based on angle
+        angle_rad = np.radians(angle)
+        weight_u = np.cos(angle_rad)
+        weight_v = np.sin(angle_rad)
+    
+        # Apply weights to create F_div_u and F_div_v
+        F_div_u = weight_u * F_rotated_u
+        F_div_v = weight_v * F_rotated_v
+    
+        # Set the boundary values
+        F_div_u[:, -1] = boundary_value*weight_u
+        #F_div_u[0, :] = boundary_value*weight_u
+        #F_div_v[:, -1] = boundary_value*weight_v
+        F_div_v[-1, :] = boundary_value*weight_v
+    
+        # Adjust the total sum of F_div_u and F_div_v to -1
+        #total_sum = np.sum(F_div_u) + np.sum(F_div_v)
+        #adjustment_factor = -1 / total_sum
+        #F_div_u *= adjustment_factor
+        #F_div_v *= adjustment_factor
+    
+        # Combine the fields
+        F = np.vstack([F_div_u, F_div_v])
+    
+        return {"F": F, "exp_type": "div", "name": f"Div angle {angle}°", "color": "tab:green"} 
     
     if name == "Divergence_reversed":
         F_div_u = np.zeros((N, N))

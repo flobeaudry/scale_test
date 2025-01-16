@@ -4,19 +4,22 @@ from analysis.scaling_analysis import scale_and_coarse, scaling_parameters, scal
 
 # Define experiments
 experiment_names = [
-    "Divergence_control",
+    #"Divergence_control",
+    #"Divergence_alternate",
+    #"Divergence_random",
     #"Divergence_reversed",
     #"Divergence_uneven",
     #"Divergence_uneven_noise",
-    #"Divergence_smallangle",
+    "Divergence_smallangle",
     #"Divergence_control_noise",
     #"Divergence_control_noise_plus",
-    "Divergence_SNR_1",
-    "Divergence_SNR_10",
-    "Divergence_SNR_100",
+    #"Divergence_SNR_1",
+    #"Divergence_SNR_10",
+    #"Divergence_SNR_100",
     #"Divergence_intensity",
     #"Divergence_width",
     #"Divergence_divergence",
+    #"divergence_with_angle",
     
     
     #"Divergence_angle",
@@ -33,7 +36,7 @@ experiment_names = [
     #"DivShear0"
     ]
 
-L_values = [2, 4, 8, 16, 32]
+L_values = [2, 4, 8, 16, 32, 64]
 dx, dy = 1, 1
 
 deformations_tot, intercepts, slopes, names, colors = [], [], [], [], []
@@ -58,7 +61,7 @@ for name in experiment_names:
     # Step 4: Generate scaling figure
     intercept, slope = scaling_parameters(deformations_L, L_values)
     intercepts.append(intercept)
-    slopes.append(slope)
+    slopes.append(-1*slope)
     names.append(experiment["name"])
     colors.append(experiment["color"])
     
