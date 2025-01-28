@@ -3,16 +3,19 @@ from scipy.ndimage import rotate
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = 30
+    N = 1024
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
+    
+    spacing_control = 16
     
     if name == "Divergence_control":
         F_div_u = np.zeros((N, N))
         #F_div_u[:, int(2 * N / 8):int(3 * N / 8)] = -1
         #F_div_u[:, int(9 * N / 8):int(10 * N / 8)] = -1
         
-        F_div_u[:, ::8] = -1 
+        F_div_u[:, ::spacing_control] = -1 
+        #F_div_u[:, :int(N/2)] = 0
         
         #F_div_u[:, int(5 * N / 16):int(6 * N / 16)] = 1
         #F_div_u[:, int(12 * N / 16):int(13 * N / 16)] = 1
@@ -22,8 +25,65 @@ def get_experiment(name):
         #F_div_u[:, 12:13] = 1
         
         F_div_v = np.zeros((N, N))
+        F_div_u[:,0] = -1
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Div control", "color": "tab:blue"}
+    
+        
+    if name == "Divergence_control_half":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, int(2 * N / 8):int(3 * N / 8)] = -1
+        #F_div_u[:, int(9 * N / 8):int(10 * N / 8)] = -1
+        
+        F_div_u[:, ::spacing_control] = -1 
+        F_div_u[:, :int(N/2)] = 0
+        
+        F_div_v = np.zeros((N, N))
+        #F_div_u[:,0] = -1
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div control half", "color": "tab:pink"}
+    
+    if name == "Divergence_spectrum":
+        mean = 0
+        std = 1.0
+
+        #x_values = np.linspace(-5, 5, N // spacing_control)
+        #print()
+        #gaussian_values = np.exp(-0.5 * x_values**2)  # Standard Gaussian distribution
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = -abs(gaussian_values)
+
+        # Initialize the divergence field
+        F_div_u = np.zeros((N, N))
+
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        #div_values = np.random.normal(loc=mean, scale=std, size=N)
+        #synthetic_field = np.tile(div_values, (N, 1))
+        #F_div_u = synthetic_field
+        F_div_u[:, :int(N/2)] = 0
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div spectrum", "color": "tab:orange"}
+    
+    if name == "Divergence_spectrum_full":
+        mean = 0
+        std = 1.0
+        
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+
+        # Initialize the divergence field
+        F_div_u = np.zeros((N, N))
+
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div spectrum full", "color": "tab:pink"}
     
     if name == "Divergence_alternate":
         F_div_u = np.zeros((N, N))
@@ -173,11 +233,13 @@ def get_experiment(name):
     if name == "Divergence_smallangle":
         F_div_u = np.zeros((N, N))
                 
-        spacing = int(10*np.sqrt(2))
+        spacing = int(spacing_control*np.sqrt(2))
 
         for i in range(N):
             for j in range((N - 1 - i) % spacing, N, spacing):
-                F_div_u[i, j] = -np.sqrt(1/2)
+                if i + j >= N:
+                    F_div_u[i, j] = -np.sqrt(1/2)
+                #F_div_u[i:i+3, j:j+3] = -np.sqrt(1/2)
                 #if j + 1 < N:  # Ensure we do not go out of bounds
                 #    F_div_u[i, j + 1] = -np.sqrt(1/2)
                 #if j + 2 < N:  # Ensure we do not go out of bounds
@@ -186,16 +248,21 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         for i in range(N):
             for j in range((N - 1 - i) % spacing, N, spacing):
-                F_div_v[i, j] = -np.sqrt(1/2)
+                if i + j >= N:
+                    F_div_v[i, j] = -np.sqrt(1/2)
+                #F_div_v[i:i+3, j:j+3] = -np.sqrt(1/2)
                 #if j + 1 < N:  # Ensure we do not go out of bounds
                 #    F_div_v[i, j + 1] = -np.sqrt(1/2)
                 #if j + 2 < N:  # Ensure we do not go out of bounds
                 #    F_div_v[i, j + 2] = -np.sqrt(1/2)
                 
-        F_div_u[:, -1] += -np.sqrt(1/2)
-        #F_div_u[-1, :]  = -np.sqrt(1/2)
-        #F_div_v[:, -1] = -np.sqrt(1/2)
-        F_div_v[-1, :]  += -np.sqrt(1/2) 
+        #F_div_u[:, 0] += -np.sqrt(1/2)
+        #F_div_u[0, :]  += -np.sqrt(1/2)
+        #F_div_v[:, 0] += -np.sqrt(1/2)
+        #F_div_v[0, :]  += -np.sqrt(1/2) 
+        
+        #F_div_v[0, 0]  = 0
+        #F_div_u[0, 0] = 0
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Div angle", "color": "tab:green"}
     

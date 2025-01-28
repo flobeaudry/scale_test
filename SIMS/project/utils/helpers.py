@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse import diags, bmat, csc_matrix, eye
+from scipy.sparse import diags, bmat, csc_matrix, eye, vstack
 
 
 def create_sparse_matrix_dx_og_works(N):
@@ -45,7 +45,7 @@ def create_sparse_matrix_dx_oldok(N):
 
     return large_matrix
 
-def create_sparse_matrix_dx(N, dx=1):
+def create_sparse_matrix_dx_2025_01_27(N, dx=1):
     block_count = N
 
     # Create a single NxN block matrix with the specified diagonal pattern
@@ -58,6 +58,36 @@ def create_sparse_matrix_dx(N, dx=1):
     block = block.toarray()
     block[-1, :] = 0  # Reset the last row
     block[-1, -1] = -1
+    block = csc_matrix(block)  # Convert back to sparse
+
+    # Create the large block matrix structure
+    blocks = []
+    for i in range(block_count):
+        row = []
+        for j in range(block_count):
+            if i == j:  # Diagonal block
+                row.append(block)
+            else:  # Off-diagonal blocks are zeros
+                row.append(None)  # Sparse zero blocks
+        blocks.append(row)
+
+    large_matrix = bmat(blocks, format="csc")    
+    
+    return large_matrix
+
+def create_sparse_matrix_dx(N, dx=1):
+    block_count = N
+
+    # Create a single NxN block matrix with the specified diagonal pattern
+    diagonals = [-np.ones(N) / dx, np.ones(N) / dx]  # -1/dx on main, +1/dx on super diagonal
+    offsets = [-1, 0]  # Main diagonal, super diagonal
+    
+    block = diags(diagonals, offsets, shape=(N, N), format="csc")
+
+    # Replace the last row of each block with [-1, 0,...0] to introduce the static -1 behavior
+    block = block.toarray()
+    block[0, :] = 0  # Reset the last row
+    block[0, 0] = 1
     block = csc_matrix(block)  # Convert back to sparse
 
     # Create the large block matrix structure
@@ -224,7 +254,7 @@ def create_sparse_matrix_dy_slow(N, dy=1):
 
     return sparse_matrix
 
-def create_sparse_matrix_dy(N, dy=1):
+def create_sparse_matrix_dy_20250127(N, dy=1):
     size = N * N
     main_diagonal = -1 / dy
     super_diagonal = 1 / dy
@@ -240,6 +270,29 @@ def create_sparse_matrix_dy(N, dy=1):
     # Modify the last N rows efficiently
     last_rows = eye(N, format='csc', dtype=float) * -1
     sparse_matrix[-N:, -N:] = last_rows
+
+    return sparse_matrix
+
+def create_sparse_matrix_dy(N, dy=1):
+    size = N * N
+    
+    main_diagonal = np.ones(size) * 1 / dy
+    super_diagonal = np.ones(size - N) * -1 / dy
+
+    sparse_matrix = diags(
+        diagonals=[main_diagonal, super_diagonal],
+        offsets=[0, -N],  # Main diagonal and super-diagonal (shifted by -N rows)
+        shape=(size, size),
+        format='csc'
+    )
+
+        # Create the identity block for the bottom-right N x N block
+    identity_block = eye(N, format='csc', dtype=float)
+
+    # Replace the bottom-right N x N block in the sparse matrix
+    sparse_matrix = sparse_matrix.tolil()  # Switch to LIL format for efficient row slicing
+    sparse_matrix[:N, :N] = identity_block  # Replace the last N rows/columns with the identity block
+    sparse_matrix = sparse_matrix.tocsc()  # Convert back to CSC format
 
     return sparse_matrix
 

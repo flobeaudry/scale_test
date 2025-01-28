@@ -13,7 +13,7 @@ from utils.helpers import create_sparse_matrix_dx, create_sparse_matrix_dy, crea
 def compute_velocity_fields(F, exp_type, name, color='k'):
     
     if exp_type == "div":
-        u, v = synthetic_divergence(F, name, color)
+        u, v, F_recomp = synthetic_divergence(F, name, color)
         
     elif exp_type == "shear":
         u, v = synthetic_shear(F, name)
@@ -24,7 +24,7 @@ def compute_velocity_fields(F, exp_type, name, color='k'):
     else:
         raise ValueError(f"Type of deformation '{exp_type}' not found.")
 
-    return (u, v)
+    return (u, v, F_recomp)
         
         
 def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True):
@@ -51,60 +51,21 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     F_flat = F.flatten()
     
     # Define the sparse finite differences matrices (2N, 2N)
-    #A_sparse = create_sparse_matrix_dx(N)
-    #B_sparse = create_sparse_matrix_dy(N)
-    #zero_matrix = csr_matrix((N2, N2)) 
-    #AB_sparse = bmat([[A_sparse, zero_matrix], 
-    #                   [zero_matrix, B_sparse]])
-    
-    
-    #print("before matrix")
     zero_matrix = lil_matrix((N2, N2))
-    #print("zero matrix done")
     A_sparse = create_sparse_matrix_dx(N).tolil()  # Efficient construction
-    #print('A matrix done')
     B_sparse = create_sparse_matrix_dy(N).tolil()
-    #print('B matrix done')
     AB_sparse = bmat([[A_sparse, zero_matrix], [zero_matrix, B_sparse]], format="lil")
-    #print("before sparse")
     AB_sparse = AB_sparse.tocsr()
-    
-    #print("created matrices")
-    #AB_sparse = AB_sparse.tocsr()
+
     # Compute the u and v field by solving the linear system (2*2N, 1)
     UV = spsolve(AB_sparse, F_flat)
-    print("solved system")
     U_grid = UV[:N2].reshape((N,N))
     V_grid = UV[N2:].reshape((N,N))
-
-    print("reshaped")
     
     # Centered finite differences
     u = U_grid
     v = V_grid
     
-    '''
-    zeros_j = np.zeros(len(v[0,:])) # boundary conditions
-    v_jp1 = np.append(zeros_j, v[:-1,:]).reshape(v.shape)
-    v_jm1 = np.append(v[1:,:], zeros_j).reshape(v.shape)
-    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
-    u_ip1 = np.hstack((zeros_i,u[:,:-1]))
-    u_im1 = np.hstack((u[:,1:],zeros_i))
-    '''
-    
-    
-    """
-    zeros_j = np.zeros(len(v[0,:])) # boundary conditions
-    v_jp1 = np.append(zeros_j, v[:1,:]).reshape(v.shape)
-    v_jm1 = np.append(v[0:,:], zeros_j).reshape(v.shape)
-    zeros_i = np.zeros((u.shape[0], 1)) # boundary conditions
-    u_ip1 = np.hstack((zeros_i,u[:,:0]))
-    u_im1 = np.hstack((u[:,1:],zeros_i))
-    
-    u_i = u[:, :-1]
-    dudx = (u_ip1 - u_im1)/(dy)
-    dvdy = (v_jp1 - v_jm1)/(dx)
-    """
     # Compute the divergence
     u_i = u[:, :-1]
     u_ip1 = u[:, 1:]
@@ -121,6 +82,8 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     dvdy = np.vstack((zeros_j, dvdy))
     
     div = dudx + dvdy
+    div = F[N:,:]
+    div = F[:N,:]
     shear = np.zeros((N,N))
     
     # This is if I want to save the data to export and put in Antoine's code ...    
@@ -289,7 +252,7 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     #
     #    print(f"Divergence figure saved: {name}")
         
-        
+    '''    
     with plt.style.context(['science', 'no-latex']):
         # Create a single figure with one panel
         fig, ax = plt.subplots(figsize=(9, 10))
@@ -337,8 +300,49 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
         plt.close(fig)
 
     print(f"Divergence figure saved: {name}")
-        
-    return U_grid, V_grid
+    '''    
+    """
+    with plt.style.context(['science', 'no-latex']):
+        # Create a single figure with one panel
+        fig, ax = plt.subplots(figsize=(9, 10))
+
+        # Create a mesh grid for the vector field
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X, Y = np.meshgrid(x, y)
+
+        # Calculate speed for better visualization (optional, if needed)
+        speed = np.sqrt(U_grid**2 + V_grid**2)
+
+        # Use pcolormesh for background color representation
+        ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -1, vmax = 1)
+    
+        # Add a color bar for the pcolormesh
+        cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -1, vmax = 1), ax=ax, orientation='horizontal')
+        cbar.set_label('Divergence', fontsize=18)
+
+        # Set plot title and remove ticks
+        #ax.set_title(f"{name}", fontweight="bold", color="black")
+        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+
+
+        # Adjust spines
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)
+
+        # Save the figure
+        plt.tight_layout()
+        combined_filename = os.path.join("SIMS/project/figures", f"no_quivs_{name}_div_velocity.png")
+        plt.savefig(combined_filename)
+        plt.close(fig)
+
+    print(f"Divergence figure saved no quivers: {name}")
+    """
+    return U_grid, V_grid, div
 
 
 def synthetic_shear(S, name, dx=1, dy=1, vel_fig=True, shear_fig=True):

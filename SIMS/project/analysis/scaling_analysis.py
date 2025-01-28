@@ -94,9 +94,9 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         legend_title = '$\\beta$'
 
         # Add text outside the plot as the legend
-        ax.text(1.15, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
+        ax.text(1.25, 0.85, legend_title, transform=ax.transAxes, fontsize=16, ha='center', va='center', fontweight='1000')
         for i, (label, color) in enumerate(zip(legend_labels, legend_colors)):
-            ax.text(1.15, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=12, ha='center', va='center', color=color, weight='bold', family='sans-serif')
+            ax.text(1.25, 0.85 - (i + 1.05) * 0.07, label, transform=ax.transAxes, fontsize=12, ha='center', va='center', color=color, weight='bold', family='sans-serif')
 
         # Finalize plot
         ax.set_xlabel('Spatial scale (nu)')
@@ -104,6 +104,8 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         ax.set_xscale("log")
         ax.set_yscale("log")
 
+        ax.set_ylim([1e-2, 1e0])
+        
         # Save and show plot
         file_name = "SIMS/project/figures/Spatial_scaling_with_regression.png"
         fig.savefig(file_name, bbox_inches='tight')  # Adjust bounding box for custom annotations

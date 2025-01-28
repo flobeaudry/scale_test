@@ -1,10 +1,15 @@
+import pickle
 from experiments.define_experiments import get_experiment
 from processing.deformation_to_velocity import compute_velocity_fields
 from analysis.scaling_analysis import scale_and_coarse, scaling_parameters, scaling_figure
+from utils.figures_gen import fig_velocity_defo, fig_defo
 
 # Define experiments
 experiment_names = [
-    #"Divergence_control",
+    "Divergence_control",
+    #"Divergence_control_half",
+    "Divergence_spectrum",
+    #"Divergence_spectrum_full",
     #"Divergence_alternate",
     #"Divergence_random",
     #"Divergence_reversed",
@@ -36,38 +41,81 @@ experiment_names = [
     #"DivShear0"
     ]
 
+new_run = True
+
 L_values = [2, 4, 8, 16, 32, 64]
 dx, dy = 1, 1
 
-deformations_tot, intercepts, slopes, names, colors = [], [], [], [], []
-
-# Loop through experiments
-for name in experiment_names:
-    print(f"Processing experiment: {name}")
+if new_run == True:
     
-    # Step 1: Fetch experiment
-    experiment = get_experiment(name)
-    F, exp_type, name, color = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"]
+    deformations_tot, intercepts, slopes, names, colors = [], [], [], [], []
 
-    # Step 2: Compute velocity fields
-    u, v = compute_velocity_fields(F, exp_type, name, color)
-    print("Velocity fields computed")
+    # Loop through experiments
 
-    # Step 3: Perform scaling analysis
-    deformations_L = scale_and_coarse(u, v, L_values, dx=dx, dy=dy)
-    deformations_tot.append(deformations_L)
-    print("Scaling analysis done")
-
-    # Step 4: Generate scaling figure
-    intercept, slope = scaling_parameters(deformations_L, L_values)
-    intercepts.append(intercept)
-    slopes.append(-1*slope)
-    names.append(experiment["name"])
-    colors.append(experiment["color"])
+    for name in experiment_names:
+        print(f"Processing experiment: {name}")
     
-    print(f"Finished processing: {name}\n")
+        # Step 1: Fetch experiment
+        experiment = get_experiment(name)
+        F, exp_type, name, color = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"]
+
+        # Step 2: Compute velocity fields
+        u, v, F_recomp = compute_velocity_fields(F, exp_type, name, color)
+        print("Velocity fields computed")
     
+        # Step 2.2 : Velocity fields figures generation
+        figs = False
+        if figs == True:
+            # Plot velocity fields and recomputed deformations
+            fig_velocity_defo(u, v, F_recomp, name, color)
+            # Plot recomputed deformations
+            fig_defo(u, v, F_recomp, name, color)
+            print("Deformation figures created")
+
+        # Step 3: Perform scaling analysis
+        deformations_L = scale_and_coarse(u, v, L_values, dx=dx, dy=dy)
+        deformations_tot.append(deformations_L)
+        print("Scaling analysis done")
+
+        # Step 4: Generate scaling figure
+        intercept, slope = scaling_parameters(deformations_L, L_values)
+        intercepts.append(intercept)
+        slopes.append(-1*slope)
+        names.append(experiment["name"])
+        colors.append(experiment["color"])
+    
+        print(f"Finished processing: {name}\n")
+    
+    # **Save results to a file for future use**
+    results = {
+        "deformations_tot": deformations_tot,
+        "intercepts": intercepts,
+        "slopes": slopes,
+        "names": names,
+        "colors": colors,
+    }
+
+    with open("scaling_results.pkl", "wb") as f:
+        pickle.dump(results, f)
+        
+    print("Results saved successfully")
+    
+else:
+    try:
+        with open("scaling_results.pkl", "rb") as f:
+            results = pickle.load(f)
+            deformations_tot = results["deformations_tot"]
+            intercepts = results["intercepts"]
+            slopes = results["slopes"]
+            names = results["names"]
+            colors = results["colors"]
+        print("Loaded precomputed results.")
+        
+    except FileNotFoundError:
+        print("No precomputed results found. Set `new_run = True` to generate results.")
+
 
 scaling_figure(deformations_tot, L_values, intercepts, slopes, names, colors)
+print("Scaling figure created")
     
     
