@@ -64,7 +64,7 @@ def scaling_parameters(deformations_L, L_values):
     log_L_values = np.log(L_values)
     log_deformations = np.log(deformations_L)
     slope, intercept, _, _, _ = linregress(log_L_values, log_deformations)
-     
+    
     return(intercept, slope)
     
     
@@ -74,6 +74,8 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         fig, ax = plt.subplots(figsize=(7, 5))
         ax.set_title('Spatial scaling')
         ax.grid(True, which='both')
+        
+        fig.patch.set_linewidth(2) 
 
         # Collect slope information for the legend
         legend_elements = []
@@ -82,7 +84,7 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
 
             # Scatter plot and regression line
             ax.scatter(L_values, deformations[i], c=colors[i], s=60, alpha=1, edgecolors="k", zorder=1000)
-            ax.plot(L_values, np.exp(intercepts[i]) * L_values**slopes[i], c=colors[i], linewidth=1.5,linestyle='-', zorder=500)
+            ax.plot(L_values, np.exp(intercepts[i]) * L_values**-slopes[i], c=colors[i], linewidth=1.5,linestyle='-', zorder=500)
 
             #slopes_print = -1*slopes
             # Add slope value to the legend
@@ -106,9 +108,14 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
 
         ax.set_ylim([1e-2, 1e0])
         
+        ax.spines['top'].set_linewidth(2)
+        ax.spines['right'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+        
         # Save and show plot
         file_name = "SIMS/project/figures/Spatial_scaling_with_regression.png"
-        fig.savefig(file_name, bbox_inches='tight')  # Adjust bounding box for custom annotations
+        fig.savefig(file_name, bbox_inches='tight', dpi=300)  # Adjust bounding box for custom annotations
         plt.close()
 
 

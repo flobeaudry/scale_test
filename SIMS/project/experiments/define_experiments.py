@@ -3,11 +3,12 @@ from scipy.ndimage import rotate
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = 1024
+    N = int(1024/8)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
     spacing_control = 16
+    spacing_small = 4
     
     if name == "Divergence_control":
         F_div_u = np.zeros((N, N))
@@ -27,8 +28,57 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         F_div_u[:,0] = -1
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div control", "color": "tab:blue"}
+        return {"F": F, "exp_type": "div", "name": "Conv control", "color": "tab:blue"}
     
+    if name == "Divergence_control_div":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, int(2 * N / 8):int(3 * N / 8)] = -1
+        #F_div_u[:, int(9 * N / 8):int(10 * N / 8)] = -1
+        
+        F_div_u[:, ::spacing_control] = 1 
+        F_div_u[:, :int(N/2)] = 0
+        
+        #F_div_u[:, int(5 * N / 16):int(6 * N / 16)] = 1
+        #F_div_u[:, int(12 * N / 16):int(13 * N / 16)] = 1
+        #F_div_u[:, 2:3] = -1
+        #F_div_u[:, -2:-1] = -1
+        #F_div_u[:, 5:6] = 1
+        #F_div_u[:, 12:13] = 1
+        
+        F_div_v = np.zeros((N, N))
+        F_div_u[:,0] = 1
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div control", "color": "tab:olive"}
+    
+    
+    if name == "Divergence_conv_control":
+        F_div_u = np.zeros((N, N))
+        
+        F_div_u[:, spacing_control::spacing_control*2] = -1 
+        F_div_u[:, ::spacing_control*2] = 1 
+        #F_div_u[:, :int(N/2)] = 0
+        
+        
+        F_div_v = np.zeros((N, N))
+        #F_div_u[:,0] = -1
+        F = np.vstack([F_div_u, F_div_v])
+        
+        print(np.mean(F_div_u))
+        print(np.sum(F_div_u))
+        return {"F": F, "exp_type": "div", "name": "Div-Conv control", "color": "tab:red"}
+    
+    if name == "Divergence_conv_control_4":
+        F_div_u = np.zeros((N, N))
+        
+        F_div_u[:, spacing_small::spacing_small*2] = -1 
+        F_div_u[:, ::spacing_small*2] = 1 
+        F_div_u[:, :int(N/2)] = 0
+        
+        
+        F_div_v = np.zeros((N, N))
+        F_div_u[:,0] = -1
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div-Conv control-4", "color": "tab:cyan"}
         
     if name == "Divergence_control_half":
         F_div_u = np.zeros((N, N))
@@ -59,14 +109,30 @@ def get_experiment(name):
         for idx, j in enumerate(range(0, N, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
-        #div_values = np.random.normal(loc=mean, scale=std, size=N)
-        #synthetic_field = np.tile(div_values, (N, 1))
-        #F_div_u = synthetic_field
-        F_div_u[:, :int(N/2)] = 0
+        #F_div_u[:, :int(N/2)] = 0
         
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div spectrum", "color": "tab:orange"}
+        return {"F": F, "exp_type": "div", "name": "Conv spectrum", "color": "tab:orange"}
+    
+    if name == "Divergence_spectrum_int":
+        mean = 0
+        std = 1.0
+
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = -abs(np.round(gaussian_values))
+
+        # Initialize the divergence field
+        F_div_u = np.zeros((N, N))
+
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Conv spec int", "color": "tab:cyan"}
+    
     
     if name == "Divergence_spectrum_full":
         mean = 0
@@ -83,7 +149,42 @@ def get_experiment(name):
         
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div spectrum full", "color": "tab:pink"}
+        return {"F": F, "exp_type": "div", "name": "Div-conv spectrum", "color": "tab:pink"}
+    
+    if name == "Divergence_spectrum_full_4":
+        mean = 0
+        std = 1.0
+        
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_small)
+
+        # Initialize the divergence field
+        F_div_u = np.zeros((N, N))
+
+        for idx, j in enumerate(range(0, N, spacing_small)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        #return {"F": F, "exp_type": "div", "name": "Div-conv spectrum-4", "color": "tab:purple"}
+        return {"F": F, "exp_type": "div", "name": "Div-conv spectrum-4", "color": "cadetblue"}
+    
+    if name == "Divergence_spectrum_full_int":
+        mean = 0
+        std = 1.0
+        
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = np.round(gaussian_values)
+        # Initialize the divergence field
+        F_div_u = np.zeros((N, N))
+
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "Div-conv s_vary", "color": "tab:brown"}
     
     if name == "Divergence_alternate":
         F_div_u = np.zeros((N, N))
@@ -169,10 +270,10 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "Div uneven noise", "color": "tab:gray"}
     
-    
     if name == "Divergence_SNR_10":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, ::8] = -1 
+        F_div_u[:, ::spacing_control] = -1 
+    
         
         signal_power = np.mean(F_div_u**2)
 
@@ -183,16 +284,18 @@ def get_experiment(name):
         #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
         # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
         noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
         
         F_div_u = F_div_u + noise
         
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div SNR 10", "color": "tomato"}
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 10", "color": "tomato"}
+        return {"F": F, "exp_type": "div", "name": "CC SNR 10", "color": "blueviolet"}
     
     if name == "Divergence_SNR_100":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, ::8] = -1 
+        F_div_u[:, ::spacing_control] = -1 
         
         signal_power = np.mean(F_div_u**2)
 
@@ -203,16 +306,19 @@ def get_experiment(name):
         #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
         # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
         noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
         
         F_div_u = F_div_u + noise
         
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div SNR 100", "color": "mediumorchid"}
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 100", "color": "mediumorchid"}
+        return {"F": F, "exp_type": "div", "name": "CC SNR 100", "color": "tomato"}
     
     if name == "Divergence_SNR_1":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, ::8] = -1 
+        F_div_u[:, ::spacing_control] = -1 
+        
         
         signal_power = np.mean(F_div_u**2)
 
@@ -223,12 +329,102 @@ def get_experiment(name):
         #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
         # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
         noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
         
         F_div_u = F_div_u + noise
         
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div SNR 1", "color": "blue"}
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 1", "color": "blue"}
+        return {"F": F, "exp_type": "div", "name": "CC SNR 1", "color": "darkred"}
+    
+    if name == "Divergence_DSC_10":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = -1 
+        
+        
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_small)
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_small)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+        
+        signal_power = np.mean(F_div_u**2)
+
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        
+        # gaussian noise
+        #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
+        # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
+        
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 10", "color": "tomato"}
+        return {"F": F, "exp_type": "div", "name": "DCS SNR 10", "color": "mediumorchid"}
+    
+    if name == "Divergence_DSC_100":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = -1 
+        
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_small)
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_small)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+        
+        signal_power = np.mean(F_div_u**2)
+
+        noise_power = signal_power / 100  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        
+        # gaussian noise
+        #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
+        # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
+        
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 100", "color": "mediumorchid"}
+        return {"F": F, "exp_type": "div", "name": "DCS SNR 100", "color": "salmon"}
+    
+    if name == "Divergence_DSC_1":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = -1 
+        
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_small)
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_small)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+        
+        signal_power = np.mean(F_div_u**2)
+
+        noise_power = signal_power / 1  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        
+        # gaussian noise
+        #noise = np.random.normal(loc=0, scale=noise_std, size=(N, N))
+        # uniform noise between -sqrt(3) sigma, +sqrt(3) sigma
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        #noise = -abs(noise)
+        
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        F = np.vstack([F_div_u, F_div_v])
+        #return {"F": F, "exp_type": "div", "name": "Div SNR 1", "color": "blue"}
+        return {"F": F, "exp_type": "div", "name": "DCS SNR 1", "color": "saddlebrown"}
     
     if name == "Divergence_smallangle":
         F_div_u = np.zeros((N, N))
@@ -238,7 +434,8 @@ def get_experiment(name):
         for i in range(N):
             for j in range((N - 1 - i) % spacing, N, spacing):
                 if i + j >= N:
-                    F_div_u[i, j] = -np.sqrt(1/2)
+                    #F_div_u[i, j] = -np.sqrt(1/2)
+                    F_div_u[i, j] = -1
                 #F_div_u[i:i+3, j:j+3] = -np.sqrt(1/2)
                 #if j + 1 < N:  # Ensure we do not go out of bounds
                 #    F_div_u[i, j + 1] = -np.sqrt(1/2)
@@ -249,7 +446,8 @@ def get_experiment(name):
         for i in range(N):
             for j in range((N - 1 - i) % spacing, N, spacing):
                 if i + j >= N:
-                    F_div_v[i, j] = -np.sqrt(1/2)
+                    #F_div_v[i, j] = -np.sqrt(1/2)
+                    F_div_v[i, j] = -1
                 #F_div_v[i:i+3, j:j+3] = -np.sqrt(1/2)
                 #if j + 1 < N:  # Ensure we do not go out of bounds
                 #    F_div_v[i, j + 1] = -np.sqrt(1/2)
@@ -263,8 +461,9 @@ def get_experiment(name):
         
         #F_div_v[0, 0]  = 0
         #F_div_u[0, 0] = 0
+        
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "Div angle", "color": "tab:green"}
+        return {"F": F, "exp_type": "div", "name": "Conv angle", "color": "tab:green"}
     
     
     if name == "divergence_with_angle_no_weighted":
