@@ -6,6 +6,30 @@ from utils.figures_gen import fig_velocity_defo, fig_defo
 
 # Define experiments
 experiment_names = [
+    #"DIV+",
+    #"DIV+45",
+    #"DIV+density",
+    #"DIV+frequency",
+    #"DIV+intensity",
+    #"DIV+domain",
+    #"DIV+errors",
+    
+    #"DIV+-",
+    #"DIV+-45",
+    #"DIV+-density",
+    #"DIV+-frequency",
+    #"DIV+-intensity",
+    #"DIV+-domain",
+    #"DIV+-errors",
+    
+    
+    "DIVs",
+    #"DIVs45",
+    #"DIVsfrequency",
+    #"DIVsintensity",
+    "DIVsdomain",
+    #"DIVserrors",
+    
     ##"Divergence_control",
     ##"Divergence_control_div",
     ##"Divergence_conv_control",
@@ -15,7 +39,7 @@ experiment_names = [
     ##"Divergence_spectrum",
     ##"Divergence_spectrum_int",
     ##"Divergence_spectrum_full",
-    "Divergence_spectrum_full_4",
+    ##"Divergence_spectrum_full_4",
     ##"Divergence_spectrum_full_int", # lines equally spaced, but the div/conv varies randomly with +1 and -1 values
     
     #"Divergence_random",
@@ -55,7 +79,7 @@ experiment_names = [
     ]
 
 new_run = True
-figs = True
+figs = False
 
 L_values = [2, 4, 8, 16, 32, 64]
 dx, dy = 1, 1

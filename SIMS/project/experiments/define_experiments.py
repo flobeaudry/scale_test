@@ -3,12 +3,344 @@ from scipy.ndimage import rotate
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024/8)
+    N = int(1024)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
-    spacing_control = 16
-    spacing_small = 4
+    #spacing_control = 16
+    #spacing_small = 4
+    
+    spacing_control = 4
+    spacing_small = 2
+    
+    mean = 0
+    std = 1.0
+    gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+    gaussian_values_div = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+    
+    if name == "DIV+":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+", "color": "tab:blue"}
+    
+    if name == "DIV+45":
+        spacing = int(spacing_control*np.sqrt(2))
+        
+        F_div_u = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_u[i, j] = 1
+
+        F_div_v = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_v[i, j] = 1
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+45", "color": "tab:cyan"}
+    
+    if name == "DIV+density":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = abs(np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+density", "color": "tab:green"}
+    
+    if name == "DIV+frequency":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_small] = 1 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+frequency", "color": "tab:olive"}
+    
+    if name == "DIV+intensity":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = abs(gaussian_values) # Only positive values
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+intensity", "color": "tab:pink"}
+    
+
+    if name == "DIV+domain":
+        N = N-24
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+domain", "color": "tab:purple"}
+    
+    if name == "DIV+errors":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+errors", "color": "tab:red"}
+    
+    
+    
+    
+    if name == "DIV+-":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, spacing_control::spacing_control*2] = 1 
+        F_div_u[:, ::spacing_control*2] = -1 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-", "color": "tab:blue"}
+    
+    if name == "DIV+-45":
+        spacing = int(spacing_control*np.sqrt(2))
+        print(spacing)
+        
+        F_div_u = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N-(2*spacing), spacing*2):
+                if i + j >= N and i + spacing < N and j + spacing < N:
+                    F_div_u[i, j] = 1
+                    F_div_u[i+spacing, j+spacing] = -1
+
+
+        F_div_v = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N-(2*spacing), spacing*2):
+                if i + j >= N and i + spacing < N and j + spacing < N:
+                    F_div_v[i, j] = 1
+                    F_div_v[i+spacing, j+spacing] = -1
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-45", "color": "tab:cyan"}
+    
+    if name == "DIV+-density":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-density", "color": "tab:green"}
+    
+    if name == "DIV+-frequency":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, spacing_small::spacing_small*2] = 1 
+        F_div_u[:, ::spacing_small*2] = -1 
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-frequency", "color": "tab:olive"}
+    
+    if name == "DIV+-intensity":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (gaussian_values) # Only positive values
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-intensity", "color": "tab:pink"}
+    
+
+    if name == "DIV+-domain":
+        N = N-24
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, spacing_control::spacing_control*2] = 1 
+        F_div_u[:, ::spacing_control*2] = -1 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-domain", "color": "tab:purple"}
+    
+    if name == "DIV+-errors":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, spacing_control::spacing_control*2] = 1 
+        F_div_u[:, ::spacing_control*2] = -1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-errors", "color": "tab:red"}
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if name == "DIVs":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+        gaussian_values = gaussian_values_div
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVs", "color": "tab:green"}
+    
+    if name == "DIVs45":
+        mean = 0
+        std = 1.0
+        spacing = int(spacing_control*np.sqrt(2))
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N)
+        gaussian_values = (np.round(gaussian_values))
+        
+        F_div_u = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_u[i, j] = gaussian_values[j]
+
+        F_div_v = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_v[i, j] = gaussian_values[j]
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVs45", "color": "tab:cyan"}
+    
+    if name == "DIVsfrequency":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_small)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_small)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVsfrequency", "color": "tab:olive"}
+    
+    if name == "DIVsintensity":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (gaussian_values) # Only positive values
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVsintensity", "color": "tab:pink"}
+    
+
+    if name == "DIVsdomain":
+        N = N-24
+        
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+        gaussian_values = gaussian_values_div
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVsdomain", "color": "tab:purple"}
+    
+    if name == "DIVserrors":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIVserrors", "color": "tab:red"}
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     if name == "Divergence_control":
         F_div_u = np.zeros((N, N))
