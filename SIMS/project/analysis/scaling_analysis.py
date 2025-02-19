@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
 
-def scale_and_coarse(u, v, L_values, dx, dy):
+def scale_and_coarse(u, v, L_values, dx, dy,c="c0"):
     """
     If on an Arakawa C-grid, need to obtain the velocities at the center of each cell
                 ____o____
@@ -30,6 +30,7 @@ def scale_and_coarse(u, v, L_values, dx, dy):
     
     # Initialise things
     deformations_L = []
+    deformations_Long = []
     
     # Main loop
     for L in L_values:
@@ -50,13 +51,19 @@ def scale_and_coarse(u, v, L_values, dx, dy):
                 
                 divergence = du_dx_moy + dv_dy_moy
                 shear = du_dy_moy - dv_dx_moy
-                deformation = np.sqrt(divergence**2 + shear**2)
+                if c == 'c0':
+                    #deformation = divergence
+                    deformation = np.sqrt(divergence**2 + shear**2)
+                else :
+                    deformation = divergence + shear
                 
                 coarse_defos.append(deformation)
                 
         deformations_L.append(np.nanmean(coarse_defos))
+        deformations_Long.append((coarse_defos))
+
     
-    return deformations_L
+    return deformations_L, deformations_Long
 
 
 def scaling_parameters(deformations_L, L_values):
@@ -83,13 +90,18 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         for i in range(len(deformations)):
 
             # Scatter plot and regression line
-            ax.scatter(L_values, deformations[i], c=colors[i], s=60, alpha=1, edgecolors="k", zorder=1000)
-            ax.plot(L_values, np.exp(intercepts[i]) * L_values**-slopes[i], c=colors[i], linewidth=1.5,linestyle='-', zorder=500)
+            ax.scatter(np.array(L_values)*10, deformations[i], c=colors[i], s=60, alpha=1, edgecolors="k", zorder=1000)
+            ax.plot(np.array(L_values)*10, np.exp(intercepts[i]) * L_values**-slopes[i], c=colors[i], linewidth=1.5,linestyle='-', zorder=500)
 
             #slopes_print = -1*slopes
             # Add slope value to the legend
-            legend_elements.append((names[i] + f': {slopes[i]:.2f}',colors[i]))
+            #legend_elements.append((names[i] + f': {slopes[i]:.2f}',colors[i]))
+            legend_elements.append((f'{slopes[i]:.2f}',colors[i]))
 
+
+        slope = -np.log(0.009/0.05)/np.log(640/20)
+        ax.plot(np.array([L_values[0],L_values[-1]])*10, np.array([0.05,0.009]), c='k', )
+        legend_elements.append((f'{slope:.2f}',"k"))
         # Custom legend with only colored numbers
         legend_labels = [f'{text}' for text, _ in legend_elements]
         legend_colors = [color for _, color in legend_elements]
@@ -103,10 +115,12 @@ def scaling_figure(deformations, L_values, intercepts, slopes, names, colors):
         # Finalize plot
         ax.set_xlabel('Spatial scale (nu)')
         ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+        #ax.set_ylabel('$\\langle\\epsilon_{I}\\rangle$')
         ax.set_xscale("log")
         ax.set_yscale("log")
 
-        ax.set_ylim([1e-2, 1e0])
+        #ax.set_ylim([1e-1, 1e0])
+        #ax.set_ylim([5e-1, 5e0])
         
         ax.spines['top'].set_linewidth(2)
         ax.spines['right'].set_linewidth(2)
@@ -161,7 +175,8 @@ def scaling_fig(experiments, L_values):
 
         # Finalize plot
         ax.set_xlabel('Spatial scale (nu)')
-        ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+        #ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+        ax.set_ylabel('$\\langle\\epsilon_{I}\\rangle$')
         ax.set_xscale("log")
         ax.set_yscale("log")
 

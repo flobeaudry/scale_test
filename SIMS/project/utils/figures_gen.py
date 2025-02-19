@@ -35,6 +35,7 @@ def fig_velocity_defo(U_grid, V_grid, div, name, color, top_right_quadrant = Tru
 
             # Use pcolormesh for background color representation
             ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -1, vmax = 1)
+            #ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -2, vmax = 2)
     
             # Plot quivers for velocity field
             #ax.quiver(X, Y, U_grid, V_grid, color='k', linewidth=1,width=0.002, scale=50, scale_units='xy',alpha=0.8)
@@ -42,6 +43,7 @@ def fig_velocity_defo(U_grid, V_grid, div, name, color, top_right_quadrant = Tru
 
             # Add a color bar for the pcolormesh
             cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -1, vmax = 1), ax=ax, orientation='horizontal')
+            #cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -2, vmax = 2), ax=ax, orientation='horizontal')
             cbar.set_label('Divergence', fontsize=18)
 
             # Set plot title and remove ticks
@@ -95,7 +97,7 @@ def fig_defo(U_grid, V_grid, div, name, color, top_right_quadrant = True):
     with plt.style.context(['science', 'no-latex']):
         # Create a single figure with one panel
         #fig, ax = plt.subplots(figsize=(9, 10))
-        fig, ax = plt.subplots(figsize=(3, 4))
+        fig, ax = plt.subplots(figsize=(4, 5))
 
         # Create a mesh grid for the vector field
         x = np.arange(U_grid.shape[1])
@@ -106,10 +108,12 @@ def fig_defo(U_grid, V_grid, div, name, color, top_right_quadrant = True):
         speed = np.sqrt(U_grid**2 + V_grid**2)
 
         # Use pcolormesh for background color representation
-        ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -1, vmax = 1)
+        ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -0.1, vmax = 0.1)
     
+        print('size', np.shape(np.where(div != 0)))
+        
         # Add a color bar for the pcolormesh
-        cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -1, vmax = 1), ax=ax, orientation='horizontal')
+        cbar = plt.colorbar(ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', vmin = -0.1, vmax = 0.1), ax=ax, orientation='horizontal')
         cbar.set_label('Divergence', fontsize=18)
 
         # Set plot title and remove ticks

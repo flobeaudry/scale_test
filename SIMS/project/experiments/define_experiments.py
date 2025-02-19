@@ -13,19 +13,267 @@ def get_experiment(name):
     spacing_control = 4
     spacing_small = 2
     
+    mean_intensity = 0.1
+    
     mean = 0
     std = 1.0
     gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
     gaussian_values_div = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
     
-    if name == "DIV+":
+    
+    
+    if name == "control":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "control", "color": "tab:blue"}
+    
+    if name == "45 angle":
+        spacing = int(spacing_control*np.sqrt(2))
+        
+        F_div_u = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_u[i, j] = 1*mean_intensity
+
+        F_div_v = np.zeros((N, N))
+        for i in range(N):
+            for j in range((N - 1 - i) % spacing, N, spacing):
+                if i + j >= N:
+                    F_div_v[i, j] = 1*mean_intensity
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "45 angle", "color": "tab:cyan"}
+    
+    if name == "irregular spacing":
+        mean = 1.0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = abs(np.round(gaussian_values))*mean_intensity #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular spacing", "color": "tab:green"}
+   
+    if name == "narrow spacing":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_small] = 1*mean_intensity 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "narrow spacing", "color": "tab:olive"}
+    
+    if name == "irregular intensity":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = abs(gaussian_values)*mean_intensity # Only positive values
+
+        F_div_u = np.zeros((N, N))
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular intensity", "color": "tab:pink"}
+
+    if name == "irregular domain":
+        N = N-24
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular domain", "color": "tab:purple"}
+    
+    if name == "errors weighted":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        
+        noise = np.random.randn(N, N)*mean_intensity/10
+        F_div_u = (F_div_u + noise)/10
+        
+        noise2 = np.random.randn(N, N)*mean_intensity/10
+        F_div_v = np.zeros((N, N))
+        F_div_v = (F_div_v + noise2)/10
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors weighted", "color": "firebrick"}
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if name == "control +-":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_control * 3] = -1*mean_intensity  
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue"}
+    
+    
+    if name == "irregular spacing +-":
+        mean = 0.5
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        F_div_u = np.zeros((N, N))
+        #F_div_u = np.ones((N, N))*mean_intensity
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular spacing +-", "color": "tab:green"}
+    
+    
+    if name == "narrow spacing +-":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_small::spacing_small*2] = 1 
+        #F_div_u[:, ::spacing_small*2] = -1 
+        F_div_u[:, spacing_small::spacing_small * 3] = 1*mean_intensity  
+        F_div_u[:, 2 * spacing_small::spacing_small * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_small * 3] = -1*mean_intensity  
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "narrow spacing +-", "color": "tab:olive"}
+    
+    
+    if name == "irregular intensity +-":
+        mean = 0.5
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = ((gaussian_values)*mean_intensity) # Only positive values
+        
+        F_div_u = np.zeros((N, N))
+        #F_div_u = np.ones((N, N))*mean_intensity
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular intensity +-", "color": "tab:pink"}
+    
+
+    if name == "irregular domain +-":
+        N = N-24
+        
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_control * 3] = -1*mean_intensity  
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "irregular domain +-", "color": "tab:purple"}
+    
+    if name == "errors +-":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_control * 3] = -1*mean_intensity  
+
+        noise = np.random.randn(N, N)*mean_intensity/10
+        F_div_u = F_div_u + noise
+        
+        noise2 = np.random.randn(N, N)*mean_intensity/10
+        F_div_v = np.zeros((N, N))
+        F_div_v = F_div_v + noise2
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors +-", "color": "tab:red"}
+    
+    
+    
+    
+    
+    
+    
+    
+    if name == "DIV+_oneline":
+        F_div_u = np.zeros((N, N))
+        spacing_control = 255
+        #F_div_u[:, int(N/2)] = 10
+        #F_div_u[:, int(N/2-1)] = 10
+        F_div_u[:, ::spacing_control] = 10
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+_oneline", "color": "blue"}
+    
+    
+    if name == "DIV+constant":
         F_div_u = np.zeros((N, N))
         F_div_u[:, ::spacing_control] = 1 
+        F_div_u = np.ones((N,N))
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+constant", "color": "red"}
+    if name == "DIV+increase":
+
+        F_div_u = np.array([[1 + 2 * i for i in range(N)] for _ in range(N)]) / N
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+increase", "color": "blue"}
+    
+    
+    
+    if name == "DIV+":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
     
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+", "color": "tab:blue"}
+    
     
     if name == "DIV+45":
         spacing = int(spacing_control*np.sqrt(2))
@@ -45,8 +293,9 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+45", "color": "tab:cyan"}
     
+    
     if name == "DIV+density":
-        mean = 0
+        mean = 1.0
         std = 1.0
         gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
         gaussian_values = abs(np.round(gaussian_values)) #make the values round values (either 0 or 1)
@@ -59,6 +308,7 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+density", "color": "tab:green"}
+    
     
     if name == "DIV+frequency":
         F_div_u = np.zeros((N, N))
@@ -110,18 +360,108 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+errors", "color": "tab:red"}
     
+    if name == "errors_randn":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        #noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        
+        noise = np.random.randn(N, N)
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors_randn", "color": "tab:pink"}
+    
+    if name == "errors_c1":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        #noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        
+        noise = np.random.randn(N, N)
+        noise2 = np.random.randn(N, N)
+        noise = np.random.rand(N, N)
+        noise2 = np.random.rand(N, N)
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        F_div_v = F_div_v + noise2
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors_c1", "color": "firebrick"}
+        #return {"F": F, "exp_type": "div", "name": "errors", "color": "orangered"}
+        
+    if name == "errors2":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        #noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        
+        noise = np.random.randn(N, N)
+        noise2 = np.random.randn(N, N)
+        noise = np.random.rand(N, N)
+        noise2 = np.random.rand(N, N)
+        
+        F_div_u = np.zeros((N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        F_div_v = F_div_v + noise2
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors", "color": "orangered"}
+    
+    if name == "errors_speckle":
+        F_div_u = np.zeros((N, N))
+        F_div_u[:, ::spacing_control] = 1 
+        signal_power = np.mean(F_div_u**2)
+        noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
+        noise_std = np.sqrt(noise_power)
+        #noise = np.random.uniform(low=-noise_std*np.sqrt(3), high=noise_std*np.sqrt(3), size=(N, N))
+        noise = np.random.randn(N, N)
+        
+        L=1
+        field = np.abs(np.random.randn(N, N))  # Ensure positive values
+        # Generate speckle noise (Gamma-distributed)
+        speckle_noise = np.random.gamma(shape=L, scale=1.0/L, size=(N, N))
+        # Apply speckle noise
+        noise = field * speckle_noise
+
+        F_div_u = np.zeros((N, N))
+        F_div_u = F_div_u + noise
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors_speckle", "color": "tab:purple"}
+    
     
     
     
     if name == "DIV+-":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, spacing_control::spacing_control*2] = 1 
-        F_div_u[:, ::spacing_control*2] = -1 
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, ::spacing_control * 3] = -1  
     
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "DIV+-", "color": "tab:blue"}
+        return {"F": F, "exp_type": "div", "name": "DIV+-", "color": "blue"}
     
     if name == "DIV+-45":
         spacing = int(spacing_control*np.sqrt(2))
@@ -151,7 +491,8 @@ def get_experiment(name):
         gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
         gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
 
-        F_div_u = np.zeros((N, N))
+        #F_div_u = np.zeros((N, N))
+        F_div_u = np.ones((N, N))*0.1
         for idx, j in enumerate(range(0, N, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
@@ -159,16 +500,47 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+-density", "color": "tab:green"}
+    if name == "DIV+-density_c1":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+
+        #F_div_u = np.zeros((N, N))
+        F_div_u = np.ones((N, N))*0.1
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-density_c1", "color": "lime"}
     
     if name == "DIV+-frequency":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, spacing_small::spacing_small*2] = 1 
-        F_div_u[:, ::spacing_small*2] = -1 
+        #F_div_u[:, spacing_small::spacing_small*2] = 1 
+        #F_div_u[:, ::spacing_small*2] = -1 
+        F_div_u[:, spacing_small::spacing_small * 3] = 1  
+        F_div_u[:, 2 * spacing_small::spacing_small * 3] = 1  
+        F_div_u[:, ::spacing_small * 3] = -1  
         
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+-frequency", "color": "tab:olive"}
+    
+    if name == "DIV+-frequency_c1":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_small::spacing_small*2] = 1 
+        #F_div_u[:, ::spacing_small*2] = -1 
+        F_div_u[:, spacing_small::spacing_small * 3] = 1  
+        F_div_u[:, 2 * spacing_small::spacing_small * 3] = 1  
+        F_div_u[:, ::spacing_small * 3] = -1  
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-frequency_c1", "color": "yellow"}
     
     if name == "DIV+-intensity":
         mean = 0
@@ -176,7 +548,8 @@ def get_experiment(name):
         gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
         gaussian_values = (gaussian_values) # Only positive values
 
-        F_div_u = np.zeros((N, N))
+        #F_div_u = np.zeros((N, N))
+        F_div_u = np.ones((N, N))*0.1
         for idx, j in enumerate(range(0, N, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
@@ -185,13 +558,32 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "DIV+-intensity", "color": "tab:pink"}
     
+    if name == "DIV+-intensity_c1":
+        mean = 0
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = (gaussian_values) # Only positive values
+
+        #F_div_u = np.zeros((N, N))
+        F_div_u = np.ones((N, N))*0.1
+        for idx, j in enumerate(range(0, N, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-intensity_c1", "color": "fuchsia"}
+    
 
     if name == "DIV+-domain":
         N = N-24
         
         F_div_u = np.zeros((N, N))
-        F_div_u[:, spacing_control::spacing_control*2] = 1 
-        F_div_u[:, ::spacing_control*2] = -1 
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, ::spacing_control * 3] = -1  
     
         F_div_v = np.zeros((N, N))
         
@@ -200,8 +592,11 @@ def get_experiment(name):
     
     if name == "DIV+-errors":
         F_div_u = np.zeros((N, N))
-        F_div_u[:, spacing_control::spacing_control*2] = 1 
-        F_div_u[:, ::spacing_control*2] = -1 
+        #F_div_u[:, spacing_control::spacing_control*2] = 1 
+        #F_div_u[:, ::spacing_control*2] = -1 
+        F_div_u[:, spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1  
+        F_div_u[:, ::spacing_control * 3] = -1  
         signal_power = np.mean(F_div_u**2)
         noise_power = signal_power / 10  # SNR of 10 means noise power is 1/10th of signal power
         noise_std = np.sqrt(noise_power)
@@ -335,7 +730,92 @@ def get_experiment(name):
     
     
     
+    if name == "DIV+RAMPlin":
+        F_div_u = np.zeros((N, N))
     
+        # Ramp line intensity from 0 to 2 linearly across the grid
+        num_lines = N // spacing_control  # Number of ramped lines
+        intensities = np.linspace(0, 2, num_lines)  # Linearly ramp intensities from 0 to 2
+
+        for idx, intensity in enumerate(intensities):
+            line_position = idx * spacing_control
+            if line_position < N:
+                F_div_u[:, line_position] = intensity
+
+        F_div_v = np.zeros((N, N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+RAMPlin", "color": "magenta"}
+    
+    if name == "DIV+RAMPsin":
+        F_div_u = np.zeros((N, N))
+    
+        n_cycles = 16*4
+        num_lines = N // spacing_control
+        intensities = abs(np.sin(2 * np.pi * np.arange(num_lines) * n_cycles / num_lines) ) # Repeat n_cycles times
+
+        for idx, intensity in enumerate(intensities):
+            line_position = idx * spacing_control
+            if line_position < N:
+                F_div_u[:, line_position] = intensity
+        
+        F_div_v = np.zeros((N, N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+RAMPsin", "color": "tomato"}
+    
+    if name == "DIV+-RAMPsin":
+        F_div_u = np.zeros((N, N))
+    
+        n_cycles = 16*4
+        num_lines = N // spacing_control
+        intensities = np.sin(2 * np.pi * np.arange(num_lines) * n_cycles / num_lines)  # Repeat n_cycles times
+        intensities = 1.5 * intensities + 1 
+
+        for idx, intensity in enumerate(intensities):
+            line_position = idx * spacing_control
+            if line_position < N:
+                F_div_u[:, line_position] = intensity
+        
+        F_div_v = np.zeros((N, N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-RAMPsin", "color": "indianred"}
+    
+    if name == "DIV+-RAMPsin_pino2":
+        F_div_u = np.zeros((N, N))
+    
+        n_cycles =70
+        num_lines = N // spacing_control
+        intensities = np.sin(2 * np.pi * np.arange(num_lines) * n_cycles / num_lines)  # Repeat n_cycles times
+        intensities = 1.5 * intensities + 1 
+
+        for idx, intensity in enumerate(intensities):
+            line_position = idx * spacing_control
+            if line_position < N:
+                F_div_u[:, line_position] = intensity
+        
+        F_div_v = np.zeros((N, N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-RAMPsin_pino2", "color": "teal"}
+    
+    if name == "DIV+-RAMPlin":
+        F_div_u = np.zeros((N, N))
+    
+        # Ramp line intensity from 0 to 2 linearly across the grid
+        num_lines = N // spacing_control  # Number of ramped lines
+        intensities = np.linspace(-2, 2, num_lines)  # Linearly ramp intensities from 0 to 2
+
+        for idx, intensity in enumerate(intensities):
+            line_position = idx * spacing_control
+            if line_position < N:
+                F_div_u[:, line_position] = intensity
+
+        F_div_v = np.zeros((N, N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "DIV+-RAMPlin", "color": "mediumvioletred"}
     
     
     

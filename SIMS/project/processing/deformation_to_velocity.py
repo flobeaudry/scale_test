@@ -82,8 +82,8 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     dvdy = np.vstack((zeros_j, dvdy))
     
     div = dudx + dvdy
-    div = F[N:,:]
-    div = F[:N,:]
+    #div = F[N:,:]
+    #div = F[:N,:]
     shear = np.zeros((N,N))
     
     # This is if I want to save the data to export and put in Antoine's code ...    
