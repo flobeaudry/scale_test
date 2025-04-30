@@ -9,6 +9,7 @@ RES_RGPS = 12.5  # rgps resolution
 PLANE_RGPS = 70.0  # rgps sterographic plane latitude
 
 L_RGPS = [12.5, 25, 50, 100, 200, 400, 800]
+#L_RGPS = [10, 20, 40, 80, 160, 320, 640]
 L10 = [10, 20, 40, 80, 160, 320, 640]
 T10 = [3, 6, 12, 24]
 #L_RGPS = [5, 10, 25, 50]

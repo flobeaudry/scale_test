@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from libs.constants import *
 from libs.namelist import *
 
@@ -36,9 +37,9 @@ datasets = np.array(
         #dataset34,
         #dataset35,
         #
-        dataset53,
-        dataset52,
-        dataset50,
+        #dataset53,
+        #dataset52,
+        #dataset50,
         #
         #dataset29,  # Control
         #dataset66,  # VP(0.7)
@@ -79,9 +80,9 @@ datasets_name = np.array(
         #'Div4',
         #'Div5',
         #
-        'Div 513',
-        'Div 512',
-        'Div 510',
+        #'Div 513',
+        #'Div 512',
+        #'Div 510',
         #
         #"div-conv thick lines",
         #"VP(0.7)",
@@ -118,9 +119,9 @@ datasets_color = np.array(
         #"tab:pink",
         #"xkcd:kelly green",
         #
-        'xkcd:magenta',
-        'xkcd:olive',
-        'xkcd:periwinkle',
+        #'xkcd:magenta',
+        #'xkcd:olive',
+        #'xkcd:periwinkle',
         #"xkcd:dark mauve",  # Control
         #"xkcd:sandy",  # VP(0.7)
         #"xkcd:blue green",  # VPd(2,1,30,27.5)
@@ -152,7 +153,8 @@ if arctic_plots == 1:
     cf = dataset_RGPS.arctic_plot_RGPS(
         deps_RGPS_plot[..., 0], "u", "_02_", ax=np.delete(axss, remove)[0]
     )
-
+    np.save(os.path.join("../", "rgps_deps.npy"), deps_RGPS_plot[..., 0])
+    
     for k, dataset in enumerate(datasets):
         dedt_plot = dataset.multi_load(
             datatype="u", time_end="2002-01-31-18-00", dt=dt
@@ -194,6 +196,8 @@ if deformation_plots:
 
         # stack them
         du80_RGPS = np.stack((dudx, dudy, dvdx, dvdy), axis=-1)
+        
+        np.save(os.path.join("../", "rgps_export.npy"), du80_RGPS)
         
         
         #dudx = np.load("../artificial_fields/DUDX.npy")
@@ -318,6 +322,13 @@ if deformation_plots:
             du80[..., 2] = dataset.mask80_times(du[..., 2], mask80)[0]
             du80[..., 3] = dataset.mask80_times(du[..., 3], mask80)[0]
             
+            #if datasets_name[j] == "SIM":
+            #print('sucess saved')
+            # flo added export to analyse
+            du_sim_export = np.stack((du80[..., 0], du80[..., 1], du80[..., 2], du80[..., 3]), axis=-1)
+            np.save(os.path.join("../", "sim_export2.npy"), du_sim_export)
+            #else: print("fail", datasets_name[j])
+
 
             # ----------------------------------------------------------
             #       Scaling

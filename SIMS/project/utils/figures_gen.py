@@ -136,3 +136,63 @@ def fig_defo(U_grid, V_grid, div, name, color, top_right_quadrant = True):
     print(f"Divergence figure saved no quivers: {name}")
     
     return
+
+
+def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = True):
+    
+    if top_right_quadrant == True:
+        # slice the arrays to only retain top-right quadrants to plot
+        mid_x = U_grid.shape[1] // 2
+        mid_y = V_grid.shape[0] // 2
+        fraction = 0.5 # Adjust this value as needed
+        reduced_x = int(mid_x + (U_grid.shape[1] - mid_x) * fraction)
+        reduced_y = int(mid_y + (V_grid.shape[0] - mid_y) * fraction)
+        U_grid = U_grid[mid_y:reduced_y, mid_x:reduced_x]
+        V_grid = V_grid[mid_y:reduced_y, mid_x:reduced_x]
+        div = div[mid_y:reduced_y, mid_x:reduced_x]
+    
+           
+    with plt.style.context(['science', 'no-latex']):
+        # Create a single figure with one panel
+        #fig, ax = plt.subplots(figsize=(9, 10))
+        fig, ax = plt.subplots(figsize=(4, 4))
+
+        # Create a mesh grid for the vector field
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X, Y = np.meshgrid(x, y)
+        print('HERE',np.shape(X))
+        
+        # Use pcolormesh for background color representation
+        #cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=0.6, vmin = -0.1, vmax = 0.1, edgecolors='black')
+        #cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=0.6, vmin = -0.1, vmax = 0.1)
+        cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=0.6, edgecolors='black', vmin=-1, vmax=1)
+        
+        # Add a color bar for the pcolormesh
+        #cbar = plt.colorbar(cmap, ax=ax, orientation='horizontal')
+        #cbar.set_label('Divergence', fontsize=18)
+        
+        # Set plot title and remove ticks
+        #ax.set_title(f"{name}", fontweight="bold", color="black")
+        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif', fontsize=23)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        # Adjust spines
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)
+
+        # Save the figure
+        ax.spines['top'].set_linewidth(2)
+        ax.spines['right'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+        plt.tight_layout()
+        combined_filename = os.path.join("SIMS/project/figures", f"grid_{name}_div_velocity.png")
+        plt.savefig(combined_filename, dpi=300)
+        plt.close(fig)
+
+    print(f"Divergence figure saved no quivers: {name}")
+    
+    return

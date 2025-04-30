@@ -47,6 +47,9 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     N = len(F[0,:])
     N2 = N**2
         
+    # RANDOM SHUFFLING 
+    #np.random.shuffle(F)
+    
     # Flatten the F matrix (2*N2, 1)
     F_flat = F.flatten()
     
@@ -82,9 +85,31 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     dvdy = np.vstack((zeros_j, dvdy))
     
     div = dudx + dvdy
+    
+    # Compute the shear
+    # du/dy
+    u_j = u[:-1, :]
+    u_jp1 = u[1:, :]
+    dudy = (u_jp1 - u_j) / dy
+    # Pad with zeros to match dimensions
+    zeros_j = np.zeros((1, u.shape[1]))
+    dudy = np.vstack((dudy, zeros_j))
+    # dv/dx
+    v_i = v[:, :-1]
+    v_ip1 = v[:, 1:]
+    dvdx = (v_ip1 - v_i) / dx
+    # Pad with zeros to match dimensions
+    zeros_i = np.zeros((v.shape[0], 1))
+    dvdx = np.hstack((dvdx, zeros_i))
+    
+    #shear = np.sqrt((dudx - dvdy)**2 + (dudy + dvdx)**2)
+    shear = np.zeros((N,N))
+    
+    #div = np.sqrt(div**2 + shear**2)
+    #div = dudy + dvdx
+    
     #div = F[N:,:]
     #div = F[:N,:]
-    shear = np.zeros((N,N))
     
     # This is if I want to save the data to export and put in Antoine's code ...    
     #U_grid_o = np.hstack([np.zeros((N, 1)), U_grid]) # so that the shape is (ny, nx+1)

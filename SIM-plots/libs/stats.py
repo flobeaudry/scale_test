@@ -224,6 +224,7 @@ class Scale(sel.Data):
                 shear = self._deformation(du, 1)
                 div = self._deformation(du, 2)
                 deps = self._deformation(du, 0)
+                #deps = self._deformation(du, 2) + self._deformation(du, 1)
                 shear_list.append(shear)
                 div_list.append(div)
                 deps_list.append(deps)
@@ -266,6 +267,7 @@ class Scale(sel.Data):
             shear_mean = self._deformation(du_mean, 1)
             div_mean = self._deformation(du_mean, 2)
             deps_mean = self._deformation(du_mean, 0)
+            #deps_mean = self._deformation(du_mean, 2) + self._deformation(du_mean, 1)
 
             # compute the scaling associated with each box
             scaling_array = (
@@ -356,6 +358,7 @@ class Scale(sel.Data):
                 shear = self._deformation(du_mean, 1)
                 div = self._deformation(du_mean, 2)
                 deps = self._deformation(du_mean, 0)
+                #deps = self._deformation(du_mean, 2) + self._deformation(du_mean, 1)
                 shear_mean = np.nanmean(shear ** q)
                 div_mean = np.nanmean(div ** q)
                 deps_mean = np.nanmean(deps ** q)
