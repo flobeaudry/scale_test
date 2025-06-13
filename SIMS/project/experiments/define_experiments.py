@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+import math
 from matplotlib.colors import to_rgb, to_hex
 from scipy.ndimage import rotate
 
@@ -8,16 +10,234 @@ def adjust_color_brightness(color, factor):
     adjusted = [min(1, max(0, c * factor)) for c in rgb]
     return to_hex(adjusted)
 
+
+
+def draw_line(array, x0, y0, x1, y1):
+    """Draw a line in the array using Bresenham’s algorithm."""
+    #x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+    x0, y0, x1, y1 = int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1))
+    dx = abs(x1 - x0)
+    dy = -abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+
+    while True:
+        if 0 <= x0 < array.shape[0] and 0 <= y0 < array.shape[1]:
+            array[x0, y0] = 1
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
+            
+def draw_simple_tree(array, x, y, angle, length, depth):
+    if depth == 0 or length < 1:
+        return
+
+    # Compute end point
+    x_end = x + length * math.sin(angle)
+    y_end = y + length * math.cos(angle)
+
+    draw_line(array, x, y, x_end, y_end)
+
+    # Recurse with half the length and ±15° (30° total between branches)
+    #angle = 15 #half angle to get 30 degrees between baby branches
+    #angle = 22.5
+    #angle_babies = 22.5
+    angle_babies = 15
+    new_length = length*0.5
+    draw_simple_tree(array, x_end, y_end, angle - math.radians(angle_babies), new_length, depth - 1)
+    draw_simple_tree(array, x_end, y_end, angle + math.radians(angle_babies), new_length, depth - 1)
+
+def generate_simple_tree(N=200, depth=5):
+    array = np.zeros((N, N), dtype=int)
+    start_x = N - 1
+    start_y = N // 2
+    initial_length = int(N / 2)
+    draw_simple_tree(array, start_x, start_y, -math.pi / 2, initial_length, depth)
+    return array
+
+
+
+
+
+def draw_radial_tree(array, x, y, angle, length, depth, branches_per_level=4, angle_spread=math.radians(30)):
+    if depth == 0 or length < 1:
+        return
+    
+    angles = np.linspace(-angle_spread / 2, angle_spread / 2, branches_per_level)
+
+    for da in angles:
+        new_angle = angle + da
+        x_end = x + length * math.sin(new_angle)
+        y_end = y + length * math.cos(new_angle)
+        draw_line(array, x, y, x_end, y_end)
+        draw_radial_tree(array, x_end, y_end, new_angle, length * 0.7, depth - 1, branches_per_level, angle_spread)
+
+
+    #angles = np.linspace(0, 2 * np.pi, branches_per_level, endpoint=False)
+    #spread = math.radians(60)  # total angular spread in radians
+    
+    #branch_offsets = [-math.radians(15), math.radians(15)]
+    #angles = [angle + offset for offset in branch_offsets]
+
+    #angles = np.linspace(angle - spread / 2, angle + spread / 2, branches_per_level)
+    
+    #for a in angles:
+    #    x_end = x + length * math.sin(a)
+    #    y_end = y + length * math.cos(a)
+    #    draw_line(array, x, y, x_end, y_end)
+    #    #draw_radial_tree(array, x, y, a, length * 0.5, depth - 1, branches_per_level)
+    #    draw_radial_tree(array, x_end, y_end, a, length * 0.7, depth - 1, branches_per_level)
+
+def generate_radial_tree_without_ratios(N=200, depth=4, branches_per_level=5):
+    array = np.zeros((N, N), dtype=int)
+    #center_x = N // 2
+    #center_y = N // 2
+    start_x = N // 2             # vertical center
+    start_y = 0                  # far left
+    initial_angle = 0            # angle in radians: 0 = pointing right
+    initial_length = N // 4
+    draw_radial_tree(array, start_x, start_y, initial_angle, initial_length, depth, branches_per_level)
+    return array
+
+def generate_radial_tree_too_full(N=256, fill_fraction=0.1, max_trees=1000, depth=5, branches_per_level=3):
+    array = np.zeros((N, N), dtype=int)
+    center_x, center_y = N // 2, N // 2
+    radius = N // 3
+    trees_drawn = 0
+    target_pixels = int(N * N * fill_fraction)
+
+    while np.count_nonzero(array) < target_pixels and trees_drawn < max_trees:
+        angle = np.random.uniform(0, 2 * np.pi)
+        x0 = int(center_x + radius * np.cos(angle))
+        y0 = int(center_y + radius * np.sin(angle))
+        draw_radial_tree(array, x0, y0, angle, N // 10, depth, branches_per_level)
+        trees_drawn += 1
+
+    return array
+def generate_radial_tree(N=256, fill_fraction=0.02, depth=6, branches_per_level=2):
+    array = np.zeros((N, N), dtype=int)
+    total_pixels = N * N
+    start_x, start_y = N // 2, N // 2
+    angle = -np.pi / 2  # start upward
+
+    # draw just one tree and stop if overfilled
+    draw_radial_tree(array, start_x, start_y, angle, N // 5, depth, branches_per_level)
+    filled_ratio = np.count_nonzero(array) / total_pixels
+
+    if filled_ratio > fill_fraction:
+        print(f"filled too much Target: {fill_fraction}, Actual: {filled_ratio:.3f}")
+
+    return array
+
+def generate_full_radial_fracture_field(N=256, fill_fraction=0.1, num_main_branches=50, depth=4, branch_angle_deg=30):
+    array = np.zeros((N, N), dtype=int)
+    center_x, center_y = N // 2, N // 2
+    radius = N // 3
+    total_pixels = N * N
+    target_pixels = int(total_pixels * fill_fraction)
+    drawn = 0
+    branch_angle = math.radians(branch_angle_deg)
+
+    i = 0
+    while drawn < target_pixels and i < num_main_branches:
+        angle = 2 * np.pi * i / num_main_branches
+        x = int(center_x + radius * np.cos(angle))
+        y = int(center_y + radius * np.sin(angle))
+        draw_radial_tree(
+            array, x, y, angle, length=N // 8,
+            depth=depth, branches_per_level=3, angle_spread=branch_angle
+        )
+        drawn = np.count_nonzero(array)
+        i += 1
+
+    return array
+
+
+
+
+
+def draw_fracture(array, x, y, angle, length, depth, angle_spread=15, branch_prob=0.3):
+    if depth == 0 or length < 1:
+        return
+    angle_rad = angle + math.radians(np.random.uniform(-angle_spread, angle_spread))
+    x_end = x + length * math.cos(angle_rad)
+    y_end = y + length * math.sin(angle_rad)
+    draw_line(array, x, y, x_end, y_end)
+    # main crack continues
+    draw_fracture(array, x_end, y_end, angle, length * 0.9, depth - 1, angle_spread, branch_prob)
+    # maybe add a branch
+    if np.random.rand() < branch_prob:
+        branch_angle = angle + np.random.uniform(-angle_spread, angle_spread)
+        draw_fracture(array, x_end, y_end, branch_angle, length * 0.7, depth - 1, angle_spread, branch_prob)
+
+def generate_fracture_field_without_ratios(N=256, num_fractures=10, depth=6):
+    array = np.zeros((N, N), dtype=int)
+    for _ in range(num_fractures):
+        x = np.random.randint(0, N // 10)  # start on left side
+        y = np.random.randint(0, N)
+        angle = math.radians(0 + np.random.uniform(-10, 10))  # mostly rightward
+        draw_fracture(array, x, y, angle, N // 5, depth)
+    return array
+
+def generate_fracture_field(N=256, depth=6, fill_fraction=0.1, max_fractures=1000):
+    array = np.zeros((N, N), dtype=int)
+    fracture_count = 0
+    target_pixels = int(N * N * fill_fraction)
+
+    while np.count_nonzero(array) < target_pixels and fracture_count < max_fractures:
+        x = np.random.randint(0, N // 10)
+        y = np.random.randint(0, N)
+        angle = math.radians(np.random.uniform(-10, 10))
+        draw_fracture(array, x, y, angle, N // 5, depth)
+        fracture_count += 1
+
+    return array
+
+
+
+
+def draw_branch(array, x, y, angle, depth, max_depth, length):
+    if depth > max_depth or length < 1:
+        return
+
+    # Compute end point of the branch
+    x_end = x + length * math.sin(angle)
+    y_end = y + length * math.cos(angle)
+
+    draw_line(array, x, y, x_end, y_end)
+
+    # Recursive branches
+    draw_branch(array, x_end, y_end, angle - math.pi / 6, depth + 1, max_depth, length * 0.9)
+    draw_branch(array, x_end, y_end, angle + math.pi / 6, depth + 1, max_depth, length * 0.9)
+
+def generate_fractal_tree(N, depth=4):
+    array = np.zeros((N, N), dtype=int)
+    trunk_length = N / 6
+    start_x = N - 1
+    start_y = N // 2
+    angle_offset = math.pi/16
+    draw_branch(array, start_x, start_y, -math.pi / 2 - angle_offset, 0, depth, trunk_length)
+    return array
+
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024)
+    N = int(1024/2)
+    #N = int(6)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
     #spacing_control = 16
     #spacing_small = 4
     
-    spacing_control = 4
+    #spacing_control = 4
+    spacing_control = 8
     spacing_small = 3
     
     mean_intensity = 0.1
@@ -68,7 +288,8 @@ def get_experiment(name):
         F_div_v = np.zeros((N,N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "k=N/3: sin 0 to 1", "color": "tab:orange"}
+        #return {"F": F, "exp_type": "div", "name": "k=N/3: sin 0 to 1", "color": "tab:orange"}
+        return {"F": F, "exp_type": "div", "name": "continuous off-grid spacing", "color": "tab:cyan", "marker":"s"}
     
     if name == "sin-0.51":
         x = np.linspace(0, 2 * np.pi, N)  # x-domain
@@ -76,7 +297,7 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.25, 0.75  # Set min and max values
+        min_val, max_val = -0.5, 0.51  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -86,7 +307,16 @@ def get_experiment(name):
 
         # Generate the (N, N) field
         field = A + B * np.sin(k * X)
-        F_div_u = field
+        #F_div_u = field
+        
+        
+        x = np.arange(N)
+        period = 6
+        amplitude = 1
+        mean = 0.1
+        wave_1d = amplitude * np.sin(2*np.pi*x/period) + mean
+        wave_2d = np.tile(wave_1d, (N,1))
+        F_div_u = wave_2d
         
         F_div_v = np.zeros((N,N))
         
@@ -101,7 +331,7 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.5, 0.5  # Set min and max values
+        min_val, max_val = -0.5, 0.51  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -119,7 +349,8 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         
         darker = adjust_color_brightness("tab:orange", 0.8)
-        return {"F": F, "exp_type": "div", "name": "k=N/3: sin -0.5 to 0.5", "color": darker}
+        #return {"F": F, "exp_type": "div", "name": "k=N/3: sin -0.5 to 0.5", "color": darker}
+        return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "tab:cyan", "marker":"s"}
     
     if name == "ksin01":
         x = np.linspace(0, 2 * np.pi, N)  # x-domain
@@ -174,7 +405,7 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.5, 0.5  # Set min and max values
+        min_val, max_val = -0.5, 0.51  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -192,7 +423,8 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         
         darker = adjust_color_brightness("tab:green", 0.8)
-        return {"F": F, "exp_type": "div", "name": "k=N/4: sin -0.5 to 0.5", "color": darker}
+        #return {"F": F, "exp_type": "div", "name": "k=N/4: sin -0.5 to 0.5", "color": darker}
+        return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "tab:blue", "marker":"s"}
     
     
     
@@ -204,7 +436,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = 0, 1  # Set min and max values
+        #min_val, max_val = 0, 1  # Set min and max values
+        min_val, max_val = 0, 0.1  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -215,12 +448,14 @@ def get_experiment(name):
         field = A + B * np.sin(k * X)
         F_div_u = field
         
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        #noise = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        #noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "k=N/3: sin 0 to 1 err", "color": "tab:orange"}
@@ -231,7 +466,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.25, 0.75  # Set min and max values
+        #min_val, max_val = -0.25, 0.75  # Set min and max values
+        min_val, max_val = -0.025, 0.075  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -261,7 +497,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.5, 0.5  # Set min and max values
+        #min_val, max_val = -0.5, 0.51  # Set min and max values
+        min_val, max_val = -0.05, -0.051  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -292,7 +529,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = 0, 1  # Set min and max values
+        #min_val, max_val = 0, 1  # Set min and max values
+        min_val, max_val = 0, 0.1  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -303,12 +541,12 @@ def get_experiment(name):
         field = A + B * np.sin(k * X)
         F_div_u = field
         
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "k=N/4: sin 0 to 1 err", "color": "tab:green"}
@@ -319,7 +557,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.25, 0.75  # Set min and max values
+        #min_val, max_val = -0.25, 0.75  # Set min and max values
+        min_val, max_val = -0.025, 0.075  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -349,7 +588,8 @@ def get_experiment(name):
         X, Y = np.meshgrid(x, y)
 
         # Define sinusoidal function parameters
-        min_val, max_val = -0.5, 0.5  # Set min and max values
+        #min_val, max_val = -0.5, 0.51  # Set min and max values
+        min_val, max_val = -0.05, 0.051  # Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
@@ -361,6 +601,9 @@ def get_experiment(name):
         # Generate the (N, N) field
         field = A + B * np.sin(k * X)
         F_div_u = field
+        
+        print("TOT sum", np.sum(F_div_u))
+        print("TOT mean", np.mean(F_div_u))
         
         noise = (np.random.randn(N, N)*mean_intensity/10)
         F_div_u = (F_div_u + noise)
@@ -447,12 +690,101 @@ def get_experiment(name):
     if name == "control":
         F_div_u = np.zeros((N, N))
         #spacing_control=3
+        offset = 4
+        F_div_u[:, offset::spacing_control] = 1*mean_intensity 
+        #F_div_u[:, offset+1::spacing_control] = 1*mean_intensity  # second line !
+        
+        # vertical lines !
+        #F_div_u[:, ::spacing_control] = 1*mean_intensity 
+        #F_div_u[:, 1::spacing_control] = 1*mean_intensity  # second line !
+        
+        # horizontal lines !
+        F_div_u[::spacing_control, :] = 1*mean_intensity
+        #F_div_u[1::spacing_control, :] = 1*mean_intensity  
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        #F = np.vstack([F_div_v, F_div_u])
+        return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+    
+    
+    if name == "control_diamonds_angled":
+        angle_deg = 30
+        spacing = spacing_control
+        theta = np.deg2rad(angle_deg)
+
+        x, y = np.meshgrid(np.arange(N), np.arange(N))
+
+        # Family 1: rotated +angle
+        coord1 = x * np.cos(theta) + y * np.sin(theta)
+        lines1 = ((coord1 % spacing) < 1).astype(float)
+
+        # Family 2: rotated -angle
+        coord2 = x * np.cos(-theta) + y * np.sin(-theta)
+        lines2 = ((coord2 % spacing) < 1).astype(float)
+
+        # Combine both
+        F_div_u = lines1
+        F_div_u += lines2
+        
+        F_div_v = np.zeros((N,N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "control {angle_deg}deg diamonds", "color": "tab:purple", "marker": "o"}
+    
+    if name == "control_diamonds":
+        angle_deg = 45
+        spacing = spacing_control
+        theta = np.deg2rad(angle_deg)
+
+        # Coordinate grid
+        x, y = np.meshgrid(np.arange(N), np.arange(N))
+
+        # Rotate coordinates
+        x_rot = x * np.cos(theta) + y * np.sin(theta)
+        y_rot = -x * np.sin(theta) + y * np.cos(theta)
+
+        # Create divergence patterns based on spacing
+        F_div_u = ((x_rot % spacing) < 1).astype(float)
+        F_div_u += ((y_rot % spacing) < 1).astype(float)
+        F_div_v = np.zeros((N,N))
+
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": f"control_{angle_deg}deg", "color": "tab:olive", "marker":"o"}
+    
+    
+    
+    if name == "control err":
+        F_div_u = np.zeros((N, N))
+        #spacing_control=3
         F_div_u[:, ::spacing_control] = 1*mean_intensity 
     
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "control", "color": "tab:blue"}
+        return {"F": F, "exp_type": "div", "name": "errors                   ", "color": "tab:blue", "marker":"s"}
+    
+    if name == "control err weighted":
+        F_div_u = np.zeros((N, N))
+        #spacing_control=3
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "$<\dot{\epsilon}{_{tot}} >{_{w}}$               err weighted", "color": "xkcd:royal blue", "marker":"s"}
+    
+    if name == "control err weighted2":
+        F_div_u = np.zeros((N, N))
+        #spacing_control=3
+        F_div_u[:, ::spacing_control] = 1*mean_intensity 
+    
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "$< \partial u_i / \partial x_j >{_{w}}$                 R err weighted2", "color": "xkcd:bluish grey", "marker":"s"}
     
     if name == "45 angle":
         spacing = int(spacing_control*np.sqrt(2))
@@ -470,7 +802,7 @@ def get_experiment(name):
                     F_div_v[i, j] = 1*mean_intensity
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "45 angle", "color": "tab:cyan"}
+        return {"F": F, "exp_type": "div", "name": "45 angle", "color": "tab:cyan", "marker":"o"}
     
     if name == "irregular spacing":
         mean = 1.0
@@ -480,12 +812,13 @@ def get_experiment(name):
         gaussian_values = abs(np.round(gaussian_values))*mean_intensity #make the values round values (either 0 or 1)
 
         F_div_u = np.zeros((N, N))
-        for idx, j in enumerate(range(0, N, spacing_control)):
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular spacing", "color": "tab:purple"}
+        #return {"F": F, "exp_type": "div", "name": "irregular spacing", "color": "tab:purple", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o"}
    
     if name == "narrow spacing":
         F_div_u = np.zeros((N, N))
@@ -494,7 +827,8 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "narrow spacing (n=3)", "color": "tab:cyan"}
+        #return {"F": F, "exp_type": "div", "name": "off-grid spacing", "color": "tab:cyan", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o"}
     
     if name == "irregular intensity":
         mean = 0
@@ -503,16 +837,18 @@ def get_experiment(name):
         gaussian_values = abs(gaussian_values)*mean_intensity # Only positive values
 
         F_div_u = np.zeros((N, N))
-        for idx, j in enumerate(range(0, N, spacing_control)):
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular intensity", "color": "tab:pink"}
+        #return {"F": F, "exp_type": "div", "name": "irregular intensity", "color": "tab:pink", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o"}
+
 
     if name == "irregular domain":
-        N = N-24
+        N = N-1
         
         F_div_u = np.zeros((N, N))
         F_div_u[:, ::spacing_control] = 1*mean_intensity 
@@ -520,8 +856,39 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular domain", "color": "tab:purple"}
+        return {"F": F, "exp_type": "div", "name": "irregular domain", "color": "tab:purple", "marker":"o"}
     
+    
+    
+    if name == "err":
+        F_div_u = np.zeros((N, N))
+        
+        #noise = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise = np.random.uniform(0, mean_intensity/10, (N, N))
+        F_div_u = (F_div_u + noise)
+        
+        #noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = np.random.uniform(0, mean_intensity/10, (N, N))
+        F_div_v = np.zeros((N, N))
+        F_div_v = (F_div_v + noise2)
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "err", "color": "tab:red"}
+    
+    if name == "err +-":
+        F_div_u = np.zeros((N, N))
+        
+        #noise = (np.random.randn(N, N)*mean_intensity/10)
+        noise = np.random.uniform(-mean_intensity/10, mean_intensity/10, (N, N))
+        F_div_u = (F_div_u + noise)
+        
+        #noise2 = (np.random.randn(N, N)*mean_intensity/10)
+        noise2 = np.random.uniform(-mean_intensity/10, mean_intensity/10, (N, N))
+        F_div_v = np.zeros((N, N))
+        F_div_v = (F_div_v + noise2)
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "err +-", "color": "tab:red"}
     
     
     
@@ -530,12 +897,12 @@ def get_experiment(name):
         #spacing_control=3
         F_div_u[:, ::spacing_control] = 1*mean_intensity 
     
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "control err", "color": "tab:blue"}
@@ -551,12 +918,12 @@ def get_experiment(name):
         for idx, j in enumerate(range(0, N, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "irregular spacing err", "color": "tab:purple"}
    
@@ -564,12 +931,12 @@ def get_experiment(name):
         F_div_u = np.zeros((N, N))
         F_div_u[:, ::spacing_small] = 1*mean_intensity 
     
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "narrow spacing (n=3) err", "color": "tab:cyan"}
@@ -584,12 +951,12 @@ def get_experiment(name):
         for idx, j in enumerate(range(0, N, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
-        noise = abs(np.random.randn(N, N)*mean_intensity/10)
-        F_div_u = (F_div_u + noise)
+        noise = (np.random.randn(N, N)*mean_intensity/10)
+        F_div_u = abs(F_div_u + noise)
         
-        noise2 = abs(np.random.randn(N, N)*mean_intensity/10)
+        noise2 = (np.random.randn(N, N)*mean_intensity/10)
         F_div_v = np.zeros((N, N))
-        F_div_v = (F_div_v + noise2)
+        F_div_v = abs(F_div_v + noise2)
         
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "irregular intensity err", "color": "tab:pink"}
@@ -694,7 +1061,7 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "onlyerrors", "color": "red"}
     
-    if name == "fractal":
+    if name == "koch":
         F_div_u = np.zeros((N, N))
         
         def koch_curve(p1, p2, depth, grid):
@@ -758,20 +1125,266 @@ def get_experiment(name):
             return grid
 
         # Parameters
-        N_fractal = int(N/2)
+        #N_fractal = int(N/2)
+        N_fractal = int(N)
         depth = 4  # Recursion depth
 
         fractal = generate_snowflake(N_fractal, depth)
         
-        F_div_u = np.zeros((N,N))
-        F_div_u[N_fractal:, N_fractal:] = fractal
+        #F_div_u = np.zeros((N,N))
+        #F_div_u[N_fractal:, N_fractal:] = fractal
+        F_div_u = fractal
     
-        F_div_v = np.zeros((N, N))
-        F_div_v[N_fractal:, N_fractal:] = fractal
+        #F_div_v = np.zeros((N, N))
+        #F_div_v[N_fractal:, N_fractal:] = fractal
+        F_div_v = fractal
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "fractal", "color": "orchid"}
+        return {"F": F, "exp_type": "div", "name": "koch", "color": "orchid", 'marker':'P' }
     
+    if name == "sierpinski":
+        F_div_u = np.zeros((N, N))
+        #sierpinski = np.loadtxt('SIMS/project/experiments/Sierpinski.txt', dtype=int)
+        with open('SIMS/project/experiments/Sierpinski.txt') as f:
+            sierpinski = np.array([[int(char) for char in line.strip()] for line in f])
+
+        print("SHAPE", sierpinski.shape)
+        F_div_u = sierpinski
+        F_div_v = sierpinski
+        
+        #F_div_u = np.zeros((N,N))
+        #F_div_u[N_fractal:, N_fractal:] = fractal
+    
+        #F_div_v = np.zeros((N, N))
+        #F_div_v[N_fractal:, N_fractal:] = fractal
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "sierpinski", "color": "coral", 'marker':'P' }
+    
+    
+    if name == "weierstrass":
+        F_div_u = np.zeros((N, N))
+        a = 0.5
+        b = 5
+        n_terms = 20
+        
+        x = np.linspace(-N, N ,N)
+        W = np.zeros_like(x)
+        for n in range (n_terms):
+            W += a**n * np.cos(b**n * np.pi * x / N)
+            
+        #W = (W / np.max(np.abs(W)))
+        W_pos = W
+        F_div_u = np.tile(W_pos, (N, 1))  # vertical lines
+        #F_div_u = pad_to_size(F, N)
+        
+        F_div_v = np.zeros((N,N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "weierstrass", "color": "coral", 'marker':'P' }
+    
+    if name == "fractal_tree":
+        N_fractal = int(N/2*4)
+        N_fractal = int(N/2)
+        
+        #N_fractal = int(N)
+        
+        # If we want a fixed ratio of 0 and 1's
+        with open('SIMS/project/utils/rgps_div_ratios.pkl', 'rb') as f:
+            loaded_data = pickle.load(f)
+        print(loaded_data['thresholds'])
+        print(loaded_data['ratios'])
+        ratio = loaded_data["thresholds"][2]
+        
+        print(N_fractal)
+        #tree_array = generate_fractal_tree(N=N_fractal, depth=5)
+        #tree_array = generate_simple_tree(N=N_fractal, depth=11)
+        
+        #tree_array = generate_radial_tree(N=N_fractal, depth=10, branches_per_level=2)
+        
+        # with ratios !!
+        #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, max_trees=1000, depth=10, branches_per_level=3)
+        #tree_array = generate_fracture_field(N=N_fractal, num_fractures = 15, depth = 10)
+        tree_array = generate_fracture_field(N=N_fractal,depth = 6, fill_fraction = ratio, max_fractures = 1000)
+        
+        # re-calculate the ratio
+        ones = len(np.where(tree_array != 0)[0])
+        zeros = len(np.where(tree_array == 0)[0])
+        ratio_recomp = ones/zeros
+        print('input ratio: ', ratio, ' re-calc ratio: ', ratio_recomp)
+        
+        #print('NOZERO', np.where(tree_array != 0))
+        F_div_u = np.zeros((N, N)) 
+        #size_cut = int(N_fractal/4)
+        size_cut = int(N_fractal/4)
+        print(np.shape(tree_array))
+        
+        print(int(len(tree_array)/3))
+        
+        to_repeat = tree_array[:, int(len(tree_array)/4):-int(len(tree_array)/4)]
+        new_tree_array = np.concatenate((to_repeat, to_repeat), axis=1)
+        
+        zoom_tree_array = tree_array[:-2*int(len(tree_array)/4), int(len(tree_array)/4):-int(len(tree_array)/4)]
+        # need N_fractal = N
+        
+        
+        #new_tree_array = np.concatenate((new_tree_array1, to_repeat), axis=0)
+        #F_div_u[N_fractal//2:, N_fractal//2:] = tree_array[size_cut+20:-size_cut+20, size_cut:-size_cut]
+        ########F_div_u[N_fractal//4:, N_fractal//4:] = tree_array[size_cut:-2*size_cut, size_cut:-2*size_cut]
+        #F_div_u = tree_array                 
+        
+        #print(np.shape(F_div_u[N_fractal//2:, N_fractal//2:]))
+        
+        
+        F_div_u[N//2:, N//2:] = tree_array
+        #F_div_u[N//2:, N//2:] = new_tree_array
+        #F_div_u[N//2:, N//2:] = zoom_tree_array
+         
+        F_div_v = np.zeros((N, N))                                 
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "fractal fracture", "color": "xkcd:pinky red", 'marker':'P' }
+    
+    
+    if name == "radial_tree":
+        N_fractal = int(N/2)
+        
+        # If we want a fixed ratio of 0 and 1's
+        with open('SIMS/project/utils/rgps_div_ratios.pkl', 'rb') as f:
+            loaded_data = pickle.load(f)
+        ratio = loaded_data["thresholds"][1]
+        
+        # with ratios !!
+        #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, max_trees=1000, depth=4, branches_per_level=2)
+        #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, depth=4, branches_per_level=3)
+        tree_array = generate_full_radial_fracture_field(N=N_fractal, fill_fraction=ratio, num_main_branches=50, depth=4, branch_angle_deg=30)
+        # re-calculate the ratio
+        ones = len(np.where(tree_array != 0)[0])
+        zeros = len(np.where(tree_array == 0)[0])
+        ratio_recomp = ones/zeros
+        print('input ratio: ', ratio, ' re-calc ratio: ', ratio_recomp)
+        
+        F_div_u = np.zeros((N, N)) 
+        F_div_u[N//2:, N//2:] = tree_array
+
+        F_div_v = np.zeros((N, N))                                 
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "radial_tree", "color": "xkcd:marine blue", 'marker':'P' }
+    
+    if name == 'control_decay':
+        
+        def decaying_lines_in_segment(start, initial_spacing, decay_rate, segment_length, min_spacing=0.5):
+
+            positions = []
+            pos = 0
+            spacing = initial_spacing
+            while pos < segment_length and spacing >= min_spacing:
+                positions.append(int(round(start + pos)))
+                pos += spacing
+                spacing *= decay_rate
+            return positions
+
+        # Parameters
+        segment_length = int(N/8)
+        initial_spacing = 4
+        decay_rate = 0.9
+        min_spacing = 0.5
+
+        # Initialize field
+        F_div_u = np.zeros((N, N), dtype=int)
+
+        # Apply pattern to each segment
+        for segment_start in range(0, N, segment_length):
+            line_positions = decaying_lines_in_segment(
+                start=segment_start,
+                initial_spacing=initial_spacing,
+                decay_rate=decay_rate,
+                segment_length=segment_length,
+                min_spacing=min_spacing
+            )
+            for x in line_positions:
+                if x < N:
+                    F_div_u[:, x] = 1  # vertical lines
+
+        
+        F_div_v = np.zeros((N, N)) 
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "control decay", "color": "xkcd:teal blue", 'marker':'P' }
+    
+    if name == 'cantor':
+        """
+        def generalized_cantor_line(base=4, remove_segments=[1, 2], depth=5):
+            length = base ** depth
+            arr = np.ones(length, dtype=int)
+
+            def recurse(start, end, level):
+                if level == 0 or end - start < base:
+                    return
+                seg_len = (end - start) // base
+                for r in remove_segments:
+                    arr[start + r * seg_len : start + (r + 1) * seg_len] = 0
+                for b in range(base):
+                    if b not in remove_segments:
+                        recurse(start + b * seg_len, start + (b + 1) * seg_len, level - 1)
+
+            recurse(0, length, depth)
+            return arr
+
+        def pad_to_size(array, target_size):
+
+            m, n = array.shape
+            pad_vert = (target_size - m) // 2
+            pad_horz = (target_size - n) // 2
+
+            padded = np.zeros((target_size, target_size), dtype=array.dtype)
+            padded[pad_vert:pad_vert + m, pad_horz:pad_horz + n] = array
+            return padded
+        
+        # Parameters
+        base = 5
+        remove = [1, 2]  # remove middle two quarters
+        depth = 4
+        size = base ** depth
+
+        # Generate 2D pattern
+        cantor_gen = generalized_cantor_line(base, remove, depth)
+        print(np.shape(cantor_gen))
+        F = np.tile(cantor_gen, (N, 1))  # vertical lines
+        
+        
+        #n = 5  # depth of recursion (3^n total columns)
+        #M = 3**n
+
+        # Create 2D array with vertical lines at Cantor positions
+        #cantor_1d = cantor_line_pattern(n)
+        #F= np.tile(cantor_1d, (N, 1))
+        
+        F_div_u = pad_to_size(F, N)
+        """
+        
+        def generate_cantor(n_iterations):
+            arr = np.array([1], dtype=int)
+            for _ in range(n_iterations):
+                arr = np.concatenate([arr, np.zeros_like(arr), arr])
+            return arr
+        
+        n=5
+        height = N
+        
+        cantor_1d = generate_cantor(n)
+        print(np.shape(cantor_1d))
+        cantor_1d_fill = np.zeros(N)
+        cantor_1d_fill[N-len(cantor_1d)-10:-10] = cantor_1d
+       
+        #cantor_1d = np.pad(cantor_1d, ((N-len(cantor_1d))), 'constant', constant_values=0)
+        print(np.shape(cantor_1d))
+        cantor_2d = np.tile(cantor_1d_fill ,(height, 1))
+        
+        F_div_u = cantor_2d
+        
+        F_div_v = np.zeros((N, N)) 
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "control cantor", "color": "xkcd:periwinkle", 'marker':'P' }
+        
     
     if name == "fractal_shuffle":
         F_div_u = np.zeros((N, N))
@@ -1284,15 +1897,86 @@ def get_experiment(name):
         F_div_u[:, ::spacing_small * 2] = -1*mean_intensity
         
         noise = np.random.randn(N, N)*mean_intensity/10
-        F_div_u = F_div_u + noise
+        #F_div_u = F_div_u + noise
         
         noise2 = np.random.randn(N, N)*mean_intensity/10
         F_div_v = np.zeros((N, N))
-        F_div_v = F_div_v + noise2
+        #F_div_v = F_div_v + noise2
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "narrow spacing +- err", "color": "tab:cyan"}
+        return {"F": F, "exp_type": "div", "name": "narrow spacing +- err", "color": "tab:cyan", 'marker': "s"}
     
+    if name == "narrow spacing +- err weighted":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_small::spacing_small*2] = 1 
+        #F_div_u[:, ::spacing_small*2] = -1 
+        spacing_small = 3
+        #F_div_u[:, spacing_small::spacing_small * 3] = 1*mean_intensity  
+        #F_div_u[:, 2 * spacing_small::spacing_small * 3] = 1*mean_intensity  
+        #F_div_u[:, ::spacing_small * 3] = -1*mean_intensity  
+        
+        F_div_u[:, spacing_small::spacing_small * 2] = 1.1*mean_intensity
+        #F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_small * 2] = -1*mean_intensity
+        
+        #noise = np.random.randn(N, N)*mean_intensity/10
+        #F_div_u = F_div_u + noise
+        
+        #noise2 = np.random.randn(N, N)*mean_intensity/10
+        F_div_v = np.zeros((N, N))
+        #F_div_v = F_div_v + noise2
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "narrow spacing +- err weighted", "color": "dodgerblue", 'marker': "s"}
+    
+    
+    if name == "irregular intensity +- err weighted":
+        mean = 0.5
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = ((gaussian_values)*mean_intensity) # Only positive values
+        
+        #L = 1
+        #speckle_noise_u = np.random.gamma(L, 1 / L, size=N//spacing_control)
+        #gaussian_values = (speckle_noise_u)*mean_intensity
+        F_div_u = np.zeros((N, N))
+        #F_div_u = np.ones((N, N))*mean_intensity
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        #noise = np.random.randn(N, N)*mean_intensity/10 #!!
+        #F_div_u = F_div_u + noise #!!
+        
+        #noise2 = np.random.randn(N, N)*mean_intensity/10 #!!
+        F_div_v = np.zeros((N, N))
+        #F_div_v = F_div_v + noise2 #!!
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors + weights: SNR           err weighted", "color": "deeppink", "marker": "s"}
+    
+    if name == "irregular intensity +- err weighted2":
+        mean = 0.5
+        std = 1.0
+        gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
+        gaussian_values = ((gaussian_values)*mean_intensity) # Only positive values
+        
+        #L = 1
+        #speckle_noise_u = np.random.gamma(L, 1 / L, size=N//spacing_control)
+        #gaussian_values = (speckle_noise_u)*mean_intensity
+        F_div_u = np.zeros((N, N))
+        #F_div_u = np.ones((N, N))*mean_intensity
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
+            F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
+
+        #noise = np.random.randn(N, N)*mean_intensity/10 #!!
+        #F_div_u = F_div_u + noise #!!
+        
+        #noise2 = np.random.randn(N, N)*mean_intensity/10 #!!
+        F_div_v = np.zeros((N, N))
+        #F_div_v = F_div_v + noise2 #!!
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "errors + weights: full SNR err weighted2", "color": "fuchsia", "marker": "s"}
     
     if name == "irregular intensity +- err":
         mean = 0.5
@@ -1306,18 +1990,18 @@ def get_experiment(name):
         
         F_div_u = np.zeros((N, N))
         #F_div_u = np.ones((N, N))*mean_intensity
-        for idx, j in enumerate(range(0, N, spacing_control)):
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
-        noise = np.random.randn(N, N)*mean_intensity/10
-        F_div_u = F_div_u + noise
+        #noise = np.random.randn(N, N)*mean_intensity/10 #!!
+        #F_div_u = F_div_u + noise #!!
         
-        noise2 = np.random.randn(N, N)*mean_intensity/10
+        #noise2 = np.random.randn(N, N)*mean_intensity/10 #!!
         F_div_v = np.zeros((N, N))
-        F_div_v = F_div_v + noise2
+        #F_div_v = F_div_v + noise2 #!!
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular intensity +- err", "color": "tab:pink"}
+        return {"F": F, "exp_type": "div", "name": "errors             err", "color": "tab:pink", "marker": "s"}
     
     
     
@@ -1331,23 +2015,30 @@ def get_experiment(name):
         F_div_u = np.zeros((N, N))
         #F_div_u[:, spacing_control::spacing_control*2] = 1 
         #F_div_u[:, ::spacing_control*2] = -1 
-        #spacing_control = 21
+        spacing_control = 8
+
         
-        # ORIGINAL
-        #F_div_u[:, spacing_control::spacing_control * 3] = 1*mean_intensity  
-        #F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
-        #F_div_u[:, ::spacing_control * 3] = -1*mean_intensity  
-        #spacing_control=3
+        # the ones to use (actual original !!)
+        #F_div_u[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        #F_div_u[:, ::spacing_control * 2] = -1*mean_intensity
         
-        F_div_u[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
-        #F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
-        F_div_u[:, ::spacing_control * 2] = -1*mean_intensity
+        # for having an offset and two lines of thickness
+        offset = 4
+        F_div_u[:, offset+spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        F_div_u[:, offset+spacing_control+1::spacing_control * 2] = 1.1*mean_intensity
+        F_div_u[:, offset::spacing_control * 2] = -1*mean_intensity
+        F_div_u[:, offset+1::spacing_control * 2] = -1*mean_intensity
     
         F_div_v = np.zeros((N, N))
         
-        F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue"}
-    
+        #F_div_v[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        #F_div_v[:, ::spacing_control * 2] = -1*mean_intensity
+        
+        #F = np.vstack([F_div_u, F_div_v])
+        F = np.vstack([F_div_v, F_div_u])
+        #return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue", "marker":"o"}
+        return {"F": F, "exp_type": "shear", "name": "control +-", "color": "tab:blue", "marker":"o"}
+
     
     if name == "irregular spacing +-":
         mean = 0.5
@@ -1361,13 +2052,13 @@ def get_experiment(name):
 
         F_div_u = np.zeros((N, N))
         #F_div_u = np.ones((N, N))*mean_intensity
-        for idx, j in enumerate(range(0, N, spacing_control)):
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular spacing +-", "color": "tab:purple"}
+        return {"F": F, "exp_type": "div", "name": "irregular spacing +-", "color": "tab:purple", "marker":"o"}
     
     
     if name == "narrow spacing +-":
@@ -1386,7 +2077,25 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "narrow spacing +-", "color": "tab:cyan"}
+        return {"F": F, "exp_type": "div", "name": "narrow spacing +-", "color": "tab:cyan", "marker":"o"}
+    
+    if name == "narrow spacing ++-":
+        F_div_u = np.zeros((N, N))
+        #F_div_u[:, spacing_small::spacing_small*2] = 1 
+        #F_div_u[:, ::spacing_small*2] = -1 
+        spacing_small = 3
+        #F_div_u[:, spacing_small::spacing_small * 3] = 1*mean_intensity  
+        #F_div_u[:, 2 * spacing_small::spacing_small * 3] = 1*mean_intensity  
+        #F_div_u[:, ::spacing_small * 3] = -1*mean_intensity  
+        
+        F_div_u[:, spacing_small::spacing_small * 2] = 2*mean_intensity
+        #F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
+        F_div_u[:, ::spacing_small * 2] = -1*mean_intensity
+        
+        F_div_v = np.zeros((N, N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "narrow spacing ++-", "color": "tab:olive", "marker":"o"}
     
     
     if name == "irregular intensity +-":
@@ -1401,24 +2110,22 @@ def get_experiment(name):
         
         F_div_u = np.zeros((N, N))
         #F_div_u = np.ones((N, N))*mean_intensity
-        for idx, j in enumerate(range(0, N, spacing_control)):
+        for idx, j in enumerate(range(0, N-1, spacing_control)):
             F_div_u[:, j] = gaussian_values[idx]  # Use a single value per column
 
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular intensity +-", "color": "tab:pink"}
+        #return {"F": F, "exp_type": "div", "name": "irregular intensity +-", "color": "tab:pink", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o"}
     
 
     if name == "irregular domain +-":
-        N = N-24
+        N = N-1
         
         F_div_u = np.zeros((N, N))
-        #F_div_u[:, spacing_control::spacing_control*2] = 1 
-        #F_div_u[:, ::spacing_control*2] = -1 
-        F_div_u[:, spacing_control::spacing_control * 3] = 1*mean_intensity  
-        F_div_u[:, 2 * spacing_control::spacing_control * 3] = 1*mean_intensity  
-        F_div_u[:, ::spacing_control * 3] = -1*mean_intensity  
+        F_div_u[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        F_div_u[:, ::spacing_control * 2] = -1*mean_intensity
     
         F_div_v = np.zeros((N, N))
         

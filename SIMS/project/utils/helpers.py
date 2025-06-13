@@ -1,5 +1,8 @@
 import numpy as np
-from scipy.sparse import diags, bmat, csc_matrix, eye, vstack
+import matplotlib.pyplot as plt
+from scipy.sparse.linalg import eigs
+from numpy.linalg import matrix_rank
+from scipy.sparse import diags, bmat, csc_matrix, eye, vstack, lil_matrix
 
 
 def create_sparse_matrix_dx_og_works(N):
@@ -74,6 +77,246 @@ def create_sparse_matrix_dx_2025_01_27(N, dx=1):
     large_matrix = bmat(blocks, format="csc")    
     
     return large_matrix
+
+def create_sparse_matrix_dy_shear_singular(N, dy=1):
+    size = (N) * (N)
+
+    diag_N = np.ones(size-N) * (1/dy)
+    diag_Nplus1 = np.ones(size - (N+1)) * (1/dy)
+    diag_minusN = np.ones(size- (N+1)) * (-1/dy)
+    diag_minusNm = np.ones(size - (N)) * (-1/dy)
+
+    base_matrix = diags(
+        #diagonals=[super_plus_diagonal, super_plus_diagonal, super_neg_diagonal, super_neg_diagonal],
+        #offsets=[N, (N+1), -N, -(N-1)],  # Main diagonal and super-diagonal (shifted by -N rows)
+        diagonals = [diag_N, diag_Nplus1, diag_minusN, diag_minusNm],
+        offsets = [N, N+1, -(N+1), -(N)],
+        shape=(size, size),
+        format='lil'
+    )
+    
+    # (periodic boundaries)
+    for i in range(N):
+        if i + 1 < N:
+            base_matrix[i, size - N + i]     = -1 / dy
+            base_matrix[i, size - N + i + 1] = -1 / dy
+    # Add bottom-left corner diagonal: last N rows, first N columns
+    for i in range(N):
+        row = size - N + i
+        #if i + 1 < N:
+        base_matrix[row, i]     = 1 / dy
+        base_matrix[row, i + 1] = 1 / dy
+    
+    # Step 2: Replace every Nth row (starting from 0) with a row having 1 at the diagonal
+    for i in range(N, size, N):
+    #for i in range(0, size, N):
+        print("here")
+        base_matrix[i, :] = 0  # set only one non-zero at the diagonal
+        #base_matrix[i, i] = 0.0
+        base_matrix[i, i] = 1.0
+
+    # Step 3: Convert to CSC or CSR for final format
+    sparse_matrix = base_matrix.tocsc()
+    
+    #A = sparse_matrix.toarray()
+    #print("Rank:", matrix_rank(A))
+    #print("Is square:", A.shape[0] == A.shape[1])
+    
+    # Plot sparsity pattern
+    plt.figure(figsize=(8, 8))  # adjust size as needed
+    plt.spy(sparse_matrix, markersize=0.5)
+    plt.title("Sparsity Pattern")
+    # Save as image (e.g., PNG)
+    plt.savefig("SIMS/project/sparse_matrix_pattern.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    return sparse_matrix
+    
+def create_sparse_matrix_dy_shear(N, dy=1):
+    blocks = []
+    Nx = N
+    Ny = N
+
+    def wrapped(j):
+        return j % Ny
+
+    for i in range(Nx):
+        row_blocks = []
+        for j in range(Nx):
+            block = lil_matrix((Ny, Ny))
+
+            if j == i:  # Diagonal block
+                for k in range(Ny):
+                    block[k, k] += 1 / (2 * dy)
+                    block[k, wrapped(k - 2)] += -1 / (2 * dy)
+                row_blocks.append(block.tocsc())
+
+            elif j == i - 1:  # Lower diagonal block
+                for k in range(Ny):
+                    block[k, k] += 1 / (2 * dy)
+                    block[k, wrapped(k - 2)] += -1 / (2 * dy)
+                row_blocks.append(block.tocsc())
+
+            else:
+                row_blocks.append(None)
+
+        blocks.append(row_blocks)
+
+    return bmat(blocks, format="csc")
+
+
+def create_sparse_matrix_dy_shear_also_singular(N, dy=1):
+    blocks = []
+    Nx = N
+    Ny = N
+
+    def wrapped(j):
+        return j % Ny
+
+    for i in range(Nx):
+        row_blocks = []
+        for j in range(Nx):
+            block = lil_matrix((Ny, Ny))
+
+            if j == i:  # Diagonal block
+                for k in range(Ny):
+                    block[k, k] += 1 / (2 * dy)
+                    block[k, wrapped(k - 2)] += -1 / (2 * dy)
+                row_blocks.append(block.tocsc())
+
+            elif j == i - 1:  # Lower diagonal block
+                for k in range(Ny):
+                    block[k, k] += 1 / (2 * dy)
+                    block[k, wrapped(k - 2)] += -1 / (2 * dy)
+                row_blocks.append(block.tocsc())
+
+            else:
+                row_blocks.append(None)
+
+        blocks.append(row_blocks)
+
+    return bmat(blocks, format="csc")
+
+def create_sparse_matrix_dy_shear_real(N, dy=1):
+    size = N * N
+    M = lil_matrix((size, size))
+
+    for i in range(size):
+        if i % N == 0:
+            # Set identity row: only a 1 on the diagonal
+            M[i, i] = 1
+        else:
+            col_pos = i + N
+            col_diag = i + 2 * N
+
+            if col_pos < size:
+                M[i, col_pos] += 1 / dy
+            if col_diag < size:
+                M[i, col_diag] += 1 / dy
+
+            if i + N < size:
+                M[i + N, i] += -1 / dy
+            if i + 2 * N < size:
+                M[i + 2 * N, i] += -1 / dy
+
+    # Top-right corner block
+    for i in range(N):
+        if i % N == 0:
+            M[i, i] = 1
+        else:
+            M[i, size - N + i] += -1 / dy
+            if i + 1 < N and (i + 1) % N != 0:
+                M[i + 1, size - N + i] += -1 / dy
+
+    # Bottom-left corner block
+    for i in range(N):
+        base = size - N
+        row = base + i
+        if row % N == 0:
+            M[row, row] = 1
+        else:
+            M[row, i] += 1 / dy
+            if i + 1 < N and (row + 1) % N != 0:
+                M[row + 1, i] += 1 / dy
+
+    return M.tocsc()
+
+def create_sparse_matrix_dy_shear_anothersingularhihi(N, dy=1):
+    size = N * N
+    M = lil_matrix((size, size))
+
+    for i in range(size):
+        if i % N == 0:
+            # Identity row for Dirichlet rows
+            M[i, i] = 1
+        else:
+            if i + N < size:
+                M[i, i + N] += 1 / dy
+            if i - N >= 0:
+                M[i, i - N] += -1 / dy
+
+    # Top-right corner: apply -1/dy diagonals
+    for i in range(N):
+        row = i
+        col = size - N + i
+        M[row, col] += -1 / dy
+        if row + 1 < N:
+            M[row + 1, col] += -1 / dy
+
+    # Bottom-left corner: apply +1/dy diagonals
+    for i in range(N):
+        row = (N * (N - 1)) + i
+        col = i
+        M[row, col] += 1 / dy
+        if row + 1 < size:
+            M[row + 1, col] += 1 / dy
+
+    return M.tocsc()
+
+
+
+def create_sparse_matrix_dy_shear(N, dy=1):
+    print('hi there')
+    size = N * N
+    M = lil_matrix((size, size))
+
+    for i in range(size):
+        if i % N == 0:
+            M[i, i] = 1  # Dirichlet condition
+        else:
+            M[i, i] = -1 / dy
+            if i + 1 < size:
+                M[i, i + 1] = 1 / dy
+
+    return M.tocsc()
+
+def create_sparse_matrix_dx_shear(N, dx=1):
+    Nx = N
+    Ny = N
+    
+    def idx(i, j):
+        return i % Nx * Ny + j  # periodic in i, Dirichlet in j
+
+    D = lil_matrix((Nx * Ny, Nx * Ny))
+
+    for i in range(Nx):
+        for j in range(Ny):
+            row = i * Ny + j
+
+            # f[i, j]
+            D[row, idx(i, j)] += 1 / (2 * dx)
+
+            # f[i, j-1] — Dirichlet BC in j
+            if j - 1 >= 0:
+                D[row, idx(i, j - 1)] += 1 / (2 * dx)
+
+            # f[i-1, j] — periodic in i
+            D[row, idx(i - 1, j)] += -1 / (2 * dx)
+
+            # f[i-2, j-1] — both i-2 (wrap) and j-1 (Dirichlet check)
+            if j - 1 >= 0:
+                D[row, idx(i - 2, j - 1)] += -1 / (2 * dx)
+
+    return D.tocsc()
 
 def create_sparse_matrix_dx(N, dx=1):
     block_count = N
