@@ -12,7 +12,7 @@ from utils.figures_gen import fig_velocity_defo, fig_defo, fig_defo_new
 experiment_names = [
     
 
-    #"control",
+    "control",
     #"narrow spacing",
     #"exp",
     #"irregular spacing",
