@@ -13,7 +13,7 @@ experiment_names = [
     
 
     "control",
-    #"narrow spacing",
+    "narrow spacing",
     #"exp",
     #"irregular spacing",
     #"irregular intensity",
