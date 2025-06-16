@@ -8,7 +8,7 @@ from experiments.define_experiments_helpers import draw_line, draw_simple_tree, 
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024/2)
+    N = int(1024/32)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
@@ -470,7 +470,7 @@ def get_experiment(name):
         #F_div_u[:, 1::spacing_control] = 1*mean_intensity  # second line !
         
         # horizontal lines !
-        F_div_u[::spacing_control, :] = 1*mean_intensity
+        #F_div_u[::spacing_control, :] = 1*mean_intensity
         #F_div_u[1::spacing_control, :] = 1*mean_intensity  
     
         F_div_v = np.zeros((N, N))
@@ -478,6 +478,35 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
         return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        
+        
+    if name == "control_div_shear":
+        F_div_u = np.zeros((N, N))
+        #spacing_control=3
+        offset = 4
+        F_div_u[:, offset::spacing_control] = 1*mean_intensity 
+        F_div_u[:, offset+1::spacing_control] = 1*mean_intensity  # second line !
+        
+        # vertical lines !
+        #F_div_u[:, ::spacing_control] = 1*mean_intensity 
+        #F_div_u[:, 1::spacing_control] = 1*mean_intensity  # second line !
+        
+        # horizontal lines !
+        #F_div_u[::spacing_control, :] = 1*mean_intensity
+        #F_div_u[1::spacing_control, :] = 1*mean_intensity  
+    
+        F_div_v = np.zeros((N, N))
+        F_div_v[:, offset::spacing_control] = -1*mean_intensity 
+        F_div_v[:, offset+1::spacing_control] = -1*mean_intensity  # second line !
+        
+        F_zero = np.zeros((N,N))
+        
+        F = np.vstack([F_div_u, F_div_v])
+        #F = np.vstack([F_div_v, F_div_u])
+        F = np.vstack([F_div_u, F_zero, F_zero, F_div_v])
+        
+        return {"F": F, "exp_type": "both", "name": "control (s=4Δx) s+d        ", "color": "xkcd:violet", "marker":"o"}
         #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
     
     
@@ -557,7 +586,7 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         return {"F": F, "exp_type": "div", "name": "$< \partial u_i / \partial x_j >{_{w}}$                 R err weighted2", "color": "xkcd:bluish grey", "marker":"s"}
     
-    if name == "45 angle":
+    if name == "45_angle":
         spacing = int(spacing_control*np.sqrt(2))
         
         F_div_u = np.zeros((N, N))

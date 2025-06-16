@@ -13,13 +13,16 @@ experiment_names = [
     
 
     "control",
-    "narrow spacing",
+    #"narrow spacing",
     #"exp",
     #"irregular spacing",
     #"irregular intensity",
     #"irregular domain",
     #"errors",
     
+    "control_div_shear",
+    "45_angle",
+     
     #"control_diamonds_angled",
     #"control_diamonds",
     
@@ -85,7 +88,7 @@ experiment_names = [
     
     #'control_decay',
     #"cantor",
-    "fractal_tree",
+    #"fractal_tree",
     #"radial_tree",
     #"sierpinski",
     #"koch",
@@ -219,7 +222,7 @@ dx, dy = 1, 1
 #dx, dy = 0.1, 0.1
 
 if new_run == True:
-    
+     
     #deformations_tot, intercepts, slopes, r2s, names, colors, markers = [], [], [], [], [], [], []
     deformations_tot, segments, names, colors, markers = [], [], [], [], []
 
@@ -263,61 +266,22 @@ if new_run == True:
         else:
             deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy)
 
-        #max_len = max(len(d) for d in deformations_Long)  # Find longest sublist
-        #deformations_Long_padded = [d + [np.nan] * (max_len - len(d)) for d in deformations_Long]
-        #deformations_Long = np.array(deformations_Long_padded)
-        
         deformations_tot.append(deformations_L)
         print("Scaling analysis done")
         print(color)
 
-        """
-        plt.rcParams.update({'font.size': 16})
-        with plt.style.context(['science', 'no-latex']):
-            fig, ax = plt.subplots(figsize=(7, 5))
-            ax.grid(True, which='both')
-            for i in range(len(L_values)):  
-                #x_vals = np.linspace(L_values[i] - 1, L_values[i] + 1, len(deformations_Long[i]))
-                x_vals = np.linspace(L_values[i] , L_values[i] , len(deformations_Long[i]))
-                ax.scatter(x_vals, deformations_Long[i], color=color, s=60, alpha=1, edgecolors="k", zorder=1000)
-        
-            ax.set_xlabel('Spatial scale (nu)')
-            ax.set_ylabel('$\\epsilon_{tot}$')
-            ax.set_xscale("log")
-            #plt.yscale("log")
-            #plt.ylim( -5,1)
-            ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif')
-            combined_filename = os.path.join("SIMS/project/figures", f"SCATTER_{name}_scaling.png")
-            plt.savefig(combined_filename, dpi=300)
-        """
+       
         
         # Step 4: Generate scaling figure
-        #intercept, slope, r2 = scaling_parameters(deformations_L, L_values)
-        #intercepts.append(intercept)
-        #slopes.append(-1*slope)
-        #r2s.append(r2)
         segment = scaling_segments(deformations_L, L_values)
         segments.append(segment)
         names.append(experiment["name"])
         colors.append(experiment["color"])
         markers.append(experiment["marker"])
-        #print(slope)
-        
-        print(deformations_tot)
     
         print(f"Finished processing: {name}\n")
         
         if save_exp == True:
-            # **Save results to a file for future use**
-            #results = {
-            #    "deformations_L": deformations_L,
-            #    "intercept": intercept,
-            #    "slope": slope,
-            #    "r2": r2,
-            #    "name": name,
-            #    "color": color,
-            #    "marker": marker,
-            #}
             results = {
                 "deformations_L": deformations_L,
                 "segment": segment,
@@ -326,7 +290,6 @@ if new_run == True:
                 "marker": marker,
             }
 
-            #safe_name = name.replace(" ", "")
             safe_name = name.strip().replace(" ", "").replace(":", "").replace("/", "")
             with open(f"SIMS/project/results/scaling_{safe_name}.pkl", "wb") as f:
                 pickle.dump(results, f)
@@ -340,47 +303,19 @@ if new_run == True:
     experiment = get_experiment("control")
     F, exp_type, name, color, marker = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"], experiment["marker"]
     # Step 2: Compute velocity fields
-    #flat = F.flatten()
-    #np.random.shuffle(flat)
-    #F = flat.reshape(F.shape)
-    #u, v, F_recomp = compute_velocity_fields(flat, exp_type, name, color)
     u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
-    
-    #flat_u = u.flatten()
-    #flat_v = v.flatten()
-    #np.random.shuffle(flat_u)
-    #u = flat_u.reshape(u.shape)
-    #np.random.shuffle(flat_v)    
-    #v= flat_v.reshape(v.shape)
+
     name, color =  "RGPS", "black"
     deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps')
 
-    #max_len = max(len(d) for d in deformations_Long)  # Find longest sublist
-    #deformations_Long_padded = [d + [np.nan] * (max_len - len(d)) for d in deformations_Long]
-    #deformations_Long = np.array(deformations_Long_padded)
-        
     deformations_tot.append(deformations_L)
     # Step 4: Generate scaling figure
-    #intercept, slope, r2 = scaling_parameters(deformations_L, L_values)
-    #intercepts.append(intercept)
-    #slopes.append(-1*slope)
-    #r2s.append(r2)
     segment = scaling_segments(deformations_L, L_values, name = "rgps")
     segments.append(segment)
     names.append(name)
     colors.append(color)
     markers.append(marker)
     
-    # **Save results to a file for future use**
-    #results = {
-    #    "deformations_L": deformations_L,
-    #    "intercept": intercept,
-    #    "slope": slope,
-    #    "r2": r2,
-    #    "name": name,
-    #    "color": color,
-    #    "marker": marker,
-    #}
     results = {
         "deformations_L": deformations_L,
         "segment": segment,
@@ -389,7 +324,6 @@ if new_run == True:
         "marker": marker,
     }
 
-    #safe_name = name.replace(" ", "").replace(":", "")
     safe_name = name.strip().replace(" ", "").replace(":", "").replace("/", "")
     with open(f"SIMS/project/results/scaling_{safe_name}.pkl", "wb") as f:
         pickle.dump(results, f)
@@ -407,85 +341,16 @@ if new_run == True:
     #names.append(name)
     #colors.append(color)
 
-    """
-    plt.rcParams.update({'font.size': 16})
-    with plt.style.context(['science', 'no-latex']):
-        fig, ax = plt.subplots(figsize=(7, 5))
-        ax.grid(True, which='both')
-        for i in range(len(L_values)):  
-            #x_vals = np.linspace(L_values[i] - 1, L_values[i] + 1, len(deformations_Long[i]))
-            x_vals = np.linspace(L_values[i] , L_values[i] , len(deformations_Long[i]))
-            ax.scatter(x_vals, deformations_Long[i], color=color, s=60, alpha=1, marker='^',edgecolors="k", zorder=1000)
-            ax.scatter(np.mean(x_vals), np.nanmean(deformations_Long[i]), marker='^', c='k', s=80, zorder=1000)
-            
-        ax.set_xlabel('Spatial scale (nu)')
-        ax.set_ylabel('$\\epsilon_{tot}$')
-        ax.set_xscale("log")
-        #plt.yscale("log")
-        #plt.ylim( -5,1)
-        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif')
-        combined_filename = os.path.join("SIMS/project/figures", f"SCATTER_{name}_scaling.png")
-        plt.savefig(combined_filename, dpi=300)
-    
-        # Step 4: Generate scaling figure
-        intercept, slope = scaling_parameters(deformations_L, L_values)
-        intercepts.append(intercept)
-        slopes.append(-1*slope)
-        names.append(name)
-        colors.append(color)
-        #print(slope)
-    
-        print(f"Finished processing: {name}\n")
-    """    
-    # Step 4: Generate scaling figure
-    #intercept, slope, r2 = scaling_parameters(deformations_L, L_values)
-    #intercepts.append(intercept)
-    #slopes.append(-1*slope)
-    #r2s.append(r2)
-    segment = scaling_segments(deformations_L, L_values, name = 'rgps')
-    segments.append(segment)
-    names.append(name)
-    colors.append(color)
-    markers.append(marker)
-    #print(slope)
-    
-    print(name)
-    print(deformations_L)
-    
     print(f"Finished processing: {name}\n")
-
-
-
-
-    # **Save results to a file for future use**
-    #results = {
-    #    "deformations_L": deformations_L,
-    #    "intercept": intercept,
-    #    "slope": slope,
-    #    "r2": r2,
-    #    "name": name,
-    #    "color": color,
-    #    "marker": marker,
-    #}
-    results = {
-        "deformations_L": deformations_L,
-        "segment": segment,
-        "name": name,
-        "color": color,
-        "marker": marker,
-    }
 
     with open("scaling_results.pkl", "wb") as f:
         pickle.dump(results, f)
     
-    print(name)
-    print(deformations_L)
     print("Results saved successfully")
     
     
     
 elif new_run == "RGPS":
-    #deformations_tot, intercepts, slopes, r2s, names, colors, markers = [], [], [], [], [], [], []
     deformations_tot, segments, names, colors, markers = [], [], [], [], []
         
     # RGPS
@@ -504,7 +369,6 @@ elif new_run == "RGPS":
     names.append(name)
     colors.append(color)
     markers.append("^")
-    
     
     # ABS DIVERGENCE
     name, color =  "|div|", "grey"
@@ -622,17 +486,11 @@ else:
     try:
         results_folder = "SIMS/project/results"
         deformations_tot = []
-        #intercepts = []
-        #slopes = []
-        #r2s = []
         segments = []
-        #names = []
         colors = []
         markers = []
 
         for name in names:
-            #safe_name = re.sub(" ", "", name).sub(":", "", name)
-            #safe_name = name.strip().replace(" ", "").replace(":", "")
             safe_name = name.strip().replace(" ", "").replace(":", "").replace("/", "")
             filename = f"scaling_{safe_name}.pkl"
             filepath = os.path.join(results_folder, filename)
@@ -640,11 +498,7 @@ else:
             with open(filepath, "rb") as f:
                 result = pickle.load(f)
                 deformations_tot.append(result["deformations_L"])
-                #intercepts.append(result["intercept"])
-                #slopes.append(-1*result["slope"])
-                #r2s.append(result["r2"])
                 segments.append(result["segment"])
-                #names.append(result["name"])
                 colors.append(result["color"])
                 markers.append(result["marker"])
                 
@@ -653,9 +507,6 @@ else:
         with open(filepath, "rb") as f:
             result = pickle.load(f)
             deformations_tot.append(result["deformations_L"])
-            #intercepts.append(result["intercept"])
-            #slopes.append(result["slope"])
-            #r2s.append(result["r2"])
             segments.append(result["segment"])
             names.append(result["name"])
             colors.append(result["color"])
@@ -667,30 +518,9 @@ else:
     except FileNotFoundError as e:
         print(f"Could not find file: {e.filename}")
     
-    '''
-    try:
-        with open("scaling_results.pkl", "rb") as f:
-            results = pickle.load(f)
-            deformations_tot = results["deformations_tot"]
-            intercepts = results["intercepts"]
-            slopes = results["slopes"]
-            r2s = results["r2s"]
-            names = results["names"]
-            colors = results["colors"]
-        print("Loaded precomputed results.")
-        
-    except FileNotFoundError:
-        print("No precomputed results found. Set `new_run = True` to generate results.")
-    '''
-
 
 
 print(deformations_tot)
-
-#print("slopes: ", slopes)
-
-#scaling_figure(deformations_tot, L_values, intercepts, slopes, r2s, names, colors,markers, linestyle="-")
-print(names)
 
 print(segments)
 scaling_figure(deformations_tot, L_values, segments, names, colors,markers, linestyle="-")

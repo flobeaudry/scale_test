@@ -30,6 +30,14 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     dv_dy = calc_dv_dy(v, dy)
     dv_dx = calc_dv_dx(v, dx)
     du_dy = calc_du_dy(u, dy)
+    # pad dudx and dvdy
+    du_dx = np.pad(du_dx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
+    dv_dy = np.pad(dv_dy, ((0, 1), (0, 0)), mode='constant')  # 1 row at the bottom
+    print("du dx", np.where(du_dx != 0))
+    print("dv dy", np.where(dv_dy != 0))
+    print("dv dx", np.where(dv_dx != 0))
+    print("du dy", np.where(du_dy != 0))
+    print('shape', np.shape(du_dx), np.shape(dv_dy), np.shape(dv_dx), np.shape(du_dy))
     
     # define the noise on the velocity gradients !!
     if c=='err' or c=='weighted' or c =="weighted2":
@@ -213,7 +221,7 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
         
         
         # load the already calculated deformations from Antoine's code (don't use; just for validation)      
-        deps = np.load("SIMS/project/rgps_deps.npy")
+        deps = np.load("SIMS/project/utils/rgps_deps.npy")
         # defo = deps
 
         
