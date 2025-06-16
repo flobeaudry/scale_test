@@ -9,7 +9,6 @@ from experiments.define_experiments_helpers import draw_line, draw_simple_tree, 
 def get_experiment(name):
     #N = 1024 # Grid size
     N = int(1024/2)
-    #N = int(6)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
