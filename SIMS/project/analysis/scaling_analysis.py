@@ -420,20 +420,6 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
         
     return deformations_L, deformations_Long
 
-
-def scaling_parameters(deformations_L, L_values):
-
-    """
-    Function to find scaling exponent (beta), the intercept and the r^2
-    """
-    
-    log_L_values = np.log(L_values)
-    log_deformations = np.log(deformations_L)
-    slope, intercept, r_value, _, _ = linregress(log_L_values, log_deformations)
-    r_squared = r_value**2
-    
-    return(intercept, slope, r_squared)
-
 class CostSlope(BaseCost):
     model = "slope"
 

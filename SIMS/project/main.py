@@ -5,8 +5,8 @@ import os
 import re
 from experiments.define_experiments import get_experiment
 from processing.deformation_to_velocity import compute_velocity_fields
-from analysis.scaling_analysis import scale_and_coarse, scaling_parameters, scaling_segments, scaling_figure
-from utils.figures_gen import fig_velocity_defo, fig_defo, fig_defo_new
+from analysis.scaling_analysis import scale_and_coarse, scaling_segments, scaling_figure
+from utils.figures_gen import fig_velocity_defo, fig_defo_new
 
 # Define experiments
 experiment_names = [

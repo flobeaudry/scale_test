@@ -28,9 +28,6 @@ def save_fields(u, v, out, start_date, end_date):
     # Create and save the fields over time
     current_time = start_date
     for t in range(time_steps):
-        # Add a small noize factor
-        #u_n = u+0.05*np.random.rand(N,N+1)
-        #v_n = v+0.05*np.random.rand(N+1,N)
         
         u_n = u
         v_n = v
