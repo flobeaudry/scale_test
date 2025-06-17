@@ -8,7 +8,7 @@ from experiments.define_experiments_helpers import draw_line, draw_simple_tree, 
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024/32)
+    N = int(1024/2)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
@@ -476,9 +476,9 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        #F = np.vstack([F_div_v, F_div_u])
-        return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
-        #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        F = np.vstack([F_div_v, F_div_u])
+        #return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
         
         
     if name == "control_div_shear":
@@ -497,8 +497,8 @@ def get_experiment(name):
         #F_div_u[1::spacing_control, :] = 1*mean_intensity  
     
         F_div_v = np.zeros((N, N))
-        F_div_v[:, offset::spacing_control] = -1*mean_intensity 
-        F_div_v[:, offset+1::spacing_control] = -1*mean_intensity  # second line !
+        F_div_v[:, offset::spacing_control] = 1*mean_intensity 
+        F_div_v[:, offset+1::spacing_control] = 1*mean_intensity  # second line !
         
         F_zero = np.zeros((N,N))
         

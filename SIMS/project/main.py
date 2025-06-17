@@ -245,7 +245,7 @@ if new_run == True:
             fig_velocity_defo(u, v, F_recomp, name, color, top_right_quadrant = True)
             # Plot recomputed deformations
 
-            fig_defo_new(u, v, F_recomp, name, color, top_right_quadrant = False)
+            #fig_defo_new(u, v, F_recomp, name, color, top_right_quadrant = False)
             print("Deformation figures created")
 
 

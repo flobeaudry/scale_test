@@ -9,7 +9,7 @@ from scipy.sparse import diags, block_diag, bmat,csr_matrix, lil_matrix, csc_mat
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 from utils.helpers import create_sparse_matrix_dx, create_sparse_matrix_dy, create_sparse_double_matrix_dydx, create_sparse_double_matrix_dxdy, create_sparse_matrix_dudy,create_sparse_matrix_dvdx, create_sparse_matrix_dy_shear, create_sparse_matrix_dx_shear
-from utils.velocity_gradients_calc import calc_du_dx, calc_du_dy, calc_dv_dx, calc_dv_dy
+from utils.velocity_gradients_calc import calc_du_dx, calc_du_dy, calc_dv_dx, calc_dv_dy, calc_shear, calc_div, calc_tot_defo
 
 
 def compute_velocity_fields(F, exp_type, name, color='k'):
@@ -86,19 +86,21 @@ def synthetic_divergence(F, name, color, dx=1, dy=1, vel_fig=True, div_fig=True)
     noise_v = np.zeros((N,N))
         
     # Compute the divergence
-    dudx = calc_du_dx(u, dx)
+    #dudx = calc_du_dx(u, dx)
     # Pad with zeros to add with dvdy   
-    zeros_i = np.zeros((u.shape[0], 1))
-    dudx = np.hstack((zeros_i, dudx)) 
+    #zeros_i = np.zeros((u.shape[0], 1))
+    #dudx = np.hstack((zeros_i, dudx)) 
     
 
-    dvdy = calc_dv_dy (v, dy)
+    #dvdy = calc_dv_dy (v, dy)
     # Pad with zeros to match
-    zeros_j = np.zeros(len(v[0,:]))
-    dvdy = np.vstack((zeros_j, dvdy))
+    #zeros_j = np.zeros(len(v[0,:]))
+    #dvdy = np.vstack((zeros_j, dvdy))
     
-    div = dudx + dvdy
-    shear = np.zeros((N,N))
+    #div = dudx + dvdy
+    #shear = np.zeros((N,N))
+    
+    div = calc_div (u, v, dx, dy)
     
     return U_grid, V_grid, div, noise_u, noise_v
 
@@ -145,15 +147,17 @@ def synthetic_shear(S, name, color, dx=1, dy=1, vel_fig=True, shear_fig=True):
     noise_u = np.zeros((N,N))
     noise_v = np.zeros((N,N))
     
-    div = np.zeros((N,N))
+    #div = np.zeros((N,N))
 
-    dvdx = calc_dv_dx (v, dx)
-    dudy = calc_du_dy (u, dy)
+    #dvdx = calc_dv_dx (v, dx)
+    #dudy = calc_du_dy (u, dy)
     
-    dudx = calc_du_dx (u, dx)
-    dvdy = calc_dv_dy (v, dy)
+    #dudx = calc_du_dx (u, dx)
+    #dvdy = calc_dv_dy (v, dy)
     #shear = np.sqrt((dudx - dvdy)**2 + (dudy + dvdx)**2)
-    shear = dudy + dvdx
+    #shear = dudy + dvdx
+    
+    shear = calc_shear (u, v, dx, dy)
    
     return U_grid, V_grid, shear, noise_u, noise_v
 
@@ -205,21 +209,22 @@ def synthetic_deformations(F, name, color, dx=1, dy=1, vel_fig=False, shear_fig=
     noise_u = np.zeros((N,N))
     noise_v = np.zeros((N,N))
 
-    dvdx = calc_dv_dx (v, dx)
-    dudy = calc_du_dy (u, dy)
+    #dvdx = calc_dv_dx (v, dx)
+    #dudy = calc_du_dy (u, dy)
     
-    dudx = calc_du_dx (u, dx)
-    dvdy = calc_dv_dy (v, dy)
+    #dudx = calc_du_dx (u, dx)
+    #dvdy = calc_dv_dy (v, dy)
     # pad dudx and dvdy
-    dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
-    dvdy = np.pad(dvdy, ((0, 1), (0, 0)), mode='constant')  # 1 row at the bottom
+    #dudx = np.pad(dudx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
+    #dvdy = np.pad(dvdy, ((0, 1), (0, 0)), mode='constant')  # 1 row at the bottom
     
-    shear = np.sqrt((dudx - dvdy)**2 + (dudy + dvdx)**2)
-    div = dudx + dvdy
+    #shear = np.sqrt((dudx - dvdy)**2 + (dudy + dvdx)**2)
+    #div = dudx + dvdy
     #shear = dudy + dvdx
     
-    defo = np.sqrt(shear **2 + div ** 2)
+    #defo = np.sqrt(shear **2 + div ** 2)
     
+    defo = calc_tot_defo (u, v, dx, dy)
     
     return U_grid, V_grid, defo, noise_u, noise_v
 

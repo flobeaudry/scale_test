@@ -24,20 +24,24 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
                 ----o----
                  v_{i,j}
     """
-
+    
     # get velocity gradients
-    du_dx = calc_du_dx(u, dx)
-    dv_dy = calc_dv_dy(v, dy)
-    dv_dx = calc_dv_dx(v, dx)
-    du_dy = calc_du_dy(u, dy)
+    du_dx = calc_du_dx(u, dx)[2:-2, 2:-2]
+    dv_dy = calc_dv_dy(v, dy)[2:-2, 2:-2]
+    dv_dx = calc_dv_dx(v, dx)[2:-2, 2:-2]
+    du_dy = calc_du_dy(u, dy)[2:-2, 2:-2]
+    print(np.shape(du_dy))
     # pad dudx and dvdy
-    du_dx = np.pad(du_dx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
-    dv_dy = np.pad(dv_dy, ((0, 1), (0, 0)), mode='constant')  # 1 row at the bottom
+    #du_dx = np.pad(du_dx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
+    #dv_dy = np.pad(dv_dy, ((0, 1), (0, 0)), mode='constant')  # 1 row at the bottom
+    print("NON-ZERO wheres")
     print("du dx", np.where(du_dx != 0))
     print("dv dy", np.where(dv_dy != 0))
     print("dv dx", np.where(dv_dx != 0))
     print("du dy", np.where(du_dy != 0))
-    print('shape', np.shape(du_dx), np.shape(dv_dy), np.shape(dv_dx), np.shape(du_dy))
+    
+    u = u[2:-2, 2:-2]
+    v = v[2:-2, 2:-2]
     
     # define the noise on the velocity gradients !!
     if c=='err' or c=='weighted' or c =="weighted2":
@@ -303,6 +307,47 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     deformations_L = []
     deformations_Long = []
     
+    if c == "c0":
+        print(c)
+        U_grid = u
+        V_grid = v
+        components = {
+            "du/dx": du_dx,
+            "dv/dy": dv_dy,
+            "du/dy": du_dy,
+            "dv/dx": dv_dx
+        }
+
+        # Create mesh grid
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X, Y = np.meshgrid(x, y)
+
+        # Plot
+        with plt.style.context(['science', 'no-latex']):
+            fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+            axes = axes.flatten()
+
+            for i, (label, data) in enumerate(components.items()):
+                ax = axes[i]
+                pcm = ax.pcolormesh(X, Y, data, cmap='coolwarm', shading='auto', vmin=-0.2, vmax=0.2,alpha=0.9)
+                ax.quiver(X, Y, U_grid, V_grid, color='k', linewidth=1, width=0.002, scale=1, scale_units='xy', alpha=0.8)
+                ax.set_title(label, fontweight="bold", fontsize=14)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                for spine in ax.spines.values():
+                    spine.set_edgecolor('black')
+                    spine.set_linewidth(1.5)
+
+            # Shared colorbar
+            cbar = fig.colorbar(pcm, ax=axes.ravel().tolist(), orientation='horizontal', fraction=0.03, pad=0.08)
+            cbar.set_label('Velocity gradients', fontsize=14)
+
+            #plt.tight_layout()
+            combined_filename = os.path.join("SIMS/project/figures/tests", f"velo_gradients_components.png")
+            plt.savefig(combined_filename, dpi=300)
+            plt.close(fig)
+    
     fig, ax = plt.subplots(figsize=(7, 4))
     cmap = plt.cm.viridis
     norm = plt.Normalize(vmin=0, vmax=20) 
@@ -330,6 +375,7 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
             divergence_noise = du_dx_moy_noise + dv_dy_moy_noise
             
             shear = np.sqrt((du_dx_moy - dv_dy_moy)**2 + (du_dy_moy + dv_dx_moy)**2)
+            shear = (du_dy_moy + dv_dx_moy)
             shear_noise = np.sqrt((du_dx_moy_noise - dv_dy_moy_noise)**2 + (du_dy_moy_noise + dv_dx_moy_noise)**2)
 
             deformation = np.sqrt(divergence**2 + shear**2)
@@ -368,8 +414,8 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
                     divergence = du_dx_moy + dv_dy_moy
                     divergence_noise = du_dx_moy_noise + dv_dy_moy_noise
                     
-                    shear = np.sqrt((du_dx_moy - dv_dy_moy)**2)
                     real_shear = np.sqrt((du_dx_moy - dv_dy_moy)**2 + (du_dy_moy + dv_dx_moy)**2)
+                    real_shear = (du_dy_moy + dv_dx_moy)
                     real_shear_noise = np.sqrt((du_dx_moy_noise - dv_dy_moy_noise)**2 + (du_dy_moy_noise + dv_dx_moy_noise)**2)
                     
                     if np.shape(block_du_dx)!= np.shape(block_dv_dy):
