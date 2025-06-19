@@ -12,6 +12,10 @@ def get_experiment(name):
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
+    scaling_on = "all"
+    #scaling_on = "du_dx"
+    #scaling_on = "div"
+    
     #spacing_control = 16
     #spacing_small = 4
     
@@ -25,6 +29,43 @@ def get_experiment(name):
     std = 1.0
     gaussian_values = np.random.normal(loc=mean, scale=std, size=N//spacing_control)
     gaussian_values_div = (np.round(gaussian_values)) #make the values round values (either 0 or 1)
+    
+    if name == "axial_strain":
+        # Define only divergence and convergence; du/dx vertical positive lines, and dv/dy horizontal negative lines
+        
+        du_dx = np.zeros((N, N))
+        du_dx[:, ::spacing_control] = 1*mean_intensity 
+
+        dv_dy = np.zeros((N,N))
+        dv_dy[::spacing_control, :] = -1*mean_intensity
+        
+        du_dy = np.zeros((N,N))
+        dv_dx = np.zeros((N,N))
+    
+        F = np.vstack([du_dx, dv_dy, du_dy, dv_dx])
+        
+        return {"F": F, "exp_type": "both", "name": "axial strain", "color": "xkcd:orange", "marker":"o", "scaling_on": scaling_on}
+    
+    if name == "pure_shear_strain":
+        # Define only shear; dv/dx vertical positive lines, and du/dy horizontal positive lines
+        
+        du_dx = np.zeros((N, N))
+
+        dv_dy = np.zeros((N,N))
+        
+        du_dy = np.zeros((N,N))
+        du_dy[::spacing_control, :] = 1*mean_intensity
+         
+        dv_dx = np.zeros((N,N))
+        dv_dx[:, ::spacing_control] = 1*mean_intensity 
+    
+        F = np.vstack([du_dx, dv_dy, du_dy, dv_dx])
+        
+        return {"F": F, "exp_type": "both", "name": "pure shear strain", "color": "xkcd:light indigo", "marker":"o", "scaling_on": scaling_on}
+    
+    
+    
+    
     
     if name == "sin+":
         x = np.linspace(0, 2 * np.pi, N)  # x-domain
@@ -199,7 +240,7 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         
         #return {"F": F, "exp_type": "div", "name": "k=N/4: sin -0.5 to 0.5", "color": darker}
-        return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "tab:blue", "marker":"s"}
+        return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "tab:blue", "marker":"s", "scaling_on":scaling_on}
     
     
     
@@ -478,23 +519,23 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         F = np.vstack([F_div_v, F_div_u])
         #return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
-        return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
+        return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
         
         
     if name == "control_div_shear":
         F_div_u = np.zeros((N, N))
         #spacing_control=3
         offset = 4
-        F_div_u[:, offset::spacing_control] = 1*mean_intensity 
-        F_div_u[:, offset+1::spacing_control] = 1*mean_intensity  # second line !
+        #F_div_u[:, offset::spacing_control] = 1*mean_intensity 
+        #F_div_u[:, offset+1::spacing_control] = 1*mean_intensity  # second line !
         
         # vertical lines !
         #F_div_u[:, ::spacing_control] = 1*mean_intensity 
         #F_div_u[:, 1::spacing_control] = 1*mean_intensity  # second line !
         
         # horizontal lines !
-        #F_div_u[::spacing_control, :] = 1*mean_intensity
-        #F_div_u[1::spacing_control, :] = 1*mean_intensity  
+        F_div_u[offset::spacing_control, :] = 1*mean_intensity
+        F_div_u[offset+1::spacing_control, :] = 1*mean_intensity  
     
         F_div_v = np.zeros((N, N))
         F_div_v[:, offset::spacing_control] = 1*mean_intensity 
@@ -502,11 +543,12 @@ def get_experiment(name):
         
         F_zero = np.zeros((N,N))
         
-        F = np.vstack([F_div_u, F_div_v])
+        #F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
-        F = np.vstack([F_div_u, F_zero, F_zero, F_div_v])
+        F = np.vstack([F_zero, F_div_u, F_zero, F_div_v])
+        #F = np.vstack([F_div_u, F_zero, F_zero, F_div_v])
         
-        return {"F": F, "exp_type": "both", "name": "control (s=4Δx) s+d        ", "color": "xkcd:violet", "marker":"o"}
+        return {"F": F, "exp_type": "both", "name": "control (s=4Δx) s+d        ", "color": "xkcd:violet", "marker":"o", "scaling_on": scaling_on}
         #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
     
     
@@ -602,7 +644,7 @@ def get_experiment(name):
                     F_div_v[i, j] = 1*mean_intensity
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "45 angle", "color": "tab:cyan", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "45 angle", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on}
     
     if name == "irregular spacing":
         mean = 1.0
@@ -986,6 +1028,7 @@ def get_experiment(name):
     if name == "fractal_tree":
         N_fractal = int(N/2*4)
         N_fractal = int(N/2)
+        N_fractal = int(N)
         
         #N_fractal = int(N)
         
@@ -1003,9 +1046,10 @@ def get_experiment(name):
         #tree_array = generate_radial_tree(N=N_fractal, depth=10, branches_per_level=2)
         
         # with ratios !!
-        #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, max_trees=1000, depth=10, branches_per_level=3)
+        tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, depth=10, branches_per_level=2)
+        #tree_array = generate_radial_tree_without_ratios(N=N_fractal, depth=10, branches_per_level=2)
         #tree_array = generate_fracture_field(N=N_fractal, num_fractures = 15, depth = 10)
-        tree_array = generate_fracture_field(N=N_fractal,depth = 6, fill_fraction = ratio, max_fractures = 1000)
+        #tree_array = generate_fracture_field(N=N_fractal,depth = 6, fill_fraction = ratio, max_fractures = 1000)
         
         # re-calculate the ratio
         ones = len(np.where(tree_array != 0)[0])
@@ -1014,7 +1058,7 @@ def get_experiment(name):
         print('input ratio: ', ratio, ' re-calc ratio: ', ratio_recomp)
         
         #print('NOZERO', np.where(tree_array != 0))
-        F_div_u = np.zeros((N, N)) 
+        F_div_u = np.zeros((N, N), dtype=float) 
         #size_cut = int(N_fractal/4)
         size_cut = int(N_fractal/4)
         print(np.shape(tree_array))
@@ -1036,13 +1080,17 @@ def get_experiment(name):
         #print(np.shape(F_div_u[N_fractal//2:, N_fractal//2:]))
         
         
-        F_div_u[N//2:, N//2:] = tree_array
+        #F_div_u[N//2:, N//2:] = tree_array
+        F_div_u[N//2:, N//2:] = tree_array[:N_fractal//2,N_fractal//4:N_fractal//4*3]
         #F_div_u[N//2:, N//2:] = new_tree_array
         #F_div_u[N//2:, N//2:] = zoom_tree_array
-         
+        
+        array = tree_array
+        print(np.max(array), np.min(array), np.unique(array))
+        
         F_div_v = np.zeros((N, N))                                 
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "fractal fracture", "color": "xkcd:pinky red", 'marker':'P' }
+        return {"F": F, "exp_type": "div", "name": "fractal fracture", "color": "xkcd:pinky red", 'marker':'P', "scaling_on":scaling_on}
     
     
     if name == "radial_tree":
@@ -1068,7 +1116,7 @@ def get_experiment(name):
 
         F_div_v = np.zeros((N, N))                                 
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "radial_tree", "color": "xkcd:marine blue", 'marker':'P' }
+        return {"F": F, "exp_type": "div", "name": "radial_tree", "color": "xkcd:marine blue", 'marker':'P', "scaling_on":scaling_on}
     
     if name == 'control_decay':
         
@@ -1819,25 +1867,25 @@ def get_experiment(name):
 
         
         # the ones to use (actual original !!)
-        #F_div_u[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
-        #F_div_u[:, ::spacing_control * 2] = -1*mean_intensity
+        F_div_u[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        F_div_u[:, ::spacing_control * 2] = -1*mean_intensity
         
         # for having an offset and two lines of thickness
         offset = 4
-        F_div_u[:, offset+spacing_control::spacing_control * 2] = 1.1*mean_intensity
-        F_div_u[:, offset+spacing_control+1::spacing_control * 2] = 1.1*mean_intensity
-        F_div_u[:, offset::spacing_control * 2] = -1*mean_intensity
-        F_div_u[:, offset+1::spacing_control * 2] = -1*mean_intensity
+        #F_div_u[:, offset+spacing_control::spacing_control * 2] = 1.1*mean_intensity
+        #F_div_u[:, offset+spacing_control+1::spacing_control * 2] = 1.1*mean_intensity
+        #F_div_u[:, offset::spacing_control * 2] = -1*mean_intensity
+        #F_div_u[:, offset+1::spacing_control * 2] = -1*mean_intensity
     
         F_div_v = np.zeros((N, N))
         
         #F_div_v[:, spacing_control::spacing_control * 2] = 1.1*mean_intensity
         #F_div_v[:, ::spacing_control * 2] = -1*mean_intensity
         
-        #F = np.vstack([F_div_u, F_div_v])
-        F = np.vstack([F_div_v, F_div_u])
-        #return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue", "marker":"o"}
-        return {"F": F, "exp_type": "shear", "name": "control +-", "color": "tab:blue", "marker":"o"}
+        F = np.vstack([F_div_u, F_div_v])
+        #F = np.vstack([F_div_v, F_div_u])
+        return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "shear", "name": "control +-", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
 
     
     if name == "irregular spacing +-":

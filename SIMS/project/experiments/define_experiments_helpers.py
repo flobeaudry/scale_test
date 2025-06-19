@@ -5,7 +5,7 @@ from matplotlib.colors import to_rgb, to_hex
 from scipy.ndimage import rotate
 
 
-def draw_line(array, x0, y0, x1, y1):
+def draw_line(array, x0, y0, x1, y1, intensity = 0.1):
     """Draw a line in the array using Bresenham’s algorithm."""
     #x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
     x0, y0, x1, y1 = int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1))
@@ -17,7 +17,9 @@ def draw_line(array, x0, y0, x1, y1):
 
     while True:
         if 0 <= x0 < array.shape[0] and 0 <= y0 < array.shape[1]:
-            array[x0, y0] = 1
+            array[x0, y0] = intensity
+            print(intensity)
+            #array[y0, x0] = 1*intensity
         if x0 == x1 and y0 == y1:
             break
         e2 = 2 * err
@@ -59,18 +61,21 @@ def generate_simple_tree(N=200, depth=5):
 
 
 
-def draw_radial_tree(array, x, y, angle, length, depth, branches_per_level=4, angle_spread=math.radians(30)):
+def draw_radial_tree(array, x, y, angle, length, depth, branches_per_level=4, angle_spread=math.radians(30), current_depth=0):
     if depth == 0 or length < 1:
         return
     
+    #intensity = 0.5 ** (current_depth)  # Halve the intensity each level deeper
+    intensity = 2 ** current_depth
+    #print(current_depth)
     angles = np.linspace(-angle_spread / 2, angle_spread / 2, branches_per_level)
 
     for da in angles:
         new_angle = angle + da
         x_end = x + length * math.sin(new_angle)
         y_end = y + length * math.cos(new_angle)
-        draw_line(array, x, y, x_end, y_end)
-        draw_radial_tree(array, x_end, y_end, new_angle, length * 0.7, depth - 1, branches_per_level, angle_spread)
+        draw_line(array, x, y, x_end, y_end, intensity = intensity)
+        draw_radial_tree(array, x_end, y_end, new_angle, length * 0.7, depth - 1, branches_per_level, angle_spread, current_depth+1)
 
 
     #angles = np.linspace(0, 2 * np.pi, branches_per_level, endpoint=False)
@@ -96,7 +101,8 @@ def generate_radial_tree_without_ratios(N=200, depth=4, branches_per_level=5):
     start_y = 0                  # far left
     initial_angle = 0            # angle in radians: 0 = pointing right
     initial_length = N // 4
-    draw_radial_tree(array, start_x, start_y, initial_angle, initial_length, depth, branches_per_level)
+    draw_radial_tree(array, start_x, start_y, -np.pi//2, N // 6, depth, branches_per_level)
+    #draw_radial_tree(array, start_x, start_y, initial_angle, initial_length, depth, branches_per_level)
     return array
 
 def generate_radial_tree_too_full(N=256, fill_fraction=0.1, max_trees=1000, depth=5, branches_per_level=3):
@@ -115,13 +121,13 @@ def generate_radial_tree_too_full(N=256, fill_fraction=0.1, max_trees=1000, dept
 
     return array
 def generate_radial_tree(N=256, fill_fraction=0.02, depth=6, branches_per_level=2):
-    array = np.zeros((N, N), dtype=int)
+    array = np.zeros((N, N), dtype=float)
     total_pixels = N * N
     start_x, start_y = N // 2, N // 2
     angle = -np.pi / 2  # start upward
 
     # draw just one tree and stop if overfilled
-    draw_radial_tree(array, start_x, start_y, angle, N // 5, depth, branches_per_level)
+    draw_radial_tree(array, start_x, start_y, angle, N // 7, depth, branches_per_level)
     filled_ratio = np.count_nonzero(array) / total_pixels
 
     if filled_ratio > fill_fraction:

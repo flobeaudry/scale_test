@@ -133,6 +133,7 @@ def synthetic_shear(S, name, color, dx=1, dy=1, vel_fig=True, shear_fig=True):
     zero_matrix = lil_matrix((N2, N2))
     B_sparse = create_sparse_matrix_dy_shear(N).tolil()
     A_sparse = create_sparse_matrix_dx(N).tolil()  # for div, wrong !!
+    #A_sparse = create_sparse_matrix_dx_shear(N).tolil()
     AB_sparse = bmat([[A_sparse, zero_matrix], [zero_matrix, B_sparse]], format="lil")
     AB_sparse = AB_sparse.tocsr()
 

@@ -131,7 +131,7 @@ def create_sparse_matrix_dy_shear_singular(N, dy=1):
     plt.close()
     return sparse_matrix
     
-def create_sparse_matrix_dy_shear(N, dy=1):
+def create_sparse_matrix_dy_shear_2025_06_17(N, dy=1):
     blocks = []
     Nx = N
     Ny = N
@@ -282,6 +282,7 @@ def create_sparse_matrix_dy_shear(N, dy=1):
     for i in range(size):
         if i % N == 0:
             M[i, i] = 1  # Dirichlet condition
+            #M[i, i+N] = 1  # Dirichlet condition
         else:
             M[i, i] = -1 / dy
             if i + 1 < size:

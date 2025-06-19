@@ -6,13 +6,15 @@ import re
 from experiments.define_experiments import get_experiment
 from processing.deformation_to_velocity import compute_velocity_fields
 from analysis.scaling_analysis import scale_and_coarse, scaling_segments, scaling_figure
-from utils.figures_gen import fig_velocity_defo, fig_defo_new
+from utils.figures_gen import fig_velocity_defo, fig_defo_new, fig_defo_gradients
 
 # Define experiments
 experiment_names = [
     
+    "axial_strain",
+    "pure_shear_strain",
 
-    "control",
+    #"control",
     #"narrow spacing",
     #"exp",
     #"irregular spacing",
@@ -20,8 +22,8 @@ experiment_names = [
     #"irregular domain",
     #"errors",
     
-    "control_div_shear",
-    "45_angle",
+    #"control_div_shear",
+    #"45_angle",
      
     #"control_diamonds_angled",
     #"control_diamonds",
@@ -209,7 +211,8 @@ experiment_names = [
     #"DivShear0"
     ]
 
-new_run = True
+#new_run = True
+new_run = "vel_gradients"
 #new_run = "RGPS"
 #new_run = "RGPS_threshold"
 save_exp = False # Do you want to save the experiment you are running ?
@@ -233,7 +236,7 @@ if new_run == True:
     
         # Step 1: Fetch experiment
         experiment = get_experiment(name)
-        F, exp_type, name, color, marker = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"], experiment["marker"]
+        F, exp_type, name, color, marker, scaling_on = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"], experiment["marker"], experiment["scaling_on"]
 
         # Step 2: Compute velocity fields
         u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
@@ -245,7 +248,7 @@ if new_run == True:
             fig_velocity_defo(u, v, F_recomp, name, color, top_right_quadrant = True)
             # Plot recomputed deformations
 
-            #fig_defo_new(u, v, F_recomp, name, color, top_right_quadrant = False)
+            fig_defo_new(u, v, F_recomp, name, color, top_right_quadrant = False)
             print("Deformation figures created")
 
 
@@ -253,18 +256,18 @@ if new_run == True:
         #deformations_L, deformations_Long = scale_and_coarse(u, v, L_values, dx=dx, dy=dy)
         
         if name.endswith("c1"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='c1')
+            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='c1',  scaling_on = scaling_on )
             
         elif name.endswith("err"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='err')
+            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='err',  scaling_on = scaling_on )
             
         elif name.endswith("weighted"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted')
+            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted', scaling_on = scaling_on )
         elif name.endswith("weighted2"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted2')
+            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted2', scaling_on = scaling_on )
             
         else:
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy)
+            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, scaling_on = scaling_on )
 
         deformations_tot.append(deformations_L)
         print("Scaling analysis done")
@@ -306,7 +309,7 @@ if new_run == True:
     u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
 
     name, color =  "RGPS", "black"
-    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps')
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "du_dx")
 
     deformations_tot.append(deformations_L)
     # Step 4: Generate scaling figure
@@ -359,10 +362,11 @@ elif new_run == "RGPS":
     u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
     
     # All RGPS cases...
+    scaling_on = "du_dx"
     
     # ONLY DIVERGENCE
     name, color =  "div", "black"
-    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div")
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div", scaling_on = scaling_on)
     deformations_tot.append(deformations_L)
     segment = scaling_segments(deformations_L, L_values, name = "rgps")
     segments.append(segment)
@@ -372,7 +376,7 @@ elif new_run == "RGPS":
     
     # ABS DIVERGENCE
     name, color =  "|div|", "grey"
-    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_abs")
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_abs", scaling_on = scaling_on)
     deformations_tot.append(deformations_L)
     segment = scaling_segments(deformations_L, L_values, name = "rgps")
     segments.append(segment)
@@ -382,7 +386,7 @@ elif new_run == "RGPS":
     
     # POS DIVERGENCE
     name, color =  "div>0", "red"
-    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_pos")
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_pos", scaling_on = scaling_on)
     deformations_tot.append(deformations_L)
     segment = scaling_segments(deformations_L, L_values, name = "rgps")
     segments.append(segment)
@@ -390,9 +394,10 @@ elif new_run == "RGPS":
     colors.append(color)
     markers.append("^")
 
+    '''
     # NEG DIVERGENCE
     name, color =  "div<0", "blue"
-    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_neg")
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', rgps="div_neg", scaling_on = scaling_on)
     print("HEREEE")
     deformations_tot.append(deformations_L)
     segment = scaling_segments(deformations_L, L_values, name = "rgps")
@@ -400,6 +405,7 @@ elif new_run == "RGPS":
     names.append(name)
     colors.append(color)
     markers.append("^")
+    '''
     
     print(f"Finished processing: {name}\n")
     
@@ -468,7 +474,118 @@ elif new_run == "RGPS_threshold":
     
     print(f"Finished processing: {name}\n")
     
-  
+
+
+
+
+if new_run == "vel_gradients":
+     
+    #deformations_tot, intercepts, slopes, r2s, names, colors, markers = [], [], [], [], [], [], []
+    deformations_tot, segments, names, colors, markers = [], [], [], [], []
+
+    # Loop through experiments
+
+    for name in experiment_names:
+        print(f"Processing experiment: {name}")
+    
+        # Step 1: Fetch experiment
+        experiment = get_experiment(name)
+        F, exp_type, name, color, marker, scaling_on = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"], experiment["marker"], experiment["scaling_on"]
+
+        du_dx, dv_dy, du_dy, dv_dx = np.split(F, 4, axis=0)
+        print('DU_DX',np.shape(du_dx))
+        print('DV_DY',np.shape(dv_dy))
+        print('DU_DY',np.shape(du_dy))
+        print('DV_DX',np.shape(dv_dx))
+        fig_defo_gradients(du_dx, dv_dy, du_dy, dv_dx, name, color)
+        
+        # Step 3: Perform scaling analysis
+        deformations_L, deformations_Long = scale_and_coarse(u=F, v=np.zeros((16,16)), u_noise=0, v_noise=0, L_values = L_values, dx=dx, dy=dy, c='vel_gradients',  scaling_on = scaling_on )
+       
+        deformations_tot.append(deformations_L)
+        print("Scaling analysis done")
+        print(color)
+        
+        # Step 4: Generate scaling figure
+        segment = scaling_segments(deformations_L, L_values)
+        segments.append(segment)
+        names.append(experiment["name"])
+        colors.append(experiment["color"])
+        markers.append(experiment["marker"])
+    
+        print(f"Finished processing: {name}\n")
+        
+        if save_exp == True:
+            results = {
+                "deformations_L": deformations_L,
+                "segment": segment,
+                "name": name,
+                "color": color,
+                "marker": marker,
+            }
+
+            safe_name = name.strip().replace(" ", "").replace(":", "").replace("/", "")
+            with open(f"SIMS/project/results/scaling_{safe_name}.pkl", "wb") as f:
+                pickle.dump(results, f)
+        
+            print("Results saved successfully")
+        
+        
+        
+        
+    # RGPS
+    experiment = get_experiment("control")
+    F, exp_type, name, color, marker = experiment["F"], experiment["exp_type"], experiment["name"], experiment["color"], experiment["marker"]
+    # Step 2: Compute velocity fields
+    u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
+
+    name, color =  "RGPS", "black"
+    deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "du_dx")
+
+    deformations_tot.append(deformations_L)
+    # Step 4: Generate scaling figure
+    segment = scaling_segments(deformations_L, L_values, name = "rgps")
+    segments.append(segment)
+    names.append(name)
+    colors.append(color)
+    markers.append(marker)
+    
+    results = {
+        "deformations_L": deformations_L,
+        "segment": segment,
+        "name": name,
+        "color": color,
+        "marker": marker,
+    }
+
+    safe_name = name.strip().replace(" ", "").replace(":", "").replace("/", "")
+    with open(f"SIMS/project/results/scaling_{safe_name}.pkl", "wb") as f:
+        pickle.dump(results, f)
+    
+    # SIM test Antoine
+    #name, color =  "SIM", "lightseagreen"
+    #deformations_L, deformations_Long = scale_and_coarse(u, v, L_values, dx=dx, dy=dy, c='sim')
+    #deformations_tot.append(deformations_L)
+    #print("Scaling analysis done")
+    #print(color)
+    #intercept, slope, r2 = scaling_parameters(deformations_L, L_values)
+    #intercepts.append(intercept)
+    #slopes.append(-1*slope)
+    #r2s.append(r2)
+    #names.append(name)
+    #colors.append(color)
+
+    print(f"Finished processing: {name}\n")
+
+    with open("scaling_results.pkl", "wb") as f:
+        pickle.dump(results, f)
+    
+    print("Results saved successfully")
+
+
+
+
+
 else:
     print('oups')
     

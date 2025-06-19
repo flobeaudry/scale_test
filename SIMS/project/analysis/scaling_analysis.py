@@ -30,6 +30,7 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     dv_dy = calc_dv_dy(v, dy)[2:-2, 2:-2]
     dv_dx = calc_dv_dx(v, dx)[2:-2, 2:-2]
     du_dy = calc_du_dy(u, dy)[2:-2, 2:-2]
+    
     print(np.shape(du_dy))
     # pad dudx and dvdy
     #du_dx = np.pad(du_dx, ((0, 0), (1, 0)), mode='constant')  # 1 col on the left
@@ -42,6 +43,11 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     
     u = u[2:-2, 2:-2]
     v = v[2:-2, 2:-2]
+    
+    if c == "vel_gradients":
+        print("You directly specified the velocity gradients!")
+        du_dx, dv_dy, du_dy, dv_dx = np.split(u, 4, axis=0)
+    
     
     # define the noise on the velocity gradients !!
     if c=='err' or c=='weighted' or c =="weighted2":
@@ -75,6 +81,7 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
         du_dy_noise = np.zeros_like(du_dy)
         dv_dx_noise = np.zeros_like(dv_dx)
         dv_dy_noise = np.zeros_like(dv_dy)
+    
     
     
     
@@ -258,8 +265,11 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
         
     
     if scaling_on != "all":
+        print(scaling_on)
         if scaling_on == "du_dx":
+            print("hi?")
             dv_dy, du_dy, dv_dx = np.zeros_like(du_dx), np.zeros_like(du_dx), np.zeros_like(du_dx)
+            #dv_dy, du_dy, dv_dx = np.ones_like(du_dx)*np.NaN, np.ones_like(du_dx)*np.NaN, np.ones_like(du_dx)*np.NaN
         
         if scaling_on == "du_dy":
             dv_dy, du_dx, dv_dx = np.zeros_like(du_dx), np.zeros_like(du_dx), np.zeros_like(du_dx)
@@ -297,12 +307,25 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
             dv_dy[~np.isnan(dv_dy)] = flat_dvdy
             #"""
         
-        else:
-            raise ValueError("Scaling condition unrecognized.")
+        #else:
+        #    raise ValueError("Scaling condition unrecognized.")
     
     
     
     # -----------------------------------   Scaling   -----------------------------------------------------
+    print("NON-ZERO before scaling")
+    print("du dx", np.where(du_dx != 0))
+    print("dv dy", np.where(dv_dy != 0))
+    print("dv dx", np.where(dv_dx != 0))
+    print("du dy", np.where(du_dy != 0))
+    
+    # Figure for PDF
+    #fig, ax = plt.subplots(figsize=(6, 4))
+    #plt.hist(du_dx[du_dx != 0].flatten(), bins=100, density=True, alpha=0.7, color='k')
+    #combined_filename = os.path.join("SIMS/project/figures", f"PDF.png")
+    #plt.savefig(combined_filename, dpi=300)        
+    #plt.close()
+    
     # Initialise things
     deformations_L = []
     deformations_Long = []
@@ -375,12 +398,13 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
             divergence_noise = du_dx_moy_noise + dv_dy_moy_noise
             
             shear = np.sqrt((du_dx_moy - dv_dy_moy)**2 + (du_dy_moy + dv_dx_moy)**2)
-            shear = (du_dy_moy + dv_dx_moy)
+            #shear = (du_dy_moy + dv_dx_moy)
             shear_noise = np.sqrt((du_dx_moy_noise - dv_dy_moy_noise)**2 + (du_dy_moy_noise + dv_dx_moy_noise)**2)
 
             deformation = np.sqrt(divergence**2 + shear**2)
             deformation_noise = np.sqrt(divergence_noise**2 + shear_noise**2)
             
+            #deformation = np.abs(du_dx_moy) # !!!!!!! test
 
             coarse_defos.append(deformation)
             coarse_defos_noise.append(deformation/deformation_noise) # for weighting
@@ -415,7 +439,7 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
                     divergence_noise = du_dx_moy_noise + dv_dy_moy_noise
                     
                     real_shear = np.sqrt((du_dx_moy - dv_dy_moy)**2 + (du_dy_moy + dv_dx_moy)**2)
-                    real_shear = (du_dy_moy + dv_dx_moy)
+                    #real_shear = (du_dy_moy + dv_dx_moy)
                     real_shear_noise = np.sqrt((du_dx_moy_noise - dv_dy_moy_noise)**2 + (du_dy_moy_noise + dv_dx_moy_noise)**2)
                     
                     if np.shape(block_du_dx)!= np.shape(block_dv_dy):
@@ -425,10 +449,14 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
                         divergence_bool = block_du_dx + block_dv_dy
                         real_shear_bool = np.sqrt((block_du_dx - block_dv_dy)**2 + (block_du_dy + block_dv_dx)**2) #good one
                         shear_bool = np.sqrt((block_du_dx - block_dv_dy)**2) # use for div only
+                        
+                        dudx_bool = np.abs(block_du_dx)
 
 
                     deformation = np.sqrt(divergence**2 + real_shear**2)
+                    #deformation = np.abs(du_dx_moy) # !!!!!!! test
                     deformation_bool = np.sqrt(divergence_bool**2 + real_shear_bool**2)
+                    #deformation_bool = np.abs(dudx_bool) # !!!!!!! test
                     deformation_noise = np.sqrt(divergence_noise**2 + real_shear_noise**2)
        
                 
