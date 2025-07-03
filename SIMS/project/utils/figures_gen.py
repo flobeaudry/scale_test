@@ -158,7 +158,8 @@ def fig_velocity_defo(U_grid, V_grid, div, name, color, top_right_quadrant = Tru
 
         for i, (label, data) in enumerate(components.items()):
             ax = axes[i]
-            pcm = ax.pcolormesh(X, Y, data, cmap='coolwarm', shading='auto', vmin=-0.01, vmax=0.01,alpha=0.9)
+            #pcm = ax.pcolormesh(X, Y, data, cmap='coolwarm', shading='auto', vmin=-0.01, vmax=0.01,alpha=0.9)
+            pcm = ax.pcolormesh(X, Y, data, cmap='coolwarm', shading='auto', vmin=-0.001, vmax=0.001,alpha=0.9)
             #ax.quiver(X, Y, U_grid, V_grid, color='k', linewidth=1, width=0.002, scale=1, scale_units='xy', alpha=0.8)
             ax.set_title(label, fontweight="bold", fontsize=14)
             ax.set_xticks([])
@@ -197,7 +198,7 @@ def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = False):
            
     with plt.style.context(['science', 'no-latex']):
         # Create a single figure with one panel
-        fig, ax = plt.subplots(figsize=(4, 4))
+        fig, ax = plt.subplots(figsize=(4, 4.3))
 
         # Create a mesh grid for the vector field
         x = np.arange(U_grid.shape[1])
@@ -206,12 +207,15 @@ def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = False):
         print('HERE',np.shape(X))
         
         #cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=0.6, vmin = -0.1, vmax = 0.1)
-        cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=0.6, vmin = -0.01, vmax = 0.01)
+        cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=1, vmin = -0.1, vmax = 0.1, edgecolors='black', linewidth=0.15)
+        #cmap = ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='nearest', alpha=1, vmin = -0.01, vmax = 0.01)
         
-        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif', fontsize=23)
+        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif', fontsize=20)
         ax.set_xticks([])
         ax.set_yticks([])
 
+        ax.grid(True, which='both')
+        
         # Adjust spines
         for spine in ax.spines.values():
             spine.set_edgecolor('black')
@@ -233,7 +237,7 @@ def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = False):
 
 
 
-def fig_defo_gradients(du_dx, dv_dy, du_dy, dv_dx, name, color, top_right_quadrant = False):
+def fig_defo_gradients(du_dx, dv_dy, du_dy, dv_dx, name, color):
     
     components = {
         "du/dx": du_dx,
@@ -249,7 +253,7 @@ def fig_defo_gradients(du_dx, dv_dy, du_dy, dv_dx, name, color, top_right_quadra
 
     # Plot
     with plt.style.context(['science', 'no-latex']):
-        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 9))
         axes = axes.flatten()
 
         for i, (label, data) in enumerate(components.items()):

@@ -266,6 +266,10 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     
     if scaling_on != "all":
         print(scaling_on)
+        
+        if scaling_on == "abs":
+            du_dx, dv_dy, du_dy, dv_dx = np.abs(du_dx), np.abs(dv_dy), np.abs(du_dy), np.abs(dv_dx)
+            
         if scaling_on == "du_dx":
             print("hi?")
             dv_dy, du_dy, dv_dx = np.zeros_like(du_dx), np.zeros_like(du_dx), np.zeros_like(du_dx)
@@ -519,7 +523,7 @@ class CostSlope(BaseCost):
         return (1 - r_value**2)  # lower is better (closer to linear)
     
 
-def scaling_segments(deformations_L, L_values, name = "exp", max_breaks=2):
+def scaling_segments(deformations_L, L_values, name = "exp", max_breaks=0):
     
     """
     Function to find scaling exponent (beta), the intercept and the r^2 of different segments (scaling steps)
@@ -547,6 +551,18 @@ def scaling_segments(deformations_L, L_values, name = "exp", max_breaks=2):
         nan_where = np.argwhere(np.isnan(log_def))
         log_def = np.delete(log_def, nan_where)
         log_L = np.delete(log_L, nan_where)
+        slope, intercept, r, _, _ = linregress(log_L, log_def)
+        return [{
+            "start": 0,
+            "end": len(log_L),
+            "intercept": intercept,
+            "slope": slope,
+            "r_squared": r**2,
+            "x_range": (L_values[0], L_values[-1])
+        }]
+        
+    # If you want only one line
+    if max_breaks == 0:
         slope, intercept, r, _, _ = linregress(log_L, log_def)
         return [{
             "start": 0,
@@ -671,6 +687,108 @@ def scaling_figure(deformations, L_values, segments, names, colors, markers, r_t
         ax.set_yscale("log")
         
         #ax.set_ylim([1e-3, 1e0]) # good one !
+
+        ax.spines['top'].set_linewidth(2)
+        ax.spines['right'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+        
+        # Save and show plot
+        file_name = "SIMS/project/figures/Spatial_scaling_with_regression.png"
+        fig.savefig(file_name, bbox_inches='tight', dpi=300)  # Adjust bounding box for custom annotations
+        plt.close()
+        
+        
+def scaling_figure_new(deformations, L_values, segments, names, colors, markers, r_threshold=0.3, linestyle="-"):
+
+    plt.rcParams.update({'font.size': 24})
+    with plt.style.context(['science', 'no-latex']):
+        size_text = 26
+        s = 80
+        linewidth = 3
+        fig, ax = plt.subplots(figsize=( 7.5, 6))
+        #ax.set_title('Spatial scaling', fontsize=size_text)
+        ax.grid(True, which='both')
+        
+        fig.patch.set_linewidth(2) 
+
+        # Collect slope information for the legend
+        legend_elements = []
+    
+        for i in range(len(deformations)):
+            if colors[i] == "black" or colors[i] == "grey" or colors[i] == "red" or colors[i] == "blue" or colors[i] == "xkcd:greenish" or colors[i] == "xkcd:bluish purple" or colors[i] == "xkcd:red orange":
+                ax.scatter(np.array(L_values)*10, deformations[i], c=colors[i], marker='^',s=s, alpha=1, edgecolors="k", zorder=1000)
+                markers[i] = '^'
+               
+                # for the multiple slopes (scaling_sgments fcn)
+                experiment_segments = segments[i]
+                for seg in experiment_segments:
+                    if colors[i] != "black":
+                        L_fit = np.linspace(seg["x_range"][0], seg["x_range"][1], 100)
+                        fit = np.exp(seg["intercept"]) * L_fit**seg["slope"]
+                        ax.plot(L_fit * 10, fit, c=colors[i], linewidth=linewidth, linestyle=':', zorder=500)
+        
+            else:
+                if markers[i]=="s":
+                    # Scatter plot and regression line
+                    ax.scatter(np.array(L_values)*10, deformations[i], c=colors[i], marker=markers[i], s=s, alpha=1, edgecolors="k", zorder=1000)
+                    # for the multiple slopes (scaling_sgments fcn)
+                    experiment_segments = segments[i]
+                    for seg in experiment_segments:
+                        L_fit = np.linspace(seg["x_range"][0], seg["x_range"][1], 100)
+                        fit = np.exp(seg["intercept"]) * L_fit**seg["slope"]
+                        ax.plot(L_fit * 10, fit, c=colors[i], linewidth=linewidth, linestyle=':', zorder=500)
+                else:
+                    # Scatter plot and regression line
+                    linestyle = "--"
+                    ax.scatter(np.array(L_values)*10, deformations[i], c=colors[i], marker=markers[i], s=s, alpha=1, edgecolors="k", zorder=1000)
+                    experiment_segments = segments[i]
+                    for seg in experiment_segments:
+                        L_fit = np.linspace(seg["x_range"][0], seg["x_range"][1], 100)
+                        fit = np.exp(seg["intercept"]) * L_fit**seg["slope"]
+                        ax.plot(L_fit * 10, fit, c=colors[i], linewidth=linewidth, linestyle=linestyle, zorder=500)
+             
+            legend_elements.append((names[i],colors[i], markers[i]))       
+
+        # Custom legend with only colored numbers
+        legend_labels = [f'{text}' for text, _,_ in legend_elements]
+        legend_colors = [color for _, color, _ in legend_elements]
+        legend_markers = [marker for _,_, marker in legend_elements]
+        legend_title = " "
+
+        
+        x0 = 1.05  # leftmost position for marker (adjust as needed)
+        text_offset = 0.03  # distance between marker and text
+
+        ax.text(x0, 0.95, legend_title, transform=ax.transAxes,
+                fontsize=size_text, ha='left', va='center', fontweight='1000')
+
+        for i, (label, color, marker) in enumerate(zip(legend_labels, legend_colors, legend_markers)):
+            y = 0.85 - (i + 1.05) * 0.07
+
+            # scatter marker
+            ax.scatter([x0], [y], transform=ax.transAxes,
+                    marker=marker, edgecolors='k', color=color,
+                    s=s, clip_on=False)
+
+            # label text just to the right of the marker
+            ax.text(x0 + text_offset, y, label, transform=ax.transAxes,
+                    fontsize=size_text-7, ha='left', va='center', color=color,
+                    weight='bold', family='sans-serif')
+            
+        # Finalize plot
+        ax.set_xlabel('Spatial scale (km)', fontsize=size_text)
+        #ax.set_ylabel('$\\langle\\epsilon_{tot}\\rangle$')
+        ax.set_ylabel('$\\langle\\dot{\\epsilon}_{tot}\\rangle$', fontsize=size_text+3)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        
+        #ax.set_ylim([1e-3, 1e-1]) # good one !
+        
+        ax.tick_params(direction='in', length=5, width=1)
+
+        # Optional: Add ticks on all sides
+        #ax.tick_params(top=True, right=True)
 
         ax.spines['top'].set_linewidth(2)
         ax.spines['right'].set_linewidth(2)

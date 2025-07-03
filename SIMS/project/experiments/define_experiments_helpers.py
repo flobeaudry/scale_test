@@ -66,7 +66,8 @@ def draw_radial_tree(array, x, y, angle, length, depth, branches_per_level=4, an
         return
     
     #intensity = 0.5 ** (current_depth)  # Halve the intensity each level deeper
-    intensity = 2 ** current_depth
+    #intensity = 2 ** current_depth
+    intensity = 0.1
     #print(current_depth)
     angles = np.linspace(-angle_spread / 2, angle_spread / 2, branches_per_level)
 
@@ -138,7 +139,7 @@ def generate_radial_tree(N=256, fill_fraction=0.02, depth=6, branches_per_level=
 def generate_full_radial_fracture_field(N=256, fill_fraction=0.1, num_main_branches=50, depth=4, branch_angle_deg=30):
     array = np.zeros((N, N), dtype=int)
     center_x, center_y = N // 2, N // 2
-    radius = N // 3
+    radius = N // 2
     total_pixels = N * N
     target_pixels = int(total_pixels * fill_fraction)
     drawn = 0
@@ -147,11 +148,13 @@ def generate_full_radial_fracture_field(N=256, fill_fraction=0.1, num_main_branc
     i = 0
     while drawn < target_pixels and i < num_main_branches:
         angle = 2 * np.pi * i / num_main_branches
-        x = int(center_x + radius * np.cos(angle))
-        y = int(center_y + radius * np.sin(angle))
+        #x = int(center_x + radius * np.cos(angle))
+        #y = int(center_y + radius * np.sin(angle))
+        x = int(center_x)
+        y = int(center_y)
         draw_radial_tree(
-            array, x, y, angle, length=N // 8,
-            depth=depth, branches_per_level=3, angle_spread=branch_angle
+            array, x, y, angle, length=N // 4,
+            depth=depth, branches_per_level=2, angle_spread=branch_angle
         )
         drawn = np.count_nonzero(array)
         i += 1

@@ -1,5 +1,7 @@
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
+import os
 import math
 from matplotlib.colors import to_rgb, to_hex
 from scipy.ndimage import rotate
@@ -8,11 +10,12 @@ from experiments.define_experiments_helpers import draw_line, draw_simple_tree, 
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024/2)
+    N = int(1024/2+1)
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
     scaling_on = "all"
+    scaling_on = "shuffle"
     #scaling_on = "du_dx"
     #scaling_on = "div"
     
@@ -20,7 +23,7 @@ def get_experiment(name):
     #spacing_small = 4
     
     #spacing_control = 4
-    spacing_control = 8
+    spacing_control = 4
     spacing_small = 3
     
     mean_intensity = 0.1
@@ -61,7 +64,7 @@ def get_experiment(name):
     
         F = np.vstack([du_dx, dv_dy, du_dy, dv_dx])
         
-        return {"F": F, "exp_type": "both", "name": "pure shear strain", "color": "xkcd:light indigo", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "both", "name": "shear strain", "color": "xkcd:light indigo", "marker":"o", "scaling_on": scaling_on}
     
     
     
@@ -156,7 +159,8 @@ def get_experiment(name):
         #k = 30  # Number of oscillations in the domain
         k=10
         k=10
-        k = N/3
+        #k = N/3
+        k = N/6
         #k = (1024/4)/4
 
         # Generate the (N, N) field
@@ -168,7 +172,7 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
 
         #return {"F": F, "exp_type": "div", "name": "k=N/3: sin -0.5 to 0.5", "color": darker}
-        return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "tab:cyan", "marker":"s"}
+        return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "tab:cyan", "marker":"s", "scaling_on":scaling_on}
     
     if name == "ksin01":
         x = np.linspace(0, 2 * np.pi, N)  # x-domain
@@ -223,14 +227,16 @@ def get_experiment(name):
 
         # Define sinusoidal function parameters
         min_val, max_val = -0.5, 0.51  # Set min and max values
+        #min_val, max_val = -0.1, 0.1#Set min and max values
         A = (max_val + min_val) / 2  # Mean value
         B = (max_val - min_val) / 2  # Amplitude
         #k = 30  # Number of oscillations in the domain
         k=10
         k=10
-        k = N/4
+        #k = N/4
+        k = N/8
         #k = (1024/4)/4
-
+        
         # Generate the (N, N) field
         field = A + B * np.sin(k * X)
         F_div_u = field
@@ -517,7 +523,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        F = np.vstack([F_div_v, F_div_u])
+        #F = np.vstack([F_div_v, F_div_u])
         #return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
         return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
         
@@ -660,7 +666,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular spacing", "color": "tab:purple", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
    
     if name == "narrow spacing":
         F_div_u = np.zeros((N, N))
@@ -670,7 +676,7 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "off-grid spacing", "color": "tab:cyan", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on }
     
     if name == "irregular intensity":
         mean = 0
@@ -686,7 +692,7 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular intensity", "color": "tab:pink", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
 
 
     if name == "irregular domain":
@@ -1008,22 +1014,85 @@ def get_experiment(name):
         F_div_u = np.zeros((N, N))
         a = 0.5
         b = 5
-        n_terms = 20
+        n_terms = 30
         
         x = np.linspace(-N, N ,N)
         W = np.zeros_like(x)
         for n in range (n_terms):
             W += a**n * np.cos(b**n * np.pi * x / N)
-            
+        
         #W = (W / np.max(np.abs(W)))
-        W_pos = W
+
+        #combined_filename = os.path.join("SIMS/project/figures/tests/", f"weiestrauss.png")
+        #plt.savefig(combined_filename, dpi=300)
+        W_pos = W/20
+        #W += 0.01
+        print(np.max(W))
+        print(np.min(W))
+        print((W_pos))
         F_div_u = np.tile(W_pos, (N, 1))  # vertical lines
+        
+        
+        #W_2d = np.add.outer(W_pos, W_pos) 
+        #F_div_u = np.abs(W_2d)
         #F_div_u = pad_to_size(F, N)
+
         
         F_div_v = np.zeros((N,N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "weierstrass", "color": "coral", 'marker':'P' }
+        #scaling_on = "all"
+        return {"F": F, "exp_type": "div", "name": "weierstrass", "color": "coral", 'marker':'P', "scaling_on":scaling_on}
+    
+    if name == "weierstrass_pos":
+        F_div_u = np.zeros((N, N))
+        a = 0.5
+        b = 5
+        n_terms = 30
+        
+        x = np.linspace(-N, N ,N)
+        W = np.zeros_like(x)
+        for n in range (n_terms):
+            W += a**n * np.cos(b**n * np.pi * x / N)
+        
+        #W = (W / np.max(np.abs(W)))
+        fig, ax = plt.subplots(figsize=(4, 3.5))
+        plt.axhline(0, c='k', linewidth=0.8)
+        plt.plot(W/20, c='coral', linewidth=1)
+        W = (W+2)/20
+        plt.plot(W, c='rosybrown', linewidth=1)
+        ax.set_xlabel("Grid (Δx)", fontsize=12)
+        ax.set_ylabel('$\\dot{\\epsilon}_{I}$', fontsize=12)
+        ax.set_xlim(0, N)
+        #ax.set_xticks([])
+        #ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(1.5)
+
+        combined_filename = os.path.join("SIMS/project/figures/tests/", f"weiestrauss.png")
+        plt.tight_layout()
+        plt.savefig(combined_filename, dpi=300)
+        
+        
+        W_pos = W
+        print(np.max(W))
+        print(np.min(W))
+        print((W_pos))
+        F_div_u = np.tile(W_pos, (N, 1))  # vertical lines
+        
+        
+        #W_2d = np.add.outer(W_pos, W_pos) 
+        #F_div_u = np.abs(W_2d)
+        #F_div_u = pad_to_size(F, N)
+
+        
+        F_div_v = np.zeros((N,N))
+        
+        #scaling_on = "all"
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "weierstrass>0", "color": "rosybrown", 'marker':'P', "scaling_on":scaling_on}
+    
     
     if name == "fractal_tree":
         N_fractal = int(N/2*4)
@@ -1090,7 +1159,74 @@ def get_experiment(name):
         
         F_div_v = np.zeros((N, N))                                 
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "fractal fracture", "color": "xkcd:pinky red", 'marker':'P', "scaling_on":scaling_on}
+        return {"F": F, "exp_type": "div", "name": "self-similarity", "color": "xkcd:pinky red", 'marker':'P', "scaling_on":scaling_on}
+    
+    if name == "fractal_tree_abs":
+        N_fractal = int(N/2*4)
+        N_fractal = int(N/2)
+        N_fractal = int(N)
+        
+        #N_fractal = int(N)
+        
+        # If we want a fixed ratio of 0 and 1's
+        with open('SIMS/project/utils/rgps_div_ratios.pkl', 'rb') as f:
+            loaded_data = pickle.load(f)
+        print(loaded_data['thresholds'])
+        print(loaded_data['ratios'])
+        ratio = loaded_data["thresholds"][2]
+        
+        print(N_fractal)
+        #tree_array = generate_fractal_tree(N=N_fractal, depth=5)
+        #tree_array = generate_simple_tree(N=N_fractal, depth=11)
+        
+        #tree_array = generate_radial_tree(N=N_fractal, depth=10, branches_per_level=2)
+        
+        # with ratios !!
+        tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, depth=10, branches_per_level=2)
+        #tree_array = generate_radial_tree_without_ratios(N=N_fractal, depth=10, branches_per_level=2)
+        #tree_array = generate_fracture_field(N=N_fractal, num_fractures = 15, depth = 10)
+        #tree_array = generate_fracture_field(N=N_fractal,depth = 6, fill_fraction = ratio, max_fractures = 1000)
+        
+        # re-calculate the ratio
+        ones = len(np.where(tree_array != 0)[0])
+        zeros = len(np.where(tree_array == 0)[0])
+        ratio_recomp = ones/zeros
+        print('input ratio: ', ratio, ' re-calc ratio: ', ratio_recomp)
+        
+        #print('NOZERO', np.where(tree_array != 0))
+        F_div_u = np.zeros((N, N), dtype=float) 
+        #size_cut = int(N_fractal/4)
+        size_cut = int(N_fractal/4)
+        print(np.shape(tree_array))
+        
+        print(int(len(tree_array)/3))
+        
+        to_repeat = tree_array[:, int(len(tree_array)/4):-int(len(tree_array)/4)]
+        new_tree_array = np.concatenate((to_repeat, to_repeat), axis=1)
+        
+        zoom_tree_array = tree_array[:-2*int(len(tree_array)/4), int(len(tree_array)/4):-int(len(tree_array)/4)]
+        # need N_fractal = N
+        
+        
+        #new_tree_array = np.concatenate((new_tree_array1, to_repeat), axis=0)
+        #F_div_u[N_fractal//2:, N_fractal//2:] = tree_array[size_cut+20:-size_cut+20, size_cut:-size_cut]
+        ########F_div_u[N_fractal//4:, N_fractal//4:] = tree_array[size_cut:-2*size_cut, size_cut:-2*size_cut]
+        #F_div_u = tree_array                 
+        
+        #print(np.shape(F_div_u[N_fractal//2:, N_fractal//2:]))
+        
+        
+        #F_div_u[N//2:, N//2:] = tree_array
+        F_div_u[N//2:, N//2:] = tree_array[:N_fractal//2,N_fractal//4:N_fractal//4*3]
+        #F_div_u[N//2:, N//2:] = new_tree_array
+        #F_div_u[N//2:, N//2:] = zoom_tree_array
+        
+        array = tree_array
+        print(np.max(array), np.min(array), np.unique(array))
+        
+        F_div_v = np.zeros((N, N))                                 
+        F = np.vstack([F_div_u, F_div_v])
+        return {"F": F, "exp_type": "div", "name": "|self-similarity|", "color": "xkcd:maroon", 'marker':'P', "scaling_on":"du_dx"}
     
     
     if name == "radial_tree":
@@ -1104,7 +1240,7 @@ def get_experiment(name):
         # with ratios !!
         #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, max_trees=1000, depth=4, branches_per_level=2)
         #tree_array = generate_radial_tree(N=N_fractal, fill_fraction=ratio, depth=4, branches_per_level=3)
-        tree_array = generate_full_radial_fracture_field(N=N_fractal, fill_fraction=ratio, num_main_branches=50, depth=4, branch_angle_deg=30)
+        tree_array = generate_full_radial_fracture_field(N=N_fractal, fill_fraction=ratio, num_main_branches=10, depth=10, branch_angle_deg=40)
         # re-calculate the ratio
         ones = len(np.where(tree_array != 0)[0])
         zeros = len(np.where(tree_array == 0)[0])
@@ -1116,7 +1252,7 @@ def get_experiment(name):
 
         F_div_v = np.zeros((N, N))                                 
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "radial_tree", "color": "xkcd:marine blue", 'marker':'P', "scaling_on":scaling_on}
+        return {"F": F, "exp_type": "div", "name": "radial tree", "color": "xkcd:marine blue", 'marker':'P', "scaling_on":scaling_on}
     
     if name == 'control_decay':
         
@@ -1863,7 +1999,7 @@ def get_experiment(name):
         F_div_u = np.zeros((N, N))
         #F_div_u[:, spacing_control::spacing_control*2] = 1 
         #F_div_u[:, ::spacing_control*2] = -1 
-        spacing_control = 8
+        spacing_control = spacing_control
 
         
         # the ones to use (actual original !!)
@@ -1884,7 +2020,7 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
-        return {"F": F, "exp_type": "div", "name": "control +-", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
         #return {"F": F, "exp_type": "shear", "name": "control +-", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
 
     
@@ -1906,7 +2042,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "irregular spacing +-", "color": "tab:purple", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
     
     
     if name == "narrow spacing +-":
@@ -1925,7 +2061,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "narrow spacing +-", "color": "tab:cyan", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on}
     
     if name == "narrow spacing ++-":
         F_div_u = np.zeros((N, N))
@@ -1965,7 +2101,7 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular intensity +-", "color": "tab:pink", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o"}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
     
 
     if name == "irregular domain +-":
