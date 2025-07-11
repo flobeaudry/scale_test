@@ -11,8 +11,8 @@ from utils.figures_gen import fig_velocity_defo, fig_defo_new, fig_defo_gradient
 # Define experiments
 experiment_names = [
     
-    #"axial_strain",
-    #"pure_shear_strain",
+    "axial_strain",
+    "pure_shear_strain",
 
     #"control",
     #"narrow spacing",
@@ -73,8 +73,8 @@ experiment_names = [
 
     #"sin-0.51",
     #"ksin-0.51",
-    "ksin-11", #this one !!
-    "sin-11", #this one !!
+    #"ksin-11", #this one !!
+    #"sin-11", #this one !!
     
     
     #"sin01 err",
@@ -217,7 +217,7 @@ new_run = True
 #new_run = "vel_gradients"
 #new_run = "RGPS"
 #new_run = "RGPS_threshold"
-save_exp = True # Do you want to save the experiment you are running ?
+save_exp = False # Do you want to save the experiment you are running ?
 figs = True # For deformation figures (i.e. seeing the deformations)
 
 max_breaks  = 2
@@ -261,18 +261,18 @@ if new_run == True:
         #deformations_L, deformations_Long = scale_and_coarse(u, v, L_values, dx=dx, dy=dy)
         
         if name.endswith("c1"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='c1',  scaling_on = scaling_on )
+            deformations_L, deformations_Long = scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx=dx, dy=dy, c='c1',  scaling_on = scaling_on )
             
         elif name.endswith("err"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='err',  scaling_on = scaling_on )
+            deformations_L, deformations_Long = scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx=dx, dy=dy, c='err',  scaling_on = scaling_on )
             
         elif name.endswith("weighted"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted', scaling_on = scaling_on )
+            deformations_L, deformations_Long = scale_and_coarse(u, v, F,  u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted', scaling_on = scaling_on )
         elif name.endswith("weighted2"):
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted2', scaling_on = scaling_on )
+            deformations_L, deformations_Long = scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx=dx, dy=dy, c='weighted2', scaling_on = scaling_on )
             
         else:
-            deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, scaling_on = scaling_on )
+            deformations_L, deformations_Long = scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx=dx, dy=dy, scaling_on = scaling_on )
 
         deformations_tot.append(deformations_L)
         print("Scaling analysis done")
@@ -313,9 +313,11 @@ if new_run == True:
         # Step 2: Compute velocity fields
         u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
 
-        name, color =  "RGPS", "black"
+        #name, color =  "RGPS", "black"
+        name, color =  "RGPS", "grey"
         #deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "du_dx")
-        deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "shuffle")
+        #deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "shuffle")
+        deformations_L, deformations_Long = scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "all")
         
         deformations_tot.append(deformations_L)
         # Step 4: Generate scaling figure
@@ -547,7 +549,8 @@ elif new_run == "vel_gradients":
         # Step 2: Compute velocity fields
         u, v, F_recomp, u_noise, v_noise = compute_velocity_fields(F, exp_type, name, color)
 
-        name, color =  "RGPS", "black"
+        #name, color =  "RGPS", "black"
+        name, color =  "RGPS", "grey"
         deformations_L, deformations_Long = scale_and_coarse(u, v, u_noise, v_noise, L_values, dx=dx, dy=dy, c='rgps', scaling_on = "du_dx")
 
         deformations_tot.append(deformations_L)

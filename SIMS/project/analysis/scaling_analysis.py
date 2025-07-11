@@ -14,7 +14,7 @@ from scipy.ndimage import gaussian_filter1d
 from utils.velocity_gradients_calc import calc_du_dx, calc_du_dy, calc_dv_dx, calc_dv_dy
 
 
-def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', scaling_on = "all"):
+def scale_and_coarse(u, v, F, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', scaling_on = "all"):
     """
     If on an Arakawa C-grid, need to obtain the velocities at the center of each cell
                 ____o____
@@ -30,6 +30,10 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     dv_dy = calc_dv_dy(v, dy)[2:-2, 2:-2]
     dv_dx = calc_dv_dx(v, dx)[2:-2, 2:-2]
     du_dy = calc_du_dy(u, dy)[2:-2, 2:-2]
+
+    if c != "rgps":
+        print("HARDUSE PRESCRIBED VELO GRADIENTS")
+        du_dx, dv_dy, du_dy, dv_dx = np.vsplit(F, 4)
     
     print(np.shape(du_dy))
     # pad dudx and dvdy
@@ -262,10 +266,9 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
             plt.close()
 
         
-        
-    
+    print("scaling on", scaling_on)    
     if scaling_on != "all":
-        print(scaling_on)
+        print("scaling on", scaling_on)
         
         if scaling_on == "abs":
             du_dx, dv_dy, du_dy, dv_dx = np.abs(du_dx), np.abs(dv_dy), np.abs(du_dy), np.abs(dv_dx)
@@ -334,7 +337,8 @@ def scale_and_coarse(u, v, u_noise, v_noise, L_values, dx, dy,c="c0", rgps='', s
     deformations_L = []
     deformations_Long = []
     
-    if c == "c0":
+    #if c == "c0":
+    if c == "oups":
         print(c)
         U_grid = u
         V_grid = v
@@ -740,7 +744,7 @@ def scaling_figure_new(deformations, L_values, segments, names, colors, markers,
                         ax.plot(L_fit * 10, fit, c=colors[i], linewidth=linewidth, linestyle=':', zorder=500)
                 else:
                     # Scatter plot and regression line
-                    linestyle = "--"
+                    #linestyle = "--"
                     ax.scatter(np.array(L_values)*10, deformations[i], c=colors[i], marker=markers[i], s=s, alpha=1, edgecolors="k", zorder=1000)
                     experiment_segments = segments[i]
                     for seg in experiment_segments:

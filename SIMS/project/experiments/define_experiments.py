@@ -10,12 +10,13 @@ from experiments.define_experiments_helpers import draw_line, draw_simple_tree, 
 
 def get_experiment(name):
     #N = 1024 # Grid size
-    N = int(1024/2+1)
+    N = int(1024)
+    #N = 17
     dx, dy = 1, 1 # Grid resolution
     mean, std = 0, 0.1
     
     scaling_on = "all"
-    scaling_on = "shuffle"
+    #scaling_on = "shuffle"
     #scaling_on = "du_dx"
     #scaling_on = "div"
     
@@ -25,6 +26,7 @@ def get_experiment(name):
     #spacing_control = 4
     spacing_control = 4
     spacing_small = 3
+    spacing_control = 22
     
     mean_intensity = 0.1
     
@@ -47,7 +49,8 @@ def get_experiment(name):
     
         F = np.vstack([du_dx, dv_dy, du_dy, dv_dx])
         
-        return {"F": F, "exp_type": "both", "name": "axial strain", "color": "xkcd:orange", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "both", "name": "axial strain", "color": "xkcd:orange", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "both", "name": "axial strain", "color": "#14C7DE", "marker":"o", "scaling_on": scaling_on}
     
     if name == "pure_shear_strain":
         # Define only shear; dv/dx vertical positive lines, and du/dy horizontal positive lines
@@ -64,7 +67,9 @@ def get_experiment(name):
     
         F = np.vstack([du_dx, dv_dy, du_dy, dv_dx])
         
-        return {"F": F, "exp_type": "both", "name": "shear strain", "color": "xkcd:light indigo", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "both", "name": "shear strain", "color": "xkcd:light indigo", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "both", "name": "shear strain", "color": "xkcd:kelly green", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "both", "name": "shear strain", "color": "#B51515", "marker":"o", "scaling_on": scaling_on}
     
     
     
@@ -172,7 +177,8 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
 
         #return {"F": F, "exp_type": "div", "name": "k=N/3: sin -0.5 to 0.5", "color": darker}
-        return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "tab:cyan", "marker":"s", "scaling_on":scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "tab:cyan", "marker":"s", "scaling_on":scaling_on}
+        return {"F": F, "exp_type": "div", "name": "λ=3Δx", "color": "#006FFF", "marker":"s", "scaling_on":scaling_on}
     
     if name == "ksin01":
         x = np.linspace(0, 2 * np.pi, N)  # x-domain
@@ -246,7 +252,8 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         
         #return {"F": F, "exp_type": "div", "name": "k=N/4: sin -0.5 to 0.5", "color": darker}
-        return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "tab:blue", "marker":"s", "scaling_on":scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "tab:blue", "marker":"s", "scaling_on":scaling_on}
+        return {"F": F, "exp_type": "div", "name": "control (λ=4Δx)", "color": "black", "marker":"s", "scaling_on":scaling_on}
     
     
     
@@ -525,7 +532,8 @@ def get_experiment(name):
         F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
         #return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o"}
-        return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "shear", "name": "control (s=4Δx)        ", "color": "black", "marker":"o", "scaling_on": scaling_on}
         
         
     if name == "control_div_shear":
@@ -551,7 +559,10 @@ def get_experiment(name):
         
         #F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
-        F = np.vstack([F_zero, F_div_u, F_zero, F_div_v])
+        F = np.vstack([F_zero, F_zero, F_div_u, F_zero])
+
+        #F = np.vstack([F_zero, F_div_u, F_zero, F_div_v])
+        ####F = np.vstack([F_zero, F_div_u, F_zero, F_div_v])
         #F = np.vstack([F_div_u, F_zero, F_zero, F_div_v])
         
         return {"F": F, "exp_type": "both", "name": "control (s=4Δx) s+d        ", "color": "xkcd:violet", "marker":"o", "scaling_on": scaling_on}
@@ -612,7 +623,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "errors                   ", "color": "tab:blue", "marker":"s"}
+        return {"F": F, "exp_type": "div", "name": "errors                   err", "color": "tab:blue", "marker":"s", "scaling_on": scaling_on}
     
     if name == "control err weighted":
         F_div_u = np.zeros((N, N))
@@ -622,7 +633,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "$<\dot{\epsilon}{_{tot}} >{_{w}}$               err weighted", "color": "xkcd:royal blue", "marker":"s"}
+        return {"F": F, "exp_type": "div", "name": "$<\dot{\epsilon}{_{tot}} >{_{w}}$               err weighted", "color": "tab:olive", "marker":"s", "scaling_on": scaling_on}
     
     if name == "control err weighted2":
         F_div_u = np.zeros((N, N))
@@ -632,7 +643,7 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "$< \partial u_i / \partial x_j >{_{w}}$                 R err weighted2", "color": "xkcd:bluish grey", "marker":"s"}
+        return {"F": F, "exp_type": "div", "name": "$< \partial u_i / \partial x_j >{_{w}}$                 R err weighted2", "color": "tab:brown", "marker":"s", "scaling_on": scaling_on}
     
     if name == "45_angle":
         spacing = int(spacing_control*np.sqrt(2))
@@ -666,7 +677,8 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular spacing", "color": "tab:purple", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "#60BA46", "marker":"o", "scaling_on": scaling_on}
    
     if name == "narrow spacing":
         F_div_u = np.zeros((N, N))
@@ -676,7 +688,8 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "off-grid spacing", "color": "tab:cyan", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on }
+        #return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on }
+        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "#006FFF", "marker":"o", "scaling_on": scaling_on }
     
     if name == "irregular intensity":
         mean = 0
@@ -692,7 +705,8 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular intensity", "color": "tab:pink", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "#ED3624", "marker":"o", "scaling_on": scaling_on}
 
 
     if name == "irregular domain":
@@ -2020,7 +2034,8 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #F = np.vstack([F_div_v, F_div_u])
-        return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "control (s=4Δx)        ", "color": "black", "marker":"o", "scaling_on": scaling_on}
         #return {"F": F, "exp_type": "shear", "name": "control +-", "color": "tab:blue", "marker":"o", "scaling_on": scaling_on}
 
     
@@ -2042,7 +2057,8 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "tab:purple", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "s≠constant", "color": "#60BA46", "marker":"o", "scaling_on": scaling_on}
     
     
     if name == "narrow spacing +-":
@@ -2061,7 +2077,8 @@ def get_experiment(name):
         F_div_v = np.zeros((N, N))
         
         F = np.vstack([F_div_u, F_div_v])
-        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "tab:cyan", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "s=3Δx", "color": "#006FFF", "marker":"o", "scaling_on": scaling_on}
     
     if name == "narrow spacing ++-":
         F_div_u = np.zeros((N, N))
@@ -2101,7 +2118,8 @@ def get_experiment(name):
         
         F = np.vstack([F_div_u, F_div_v])
         #return {"F": F, "exp_type": "div", "name": "irregular intensity +-", "color": "tab:pink", "marker":"o"}
-        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
+        #return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "tab:pink", "marker":"o", "scaling_on": scaling_on}
+        return {"F": F, "exp_type": "div", "name": "$\\mathbf{\\dot{\\epsilon}_{I}}$≠constant", "color": "#ED3624", "marker":"o", "scaling_on": scaling_on}
     
 
     if name == "irregular domain +-":

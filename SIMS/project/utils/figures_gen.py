@@ -193,8 +193,14 @@ def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = False):
         V_grid = V_grid[mid_y:reduced_y, mid_x:reduced_x]
         div = div[mid_y:reduced_y, mid_x:reduced_x]
     
-    U_grid = U_grid[1:-1, 1:-1]
-    V_grid = V_grid[1:-1, 1:-1]
+    #U_grid = U_grid[1:-1, 1:-1]
+    #V_grid = V_grid[1:-1, 1:-1]
+    U_grid = U_grid[2:-2, 2:-2]
+    V_grid = V_grid[2:-2, 2:-2]
+
+    #flat_dudx = div[~np.isnan(div)].flatten()
+    #np.random.shuffle(flat_dudx)
+    #div[~np.isnan(div)] = flat_dudx
            
     with plt.style.context(['science', 'no-latex']):
         # Create a single figure with one panel
@@ -228,6 +234,49 @@ def fig_defo_new(U_grid, V_grid, div, name, color, top_right_quadrant = False):
         ax.spines['bottom'].set_linewidth(2)
         plt.tight_layout()
         combined_filename = os.path.join("SIMS/project/figures/deformation/", f"grid_{name}_div_velocity.png")
+        plt.savefig(combined_filename, dpi=300)
+        plt.close(fig)
+
+    with plt.style.context(['science', 'no-latex']):
+        U_grid = U_grid[3:-3, 3:-3]
+        V_grid = V_grid[3:-3, 3:-3]
+        div = div[3:-3, 3:-3]
+        # Create a single figure with one panel
+        fig, ax = plt.subplots(figsize=(4, 4.3))
+
+        # Create a mesh grid for the vector field
+        x = np.arange(U_grid.shape[1])
+        y = np.arange(V_grid.shape[0])
+        X, Y = np.meshgrid(x, y)
+        print('HERE',np.shape(X))
+        
+        speed = np.sqrt(U_grid**2 + V_grid**2)
+        div = np.zeros_like(div)
+        # Use pcolormesh for background color representation
+        ax.pcolormesh(X, Y, div, cmap='coolwarm', shading='auto', alpha=0.6, vmin = -1, vmax = 1,edgecolors='black', linewidth=0.15)
+    
+        # Plot quivers for velocity field
+        ax.quiver(X, Y, U_grid, V_grid, color='k', linewidth=2,width=0.007, scale=1, scale_units='xy',alpha=1)
+        print(U_grid, V_grid)
+
+        ax.set_title(f"{name}", fontweight ="extra bold", color=color,  family='sans-serif', fontsize=20)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        ax.grid(True, which='both')
+        
+        # Adjust spines
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(2)
+
+        # Save the figure
+        ax.spines['top'].set_linewidth(2)
+        ax.spines['right'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+        plt.tight_layout()
+        combined_filename = os.path.join("SIMS/project/figures/velocities/", f"grid_{name}_div_velocity.png")
         plt.savefig(combined_filename, dpi=300)
         plt.close(fig)
 
